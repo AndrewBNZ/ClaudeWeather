@@ -53,8 +53,9 @@ export const DATA_TYPES = {
     label: 'Humidity',
     icon: '💧',
     hourlyKey: 'relative_humidity_2m',
-    dailyMaxKey: null, // computed from hourly
+    dailyMaxKey: null,
     dailyMinKey: null,
+    dailyAvg: true,
     color: '#14b8a6',
     getUnit: () => '%',
     decimals: 0,
@@ -72,15 +73,61 @@ export const DATA_TYPES = {
     decimals: 1,
     floatingBar: false,
   },
+  cloudCover: {
+    id: 'cloudCover',
+    label: 'Cloud Cover',
+    icon: '☁️',
+    hourlyKey: 'cloud_cover',
+    dailyMaxKey: null,
+    dailyMinKey: null,
+    dailyAvg: true,
+    color: '#94a3b8',
+    getUnit: () => '%',
+    decimals: 0,
+    floatingBar: false,
+  },
+  pressure: {
+    id: 'pressure',
+    label: 'Pressure',
+    icon: '↕️',
+    hourlyKey: 'surface_pressure',
+    dailyMaxKey: null,
+    dailyMinKey: null,
+    dailyAvg: true,
+    color: '#818cf8',
+    getUnit: () => 'hPa',
+    decimals: 0,
+    floatingBar: false,
+  },
+  visibility: {
+    id: 'visibility',
+    label: 'Visibility',
+    icon: '👁️',
+    hourlyKey: 'visibility',
+    dailyMaxKey: null,
+    dailyMinKey: null,
+    dailyAvg: true,
+    color: '#22d3ee',
+    getUnit: (units) => units === 'metric' ? 'km' : 'mi',
+    decimals: 1,
+    floatingBar: false,
+    scale: (v, units) => units === 'metric' ? v / 1000 : v / 1609.344,
+  },
 }
 
 export const DATA_TYPE_LIST = Object.values(DATA_TYPES)
 
-// Compute daily average humidity from hourly data (7 days × 24 hours)
-export function getDailyHumidityFromHourly(hourly) {
+// Generic: daily average from hourly for any key
+export function getDailyAvgFromHourly(hourly, key) {
+  const arr = hourly[key] ?? []
   return Array.from({ length: 14 }, (_, d) => {
-    const slice = hourly.relative_humidity_2m.slice(d * 24, d * 24 + 24)
+    const slice = arr.slice(d * 24, d * 24 + 24)
     const valid = slice.filter(v => v != null)
-    return valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : null
+    return valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : null
   })
+}
+
+// Compute daily average humidity from hourly data
+export function getDailyHumidityFromHourly(hourly) {
+  return getDailyAvgFromHourly(hourly, 'relative_humidity_2m')
 }

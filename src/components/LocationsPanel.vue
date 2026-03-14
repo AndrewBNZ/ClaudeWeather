@@ -30,7 +30,7 @@
             >
               <button class="loc-name" @click="emit('select', loc)">
                 <span class="loc-icon">📍</span>
-                {{ loc.name }}
+                <span class="loc-name-text">{{ loc.name }}</span>
               </button>
               <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
             </li>
@@ -157,6 +157,7 @@ function onLocationSelected(payload) {
 
 .loc-name {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -168,6 +169,14 @@ function onLocationSelected(payload) {
   font-family: inherit;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.loc-name-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .location-item.active .loc-name {
   color: #38bdf8;

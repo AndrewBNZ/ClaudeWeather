@@ -1,8 +1,10 @@
 <template>
   <div class="chart-card card">
     <div class="chart-header">
-      <h3 class="chart-title">Hourly</h3>
-      <span class="chart-subtitle">{{ config.icon }} {{ config.label }}</span>
+      <div class="chart-title-group">
+        <h3 class="chart-title">Hourly</h3>
+        <span class="chart-subtitle">{{ config.icon }} {{ config.label }}</span>
+      </div>
       <div class="day-nav">
         <button
           v-if="dayIndex > 0"
@@ -26,8 +28,10 @@
         @click="emit('select-day', dayIndex - 1)"
         :title="`Back: ${dayOptions[dayIndex - 1]}`"
       >‹</button>
-      <div class="chart-wrap">
-        <canvas ref="canvasRef"></canvas>
+      <div class="chart-wrap" ref="chartWrapRef">
+        <div class="chart-scroll-inner">
+          <canvas ref="canvasRef"></canvas>
+        </div>
       </div>
       <button
         v-if="dayIndex < dayOptions.length - 1"
@@ -40,7 +44,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Chart, Tooltip } from 'chart.js'
 
 // Tooltip follows the probability line dot on rain charts
@@ -62,7 +66,17 @@ const props = defineProps({
 const emit = defineEmits(['select-day'])
 
 const canvasRef     = ref(null)
+const chartWrapRef  = ref(null)
 let   chartInstance = null
+
+function scrollToCurrentHour(currentHour) {
+  if (currentHour < 0 || !chartWrapRef.value) return
+  const wrap = chartWrapRef.value
+  const maxScroll = wrap.scrollWidth - wrap.clientWidth
+  if (maxScroll <= 0) return
+  const pos = (currentHour / 24) * wrap.scrollWidth - wrap.clientWidth / 4
+  wrap.scrollLeft = Math.max(0, Math.min(pos, maxScroll))
+}
 
 const config = computed(() => DATA_TYPES[props.activeType])
 
@@ -118,7 +132,7 @@ const crosshairPlugin = {
 // Per-chart plugin that draws rotated arrows for wind direction.
 // Wind direction is meteorological (degrees the wind comes FROM).
 // Arrows point in the direction the wind is blowing TO (FROM + 180°).
-function makeWindArrowPlugin(directions, color, currentHour) {
+function makeWindArrowPlugin(directions, values, color, currentHour) {
   return {
     id: 'windArrows',
     afterDatasetsDraw(chart) {
@@ -167,28 +181,91 @@ function makeWindArrowPlugin(directions, color, currentHour) {
         ctx.fill()
 
         ctx.restore()
+
+        // Speed number below the arrow circle (no rotation)
+        const v = values[i]
+        if (v != null) {
+          ctx.save()
+          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'top'
+          ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
+          ctx.fillText(`${Math.round(v)}`, x, y + radius + 4)
+          ctx.restore()
+        }
       })
     },
   }
 }
 
-// Per-chart plugin that draws weather condition emoji at each data point.
-function makeWeatherEmojiPlugin(codes, currentHour) {
+// Per-chart plugin that draws weather condition emoji + temperature value at each data point.
+function makeWeatherEmojiPlugin(codes, values, unit, currentHour) {
   return {
     id: 'weatherEmoji',
     afterDatasetsDraw(chart) {
       const { ctx } = chart
       const meta = chart.getDatasetMeta(0)
       meta.data.forEach((point, i) => {
-        const emoji = getWeatherInfo(codes[i])?.emoji
-        if (!emoji) return
         const { x, y } = point.getProps(['x', 'y'], true)
-        const size = i === currentHour ? 18 : 14
+        const isCurrent = i === currentHour
+        const emojiSize = isCurrent ? 22 : 18
+
+        // Emoji centered on the data point
+        const emoji = getWeatherInfo(codes[i])?.emoji
+        if (emoji) {
+          ctx.save()
+          ctx.font = `${emojiSize}px sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(emoji, x, y)
+          ctx.restore()
+        }
+
+        // Value number below the emoji
+        const v = values[i]
+        if (v != null) {
+          ctx.save()
+          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'top'
+          ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
+          ctx.fillText(`${Math.round(v)}`, x, y + emojiSize / 2 + 2)
+          ctx.restore()
+        }
+      })
+    },
+  }
+}
+
+// Per-chart plugin that draws condition emoji + precipitation amount above each rain bar.
+function makeRainLabelPlugin(codes, precipValues, currentHour) {
+  return {
+    id: 'rainLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart
+      const meta = chart.getDatasetMeta(0)
+      meta.data.forEach((bar, i) => {
+        const val = precipValues[i]
+        if (!val) return
+        const { x, y } = bar.getProps(['x', 'y'], true)
+        const isCurrent = i === currentHour
+
+        const emoji = getWeatherInfo(codes[i])?.emoji
+        if (emoji) {
+          ctx.save()
+          ctx.font = `${isCurrent ? 22 : 18}px sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'bottom'
+          ctx.fillText(emoji, x, y - 16)
+          ctx.restore()
+        }
+
         ctx.save()
-        ctx.font = `${size}px sans-serif`
+        ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
         ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(emoji, x, y)
+        ctx.textBaseline = 'bottom'
+        ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
+        ctx.fillText(`${Number(val).toFixed(1)}`, x, y - 2)
         ctx.restore()
       })
     },
@@ -211,35 +288,48 @@ function buildChart() {
     chartInstance = null
   }
 
-  const cfg  = DATA_TYPES[props.activeType]
-  const unit = cfg.getUnit(props.units)
+  const cfg      = DATA_TYPES[props.activeType]
+  const unit     = cfg.getUnit(props.units)
+  const isMobile = window.innerWidth < 640
 
   const now = new Date()
   const start = props.dayIndex * 24
   const labels = props.hourly.time.slice(start, start + 24).map(hourLabel)
-  const values = props.hourly[cfg.hourlyKey].slice(start, start + 24)
+  let values = props.hourly[cfg.hourlyKey].slice(start, start + 24)
+  if (cfg.scale) values = values.map(v => v != null ? cfg.scale(v, props.units) : null)
   // Only highlight current hour when viewing today
   const currentHour = props.dayIndex === 0 ? now.getHours() : -1
 
   const isWind = cfg.id === 'wind'
   const isRain = cfg.id === 'rain'
   const isTemp = cfg.id === 'temperature' || cfg.id === 'feelsLike'
+
+  // Global min/max across all 14 days with padding so inline labels stay inside the chart area
+  let globalYMin, globalYMax
+  if (!isRain) {
+    let allVals = (props.hourly[cfg.hourlyKey] ?? []).filter(v => v != null)
+    if (cfg.scale) allVals = allVals.map(v => cfg.scale(v, props.units))
+    if (allVals.length) {
+      const lo = Math.min(...allVals)
+      const hi = Math.max(...allVals)
+      const pad = Math.max((hi - lo) * 0.18, 2)
+      globalYMin = Math.floor(lo - pad)
+      globalYMax = Math.ceil(hi + pad)
+    }
+  }
+
   const windDirs   = isWind ? (props.hourly.wind_direction_10m ?? []).slice(start, start + 24) : null
   const probValues = isRain ? (props.hourly.precipitation_probability ?? []).slice(start, start + 24) : null
-  const wxCodes    = isTemp ? (props.hourly.weather_code ?? []).slice(start, start + 24) : null
+  const wxCodes    = (props.hourly.weather_code ?? []).slice(start, start + 24)
 
-  // For wind: hide default dots (arrows drawn by plugin instead)
-  // For temp: hide default dots (emoji drawn by plugin instead)
-  // For others: highlight current hour with a larger white dot
-  const pointRadii  = (isWind || isTemp) ? 0 : labels.map((_, i) => i === currentHour ? 6 : 3)
-  const pointColors = (isWind || isTemp) ? cfg.color : labels.map((_, i) =>
-    i === currentHour ? '#ffffff' : cfg.color
-  )
+  // All non-rain charts: hide default dots (custom plugin draws icon + number instead)
+  const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
+  const pointColors = isRain ? labels.map((_, i) => i === currentHour ? '#ffffff' : cfg.color) : cfg.color
   const extraPlugins = [
     makePastShadingPlugin(currentHour, props.dayIndex),
     crosshairPlugin,
-    ...(isWind ? [makeWindArrowPlugin(windDirs, cfg.color, currentHour)]
-      : isTemp ? [makeWeatherEmojiPlugin(wxCodes, currentHour)]
+    ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour)]
+      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, unit, currentHour)]
       : []),
   ]
 
@@ -276,16 +366,17 @@ function buildChart() {
           },
         ],
       },
-      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin],
+      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, makeRainLabelPlugin(wxCodes, values, currentHour)],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 400 },
-        layout: { padding: { left: 12, right: 12 } },
+        layout: { padding: { left: 4, right: 4 } },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
+            enabled: !isMobile,
             position: 'linePoint',
             backgroundColor: 'rgba(15, 23, 42, 0.95)',
             borderColor: cfg.color,
@@ -302,23 +393,25 @@ function buildChart() {
         },
         scales: {
           x: {
+            position: 'top',
             grid:  { color: 'rgba(255,255,255,0.04)' },
             ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
             border: { color: 'rgba(255,255,255,0.06)' },
           },
           y: {
             position: 'left',
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-            ticks: { color: '#64748b', callback: (v) => `${v}${unit}` },
-            border: { color: 'rgba(255,255,255,0.06)' },
+            grace: '20%',
+            grid:  { display: false },
+            ticks: { display: false, color: '#64748b', callback: (v) => `${v}${unit}` },
+            border: { display: false },
           },
           y1: {
             position: 'right',
             min: 0,
             max: 100,
             grid:  { drawOnChartArea: false },
-            ticks: { color: '#93c5fd', callback: (v) => `${v}%` },
-            border: { color: 'rgba(255,255,255,0.06)' },
+            ticks: { display: false, color: '#93c5fd', callback: (v) => `${v}%` },
+            border: { display: false },
           },
         },
       },
@@ -335,7 +428,7 @@ function buildChart() {
         data: values,
         borderColor: cfg.color,
         backgroundColor: cfg.color + '22',
-        fill: true,
+        fill: 'start',
         tension: 0.4,
         spanGaps: true,
         pointRadius: pointRadii,
@@ -351,11 +444,12 @@ function buildChart() {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 400 },
-      layout: { padding: { left: 12, right: 12 } },
+      layout: { padding: { left: 4, right: 4, top: isRain ? 0 : (isMobile ? 8 : 16) } },
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: !isMobile,
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           borderColor: cfg.color,
           borderWidth: 1,
@@ -370,7 +464,7 @@ function buildChart() {
                 const dir = getCompassDir(windDirs[ctx.dataIndex])
                 return ` ${formatted} ${dir}`
               }
-              if (isTemp && wxCodes) {
+              if (isTemp) {
                 const condition = getWeatherInfo(wxCodes[ctx.dataIndex])?.label ?? ''
                 return ` ${formatted}  ${condition}`
               }
@@ -381,28 +475,39 @@ function buildChart() {
       },
       scales: {
         x: {
+          position: 'top',
           grid:  { color: 'rgba(255,255,255,0.04)' },
           ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
           border: { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
-          grid:  { color: 'rgba(255,255,255,0.04)' },
+          ...(!isRain && globalYMin != null ? { min: globalYMin, max: globalYMax } : {}),
+          grid:  { display: false },
           ticks: {
+            display: isRain,
             color: '#64748b',
             callback: (v) => `${v}${unit}`,
           },
-          border: { color: 'rgba(255,255,255,0.06)' },
+          border: { display: false },
         },
       },
     },
   })
 }
 
-watch(() => props.activeType, buildChart)
-watch(() => props.units,      buildChart)
-watch(() => props.hourly,     buildChart)
-watch(() => props.dayIndex,   buildChart)
-onMounted(buildChart)
+async function buildAndScroll() {
+  buildChart()
+  await nextTick()
+  const currentHour = props.dayIndex === 0 ? new Date().getHours() : -1
+  scrollToCurrentHour(currentHour)
+}
+
+function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
+watch(() => props.activeType, scheduleAndScroll)
+watch(() => props.units,      scheduleAndScroll)
+watch(() => props.hourly,     scheduleAndScroll)
+watch(() => props.dayIndex,   scheduleAndScroll)
+onMounted(() => requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)))
 onBeforeUnmount(() => { chartInstance?.destroy() })
 </script>
 
@@ -413,9 +518,16 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
 
 .chart-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.chart-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
 }
 
 .chart-title {
@@ -487,6 +599,31 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   height: 220px;
   flex: 1;
   min-width: 0;
+}
+
+.chart-scroll-inner {
+  position: relative;
+  height: 100%;
+}
+
+@media (max-width: 639px) {
+  .chart-card {
+    padding: 12px 12px 10px;
+  }
+  .chart-subtitle {
+    display: none;
+  }
+  .chart-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chart-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  .chart-scroll-inner {
+    min-width: 900px;
+  }
 }
 
 .prev-day-btn,

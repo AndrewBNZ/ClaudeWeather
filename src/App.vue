@@ -2,19 +2,14 @@
   <div class="app-shell">
     <header class="header">
       <div class="header-left">
-        <span class="app-icon">⛅</span>
-        <span class="app-name">ClaudeWeather</span>
+        <span class="app-name">{{ locationName || 'ClaudeWeather' }}</span>
       </div>
       <div class="header-right">
         <button class="locations-btn" @click="panelOpen = true" title="Saved locations">
           ☰
           <span v-if="savedLocations.length" class="loc-count">{{ savedLocations.length }}</span>
         </button>
-        <button class="unit-toggle" @click="toggleUnits" :title="units === 'metric' ? 'Switch to Imperial' : 'Switch to Metric'">
-          <span :class="['unit-opt', { active: units === 'metric' }]">°C</span>
-          <span class="unit-sep">/</span>
-          <span :class="['unit-opt', { active: units === 'imperial' }]">°F</span>
-        </button>
+        <button class="settings-btn" @click="settingsOpen = true" title="Settings">⚙️</button>
       </div>
     </header>
 
@@ -46,9 +41,12 @@
           <aside class="layout-left">
             <CurrentConditions
               :data="weatherData.current"
+              :daily="weatherData.daily"
               :units="units"
               :active-type="activeDataType"
               :location-name="locationName"
+              :show-sim="showSim"
+              :tile-config="tileConfig"
               @select="activeDataType = $event"
             />
           </aside>
@@ -85,6 +83,68 @@
       </template>
     </main>
 
+    <!-- Settings panel -->
+    <transition name="panel-slide">
+      <div v-if="settingsOpen" class="panel-overlay" @click.self="settingsOpen = false">
+        <div class="settings-panel">
+          <div class="panel-header">
+            <span class="panel-title">Settings</span>
+            <button class="panel-close" @click="settingsOpen = false">✕</button>
+          </div>
+          <div class="settings-body">
+            <div class="setting-row">
+              <span class="setting-label">Units</span>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', { active: units === 'metric' }]"    @click="units = 'metric'">Metric</button>
+                <button :class="['unit-pill-opt', { active: units === 'imperial' }]"  @click="units = 'imperial'">Imperial</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Simulate Conditions</div>
+                <div class="setting-hint">Preview weather effects on the scene</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+
+            <div class="setting-section">
+              <div class="setting-row" style="padding-bottom: 4px">
+                <div>
+                  <div class="setting-label">Data Types</div>
+                  <div class="setting-hint">Drag to reorder · tap to show/hide</div>
+                </div>
+              </div>
+              <div class="tile-list">
+                <div
+                  v-for="(tile, i) in tileConfig"
+                  :key="tile.type"
+                  :data-tile-idx="i"
+                  class="tile-row"
+                  :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+                  draggable="true"
+                  @dragstart="onTileDragStart($event, i)"
+                  @dragover="onTileDragOver($event, i)"
+                  @dragend="onTileDragEnd"
+                  @drop="onTileDrop($event, i)"
+                  @touchstart.passive="onTileTouchStart($event, i)"
+                  @touchmove="onTileTouchMove"
+                  @touchend="onTileTouchEnd"
+                >
+                  <span class="tile-drag-handle">⠿</span>
+                  <span class="tile-icon-label">{{ TILE_META[tile.type].icon }} {{ TILE_META[tile.type].label }}</span>
+                  <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
+                    <span class="toggle-thumb" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <LocationsPanel
       :locations="savedLocations"
       :active-location="location"
@@ -111,7 +171,45 @@ import { reverseGeocode }      from './services/geocoding.js'
 const LOCATIONS_KEY  = 'claudeweather-locations'
 const ACTIVE_KEY     = 'claudeweather-active'
 const DATATYPE_KEY   = 'claudeweather-datatype'
+const UNITS_KEY      = 'claudeweather-units'
+const SIM_KEY        = 'claudeweather-sim'
+const TILES_KEY      = 'claudeweather-tiles'
 const LEGACY_KEY     = 'claudeweather-location'
+
+// ── Tile configuration ────────────────────────────────────────────────────────
+const TILE_META = {
+  rain:        { icon: '🌧️', label: 'Rain' },
+  wind:        { icon: '💨', label: 'Wind' },
+  feelsLike:   { icon: '🤔', label: 'Feels Like' },
+  humidity:    { icon: '💧', label: 'Humidity' },
+  uv:          { icon: '☀️', label: 'UV Index' },
+  cloudCover:  { icon: '☁️', label: 'Cloud Cover' },
+  pressure:    { icon: '↕️', label: 'Pressure' },
+  visibility:  { icon: '👁️', label: 'Visibility' },
+}
+const DEFAULT_TILES = [
+  { type: 'rain',        enabled: true },
+  { type: 'wind',        enabled: true },
+  { type: 'feelsLike',   enabled: true },
+  { type: 'humidity',    enabled: true },
+  { type: 'uv',          enabled: true },
+  { type: 'cloudCover',  enabled: true },
+  { type: 'pressure',    enabled: true },
+  { type: 'visibility',  enabled: true },
+]
+function loadTileConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TILES_KEY))
+    if (Array.isArray(raw) && raw.every(t => t.type)) {
+      const known = new Set(Object.keys(TILE_META))
+      const valid = raw.filter(t => known.has(t.type))
+      const seen  = new Set(valid.map(t => t.type))
+      for (const d of DEFAULT_TILES) { if (!seen.has(d.type)) valid.push({ ...d }) }
+      return valid
+    }
+  } catch {}
+  return DEFAULT_TILES.map(t => ({ ...t }))
+}
 
 function persistLocations(arr) {
   try { localStorage.setItem(LOCATIONS_KEY, JSON.stringify(arr)) } catch {}
@@ -143,10 +241,13 @@ function loadSavedLocations() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
+const tileConfig     = ref(loadTileConfig())
 const savedLocations = ref(loadSavedLocations())
 const panelOpen      = ref(false)
+const settingsOpen   = ref(false)
+const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const location       = ref(null)   // { lat, lon }
-const units          = ref('metric')
+const units          = ref(localStorage.getItem(UNITS_KEY) ?? 'metric')
 const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 const selectedDay    = ref(0)      // 0 = today, 1–6 = forecast days
 const weatherData    = ref(null)
@@ -248,17 +349,60 @@ async function loadWeather() {
   }
 }
 
-function toggleUnits() {
-  units.value = units.value === 'metric' ? 'imperial' : 'metric'
-}
-
 // Re-fetch whenever location changes; also reset to today
 watch(location, (loc) => { if (loc) { selectedDay.value = 0; loadWeather() } })
-// Re-fetch whenever units change
-watch(units, () => { if (location.value) loadWeather() })
+// Re-fetch whenever units change; persist preference
+watch(units, (v) => { localStorage.setItem(UNITS_KEY, v); if (location.value) loadWeather() })
+watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
+watch(tileConfig, (v) => { try { localStorage.setItem(TILES_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 // Check staleness when user switches data type or day; persist data type selection
 watch(activeDataType, (t) => { localStorage.setItem(DATATYPE_KEY, t); checkAndRefresh() })
 watch(selectedDay,    checkAndRefresh)
+
+// ── Tile drag-and-drop ────────────────────────────────────────────────────────
+const tileDragIndex = ref(null)
+const tileDragOver  = ref(null)
+let   tileTouchIdx  = null
+let   tileTouchMoved = false
+
+function reorderTiles(from, to) {
+  const arr = [...tileConfig.value]
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+  tileConfig.value = arr
+}
+
+function toggleTile(i) {
+  const arr = tileConfig.value.map((t, idx) => idx === i ? { ...t, enabled: !t.enabled } : t)
+  if (!arr[i].enabled && activeDataType.value === arr[i].type) activeDataType.value = 'temperature'
+  tileConfig.value = arr
+}
+
+function onTileDragStart(e, i) { tileDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
+function onTileDragOver(e, i)  { e.preventDefault(); tileDragOver.value = i }
+function onTileDragEnd()       { tileDragIndex.value = null; tileDragOver.value = null }
+function onTileDrop(e, i) {
+  e.preventDefault()
+  if (tileDragIndex.value !== null && tileDragIndex.value !== i) reorderTiles(tileDragIndex.value, i)
+  tileDragIndex.value = null; tileDragOver.value = null
+}
+
+function onTileTouchStart(e, i) { tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i }
+function onTileTouchMove(e) {
+  if (tileTouchIdx === null) return
+  e.preventDefault()
+  tileTouchMoved = true
+  const touch = e.touches[0]
+  const el  = document.elementFromPoint(touch.clientX, touch.clientY)
+  const row = el?.closest('[data-tile-idx]')
+  tileDragOver.value = row ? parseInt(row.dataset.tileIdx) : null
+}
+function onTileTouchEnd() {
+  if (tileTouchMoved && tileTouchIdx !== null && tileDragOver.value !== null && tileTouchIdx !== tileDragOver.value) {
+    reorderTiles(tileTouchIdx, tileDragOver.value)
+  }
+  tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
+}
 
 // On load: restore last active location (or fall back to first saved); auto-open panel for new users
 const activeSaved = (() => {
@@ -305,6 +449,11 @@ if (activeSaved) {
   align-items: center;
   gap: 10px;
 }
+.header-left {
+  min-width: 0;
+  flex: 1;
+  margin-right: 16px;
+}
 
 .locations-btn {
   display: flex;
@@ -331,33 +480,27 @@ if (activeSaved) {
   line-height: 1.4;
 }
 
-.app-icon { font-size: 1.5rem; }
-
 .app-name {
   font-size: 1.1rem;
   font-weight: 700;
   color: #f1f5f9;
   letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
-.unit-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.settings-btn {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 9999px;
-  padding: 6px 14px;
+  padding: 6px 12px;
   color: #94a3b8;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 1.1rem;
   transition: background 0.2s;
 }
-.unit-toggle:hover { background: rgba(255,255,255,0.1); }
-
-.unit-opt { transition: color 0.2s; }
-.unit-opt.active { color: #38bdf8; }
-.unit-sep { color: #334155; }
+.settings-btn:hover { background: rgba(255,255,255,0.1); }
 
 /* ── Main ───────────────────────────────────────────────────────────────── */
 .main {
@@ -384,6 +527,22 @@ if (activeSaved) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+@media (max-width: 767px) {
+  .main {
+    padding-top: 0;
+  }
+  .layout-left {
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+  .layout-left .conditions {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
 }
 
 @media (min-width: 768px) {
@@ -525,6 +684,199 @@ if (activeSaved) {
 }
 .refresh-btn:hover:not(:disabled) { color: #94a3b8; }
 .refresh-btn:disabled { cursor: default; }
+
+/* ── Settings panel ─────────────────────────────────────────────────────── */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-panel {
+  width: 300px;
+  max-width: 90vw;
+  height: 100%;
+  background: #0f1829;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.panel-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.panel-close {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  transition: color 0.15s;
+}
+.panel-close:hover { color: #94a3b8; }
+
+.settings-body {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.setting-label {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.unit-pill {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.unit-pill-opt {
+  padding: 5px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748b;
+  background: none;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+.unit-pill-opt.active {
+  background: rgba(56,189,248,0.18);
+  color: #38bdf8;
+}
+
+.toggle-switch {
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.toggle-switch.on {
+  background: #38bdf8;
+  border-color: #38bdf8;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+  display: block;
+}
+.toggle-switch.on .toggle-thumb {
+  transform: translateX(20px);
+}
+
+/* ── Tile list ───────────────────────────────────────────────────────────── */
+.setting-section {
+  padding-top: 8px;
+}
+
+.setting-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 20px 4px;
+}
+
+.tile-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  cursor: grab;
+  user-select: none;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.15s, opacity 0.15s;
+  touch-action: none;
+}
+.tile-row:active { cursor: grabbing; }
+
+.tile-drag-handle {
+  color: #334155;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tile-icon-label {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+}
+
+.tile-dragging {
+  opacity: 0.35;
+}
+
+.tile-drag-over {
+  background: rgba(56, 189, 248, 0.08);
+  border-top-color: rgba(56, 189, 248, 0.35);
+}
+
+.panel-slide-enter-active, .panel-slide-leave-active {
+  transition: opacity 0.2s;
+}
+.panel-slide-enter-active .settings-panel,
+.panel-slide-leave-active .settings-panel {
+  transition: transform 0.25s ease;
+}
+.panel-slide-enter-from .settings-panel,
+.panel-slide-leave-to .settings-panel {
+  transform: translateX(100%);
+}
+.panel-slide-enter-from, .panel-slide-leave-to {
+  opacity: 0;
+}
 
 @keyframes spin {
   to { transform: rotate(360deg); }
