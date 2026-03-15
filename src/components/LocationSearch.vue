@@ -1,5 +1,5 @@
 <template>
-  <div class="location-bar card">
+  <div class="location-bar">
     <button class="geo-btn" @click="geoLocate" :disabled="geoLoading" title="Use my location">
       <span v-if="geoLoading" class="geo-spinner"></span>
       <span v-else>📍</span>
@@ -11,7 +11,7 @@
         v-model="query"
         class="search-input"
         type="text"
-        placeholder="Search city…"
+        placeholder="Search for a location…"
         autocomplete="off"
         @input="onInput"
         @keydown.enter="selectFirst"
@@ -46,7 +46,7 @@ const props = defineProps({
   locationName: String,
 })
 
-const emit = defineEmits(['location-selected', 'geo-locate'])
+const emit = defineEmits(['location-selected', 'geo-locate', 'searching'])
 
 const query       = ref('')
 const results     = ref([])
@@ -66,8 +66,10 @@ function onInput() {
   if (query.value.trim().length < 2) {
     results.value = []
     showDropdown.value = false
+    emit('searching', false)
     return
   }
+  emit('searching', true)
   searchTimer = setTimeout(async () => {
     try {
       results.value = await searchLocations(query.value)
@@ -103,6 +105,7 @@ function onFocus() {
 
 function onBlur() {
   setTimeout(() => { showDropdown.value = false }, 150)
+  emit('searching', false)
 }
 
 async function geoLocate() {
@@ -111,13 +114,16 @@ async function geoLocate() {
     return
   }
   geoLoading.value = true
+  emit('searching', true)
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       geoLoading.value = false
+      emit('searching', false)
       emit('geo-locate', { lat: pos.coords.latitude, lon: pos.coords.longitude })
     },
     () => {
       geoLoading.value = false
+      emit('searching', false)
       alert('Unable to retrieve your location. Please search manually.')
     },
     { timeout: 10000 }
@@ -169,15 +175,15 @@ async function geoLocate() {
 
 .search-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 8px 12px;
-  color: #f1f5f9;
+  color: var(--text);
   outline: none;
   transition: border-color 0.2s;
 }
-.search-input::placeholder { color: #475569; }
+.search-input::placeholder { color: var(--text-faint); }
 .search-input:focus {
   border-color: rgba(56, 189, 248, 0.5);
 }
@@ -187,8 +193,8 @@ async function geoLocate() {
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--dropdown-bg);
+  border: 1px solid var(--input-border);
   border-radius: 10px;
   list-style: none;
   overflow: hidden;
@@ -205,13 +211,13 @@ async function geoLocate() {
   gap: 2px;
 }
 .dropdown li:hover { background: rgba(56, 189, 248, 0.1); }
-.dropdown li + li { border-top: 1px solid rgba(255,255,255,0.05); }
+.dropdown li + li { border-top: 1px solid var(--row-border); }
 
-.result-name { color: #f1f5f9; font-weight: 500; }
-.result-sub  { color: #64748b; font-size: 0.8rem; }
+.result-name { color: var(--text); font-weight: 500; }
+.result-sub  { color: var(--text-muted); font-size: 0.8rem; }
 
 .current-loc {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 0.85rem;
   white-space: nowrap;
   overflow: hidden;

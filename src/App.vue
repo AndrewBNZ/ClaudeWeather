@@ -18,7 +18,7 @@
       <div v-if="!location && !loading" class="empty-state">
         <div class="empty-icon">🌍</div>
         <p class="empty-title">Where in the world are you?</p>
-        <p class="empty-sub">Search for a city or allow location access to get started.</p>
+        <p class="empty-sub">Search for a location or allow location access to get started.</p>
         <button class="add-location-btn" @click="panelOpen = true">+ Add a location</button>
       </div>
 
@@ -42,44 +42,72 @@
             <CurrentConditions
               :data="weatherData.current"
               :daily="weatherData.daily"
-              :units="units"
+              :unit-prefs="unitPrefs"
               :active-type="activeDataType"
               :location-name="locationName"
               :show-sim="showSim"
+              :show-fireworks="showFireworks"
               :tile-config="tileConfig"
+              :updated-at="updatedAt"
+              :fetched-at="fetchedAt"
+              :loading="loading"
               @select="activeDataType = $event"
+              @refresh="loadWeather"
+              @open-data-types="dataTypesModalOpen = true"
             />
           </aside>
           <div class="layout-right">
-            <div class="layout-chart">
-              <HourlyChart
-                :hourly="weatherData.hourly"
-                :active-type="activeDataType"
-                :units="units"
-                :day-index="selectedDay"
-                @select-day="selectedDay = $event"
-              />
-            </div>
-            <div class="layout-chart">
-              <DailyChart
-                :daily="weatherData.daily"
-                :hourly="weatherData.hourly"
-                :active-type="activeDataType"
-                :units="units"
-                :selected-day="selectedDay"
-                @day-selected="selectedDay = $event"
-              />
-            </div>
+            <template v-if="!dailyFirst">
+              <div class="layout-chart">
+                <HourlyChart
+                  :hourly="weatherData.hourly"
+                  :active-type="activeDataType"
+                  :unit-prefs="unitPrefs"
+                  :day-index="selectedDay"
+                  :theme="theme"
+                  @select-day="selectedDay = $event"
+                  @open-units-modal="unitsModalOpen = true"
+                />
+              </div>
+              <div class="layout-chart">
+                <DailyChart
+                  :daily="weatherData.daily"
+                  :hourly="weatherData.hourly"
+                  :active-type="activeDataType"
+                  :unit-prefs="unitPrefs"
+                  :selected-day="selectedDay"
+                  @day-selected="selectedDay = $event"
+                  @open-units-modal="unitsModalOpen = true"
+                />
+              </div>
+            </template>
+            <template v-else>
+              <div class="layout-chart">
+                <DailyChart
+                  :daily="weatherData.daily"
+                  :hourly="weatherData.hourly"
+                  :active-type="activeDataType"
+                  :unit-prefs="unitPrefs"
+                  :selected-day="selectedDay"
+                  @day-selected="selectedDay = $event"
+                  @open-units-modal="unitsModalOpen = true"
+                />
+              </div>
+              <div class="layout-chart">
+                <HourlyChart
+                  :hourly="weatherData.hourly"
+                  :active-type="activeDataType"
+                  :unit-prefs="unitPrefs"
+                  :day-index="selectedDay"
+                  :theme="theme"
+                  @select-day="selectedDay = $event"
+                  @open-units-modal="unitsModalOpen = true"
+                />
+              </div>
+            </template>
           </div>
         </div>
 
-        <footer class="data-footer">
-          Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-          · Updated {{ updatedAt }}
-          <button class="refresh-btn" @click="loadWeather" :disabled="loading" title="Refresh data">
-            <span :class="{ spinning: loading }">↻</span>
-          </button>
-        </footer>
       </template>
     </main>
 
@@ -93,52 +121,113 @@
           </div>
           <div class="settings-body">
             <div class="setting-row">
-              <span class="setting-label">Units</span>
+              <span class="setting-label">Theme</span>
               <div class="unit-pill">
-                <button :class="['unit-pill-opt', { active: units === 'metric' }]"    @click="units = 'metric'">Metric</button>
-                <button :class="['unit-pill-opt', { active: units === 'imperial' }]"  @click="units = 'imperial'">Imperial</button>
+                <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
+                <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
+                <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
               </div>
             </div>
             <div class="setting-row">
               <div>
-                <div class="setting-label">Simulate Conditions</div>
+                <div class="setting-label">Units</div>
+                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+              </div>
+              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Data Types</div>
+                <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
+              </div>
+              <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Swap Chart Positions</div>
+                <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Reset</div>
+                <div class="setting-hint">Clear all settings and restart tutorial</div>
+              </div>
+              <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset →</button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather Simulator</div>
                 <div class="setting-hint">Preview weather effects on the scene</div>
               </div>
               <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
                 <span class="toggle-thumb" />
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
-            <div class="setting-section">
-              <div class="setting-row" style="padding-bottom: 4px">
-                <div>
-                  <div class="setting-label">Data Types</div>
-                  <div class="setting-hint">Drag to reorder · tap to show/hide</div>
-                </div>
+    <!-- Units modal -->
+    <transition name="modal-fade">
+      <div v-if="unitsModalOpen" class="modal-overlay" @click.self="unitsModalOpen = false">
+        <div class="modal-dialog modal-dialog--wide">
+          <div class="modal-header">
+            <span class="panel-title">Units</span>
+            <button class="panel-close" @click="unitsModalOpen = false">✕</button>
+          </div>
+          <div class="units-modal-body">
+            <div v-for="group in UNIT_OPTIONS" :key="group.key" class="unit-group">
+              <div class="unit-group-label">{{ group.icon }} {{ group.label }}</div>
+              <div class="unit-group-pills">
+                <button
+                  v-for="opt in group.options"
+                  :key="opt.value"
+                  class="unit-modal-pill"
+                  :class="{ active: unitPrefs[group.key] === opt.value }"
+                  @click="unitPrefs = { ...unitPrefs, [group.key]: opt.value }"
+                >{{ opt.label }}</button>
               </div>
-              <div class="tile-list">
-                <div
-                  v-for="(tile, i) in tileConfig"
-                  :key="tile.type"
-                  :data-tile-idx="i"
-                  class="tile-row"
-                  :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
-                  draggable="true"
-                  @dragstart="onTileDragStart($event, i)"
-                  @dragover="onTileDragOver($event, i)"
-                  @dragend="onTileDragEnd"
-                  @drop="onTileDrop($event, i)"
-                  @touchstart.passive="onTileTouchStart($event, i)"
-                  @touchmove="onTileTouchMove"
-                  @touchend="onTileTouchEnd"
-                >
-                  <span class="tile-drag-handle">⠿</span>
-                  <span class="tile-icon-label">{{ TILE_META[tile.type].icon }} {{ TILE_META[tile.type].label }}</span>
-                  <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
-                    <span class="toggle-thumb" />
-                  </button>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Data Types modal -->
+    <transition name="modal-fade">
+      <div v-if="dataTypesModalOpen" class="modal-overlay" @click.self="dataTypesModalOpen = false">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <span class="panel-title">Data Types</span>
+            <button class="panel-close" @click="dataTypesModalOpen = false">✕</button>
+          </div>
+          <p class="modal-hint">Drag to reorder · tap to show/hide</p>
+          <div class="tile-list">
+            <div
+              v-for="(tile, i) in tileConfig"
+              :key="tile.type"
+              :data-tile-idx="i"
+              class="tile-row"
+              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+              draggable="true"
+              @dragstart="onTileDragStart($event, i)"
+              @dragover="onTileDragOver($event, i)"
+              @dragend="onTileDragEnd"
+              @drop="onTileDrop($event, i)"
+              @touchstart.passive="onTileTouchStart($event, i)"
+              @touchmove="onTileTouchMove"
+              @touchend="onTileTouchEnd"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <span class="tile-icon-label">{{ TILE_META[tile.type].icon }} {{ TILE_META[tile.type].label }}</span>
+              <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
+                <span class="toggle-thumb" />
+              </button>
             </div>
           </div>
         </div>
@@ -151,30 +240,66 @@
       :is-open="panelOpen"
       @select="onPanelSelect"
       @delete="onPanelDelete"
-      @close="panelOpen = false"
+      @close="panelOpen = false; tutSearching = false"
       @location-selected="onLocationSelected"
       @geo-locate="onGeoLocate"
+      @searching="tutSearching = $event"
+    />
+
+    <TutorialGuide
+      :step="tutorialStep === 0 && (location || savedLocations.length > 0) ? null : tutorialStep"
+      :panel-open="panelOpen"
+      :hidden="tutSearching"
+      @next="onTutorialNext"
+      @finish="finishTutorial"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import CurrentConditions from './components/CurrentConditions.vue'
 import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
+import TutorialGuide     from './components/TutorialGuide.vue'
 import { fetchWeather }        from './services/weatherApi.js'
 import { reverseGeocode }      from './services/geocoding.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const LOCATIONS_KEY  = 'claudeweather-locations'
-const ACTIVE_KEY     = 'claudeweather-active'
-const DATATYPE_KEY   = 'claudeweather-datatype'
-const UNITS_KEY      = 'claudeweather-units'
-const SIM_KEY        = 'claudeweather-sim'
-const TILES_KEY      = 'claudeweather-tiles'
-const LEGACY_KEY     = 'claudeweather-location'
+const TUTORIAL_KEY = 'claudeweather-tutorial-done'
+const LOCATIONS_KEY   = 'claudeweather-locations'
+const ACTIVE_KEY      = 'claudeweather-active'
+const DATATYPE_KEY    = 'claudeweather-datatype'
+const UNIT_PREFS_KEY  = 'claudeweather-unitprefs'
+const LEGACY_UNITS_KEY = 'claudeweather-units'
+const SIM_KEY         = 'claudeweather-sim'
+const TILES_KEY       = 'claudeweather-tiles'
+const CHART_ORDER_KEY = 'claudeweather-chartorder'
+const LEGACY_KEY      = 'claudeweather-location'
+const THEME_KEY       = 'claudeweather-theme'
+
+// ── Unit preferences ──────────────────────────────────────────────────────────
+const DEFAULT_UNIT_PREFS = { temperature: 'celsius', wind: 'kmh', precipitation: 'mm', pressure: 'hpa', visibility: 'km' }
+
+const UNIT_OPTIONS = [
+  { key: 'temperature',  label: 'Temperature',  icon: '🌡️', options: [{ value: 'celsius', label: '°C' }, { value: 'fahrenheit', label: '°F' }] },
+  { key: 'wind',         label: 'Wind Speed',   icon: '💨', options: [{ value: 'kmh', label: 'km/h' }, { value: 'mph', label: 'mph' }, { value: 'ms', label: 'm/s' }, { value: 'kn', label: 'knots' }] },
+  { key: 'precipitation',label: 'Precipitation',icon: '🌧️', options: [{ value: 'mm', label: 'mm' }, { value: 'inch', label: 'in' }] },
+  { key: 'pressure',     label: 'Pressure',     icon: '↕️', options: [{ value: 'hpa', label: 'hPa' }, { value: 'inhg', label: 'inHg' }, { value: 'mmhg', label: 'mmHg' }] },
+  { key: 'visibility',   label: 'Visibility',   icon: '👁️', options: [{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }] },
+]
+
+function loadUnitPrefs() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(UNIT_PREFS_KEY))
+    if (saved && typeof saved === 'object') return { ...DEFAULT_UNIT_PREFS, ...saved }
+  } catch {}
+  // Migrate from old metric/imperial toggle
+  const legacy = localStorage.getItem(LEGACY_UNITS_KEY)
+  if (legacy === 'imperial') return { temperature: 'fahrenheit', wind: 'mph', precipitation: 'inch', pressure: 'hpa', visibility: 'mi' }
+  return { ...DEFAULT_UNIT_PREFS }
+}
 
 // ── Tile configuration ────────────────────────────────────────────────────────
 const TILE_META = {
@@ -241,13 +366,25 @@ function loadSavedLocations() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
+const theme          = ref(localStorage.getItem(THEME_KEY) ?? 'system')
+const systemDark     = window.matchMedia('(prefers-color-scheme: dark)')
+function applyTheme(v) {
+  const isLight = v === 'light' || (v === 'system' && !systemDark.matches)
+  document.documentElement.classList.toggle('light-theme', isLight)
+}
+applyTheme(theme.value)
+
 const tileConfig     = ref(loadTileConfig())
 const savedLocations = ref(loadSavedLocations())
-const panelOpen      = ref(false)
-const settingsOpen   = ref(false)
+const panelOpen          = ref(false)
+const tutSearching       = ref(false)
+const settingsOpen       = ref(false)
+const dataTypesModalOpen = ref(false)
+const unitsModalOpen     = ref(false)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
+const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const location       = ref(null)   // { lat, lon }
-const units          = ref(localStorage.getItem(UNITS_KEY) ?? 'metric')
+const unitPrefs      = ref(loadUnitPrefs())
 const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 const selectedDay    = ref(0)      // 0 = today, 1–6 = forecast days
 const weatherData    = ref(null)
@@ -256,6 +393,46 @@ const error          = ref(null)
 const updatedAt      = ref('')
 const locationName   = ref('')
 const fetchedAt      = ref(null)   // Date of last successful fetch
+
+// ── Tutorial ──────────────────────────────────────────────────────────────────
+// Show only for first-time users (no saved locations and tutorial not yet done)
+const tutorialStep = ref(
+  !localStorage.getItem(TUTORIAL_KEY) && savedLocations.value.length === 0 ? 0 : null
+)
+
+function onTutorialNext() {
+  if (tutorialStep.value !== null && tutorialStep.value < 4) tutorialStep.value++
+  else finishTutorial()
+}
+
+const showFireworks = ref(false)
+let fwTimer = null
+
+function finishTutorial() {
+  try { localStorage.setItem(TUTORIAL_KEY, 'true') } catch {}
+  tutorialStep.value = null
+  if (weatherData.value) {
+    showFireworks.value = true
+    fwTimer = setTimeout(() => { showFireworks.value = false }, 5000)
+  }
+}
+
+function resetAll() {
+  try { localStorage.clear() } catch {}
+  window.location.reload()
+}
+
+// Auto-advance step 0 once a location is added and weather has loaded
+watch([savedLocations, weatherData], ([locs, data]) => {
+  if (tutorialStep.value === 0 && locs.length > 0 && data) {
+    setTimeout(() => { tutorialStep.value = 1 }, 600)
+  }
+})
+
+// Finish tutorial when user opens settings on step 3
+watch(settingsOpen, (open) => {
+  if (open && tutorialStep.value === 3) finishTutorial()
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STALE_MS = 15 * 60 * 1000  // 15 minutes
@@ -325,12 +502,12 @@ function onPanelDelete(loc) {
   }
 }
 
-async function loadWeather() {
+async function loadWeather(silent = false) {
   if (!location.value) return
-  loading.value = true
+  if (!silent || !weatherData.value) loading.value = true
   error.value   = null
   try {
-    const data = await fetchWeather(location.value.lat, location.value.lon, units.value)
+    const data = await fetchWeather(location.value.lat, location.value.lon, unitPrefs.value)
     // Stitch current hour's precipitation probability into the current object
     // (Open-Meteo only provides this in hourly, not current)
     data.current.precipitation_probability =
@@ -351,9 +528,19 @@ async function loadWeather() {
 
 // Re-fetch whenever location changes; also reset to today
 watch(location, (loc) => { if (loc) { selectedDay.value = 0; loadWeather() } })
-// Re-fetch whenever units change; persist preference
-watch(units, (v) => { localStorage.setItem(UNITS_KEY, v); if (location.value) loadWeather() })
+// Persist unit prefs; only re-fetch when API-side units change (temp/wind/precip)
+watch(unitPrefs, (newVal, oldVal) => {
+  try { localStorage.setItem(UNIT_PREFS_KEY, JSON.stringify(newVal)) } catch {}
+  const apiChanged = ['temperature', 'wind', 'precipitation'].some(k => newVal[k] !== oldVal[k])
+  if (location.value && apiChanged) loadWeather()
+}, { deep: true })
 watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
+watch(dailyFirst, (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
+systemDark.addEventListener('change', () => { if (theme.value === 'system') applyTheme('system') })
+watch(theme,      (v) => {
+  localStorage.setItem(THEME_KEY, v)
+  applyTheme(v)
+})
 watch(tileConfig, (v) => { try { localStorage.setItem(TILES_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 // Check staleness when user switches data type or day; persist data type selection
 watch(activeDataType, (t) => { localStorage.setItem(DATATYPE_KEY, t); checkAndRefresh() })
@@ -404,6 +591,15 @@ function onTileTouchEnd() {
   tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
 }
 
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+let refreshTimer = null
+onMounted(() => {
+  refreshTimer = setInterval(() => {
+    if (location.value && isStale()) loadWeather(true)
+  }, STALE_MS)
+})
+onUnmounted(() => clearInterval(refreshTimer))
+
 // On load: restore last active location (or fall back to first saved); auto-open panel for new users
 const activeSaved = (() => {
   const active = loadActiveKey()
@@ -416,8 +612,6 @@ const activeSaved = (() => {
 if (activeSaved) {
   location.value     = { lat: activeSaved.lat, lon: activeSaved.lon }
   locationName.value = activeSaved.name
-} else {
-  panelOpen.value = true
 }
 
 </script>
@@ -438,10 +632,10 @@ if (activeSaved) {
   align-items: center;
   justify-content: space-between;
   padding: 14px 24px;
-  background: rgba(11, 17, 32, 0.85);
+  background: var(--header-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--header-border);
 }
 
 .header-left, .header-right {
@@ -459,16 +653,16 @@ if (activeSaved) {
   display: flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   border-radius: 9999px;
   padding: 6px 14px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.2s;
 }
-.locations-btn:hover { background: rgba(255,255,255,0.1); }
+.locations-btn:hover { background: var(--btn-hover); }
 
 .loc-count {
   font-size: 0.75rem;
@@ -483,7 +677,7 @@ if (activeSaved) {
 .app-name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text);
   letter-spacing: -0.3px;
   white-space: nowrap;
   overflow: hidden;
@@ -492,15 +686,15 @@ if (activeSaved) {
 }
 
 .settings-btn {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   border-radius: 9999px;
   padding: 6px 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 1.1rem;
   transition: background 0.2s;
 }
-.settings-btn:hover { background: rgba(255,255,255,0.1); }
+.settings-btn:hover { background: var(--btn-hover); }
 
 /* ── Main ───────────────────────────────────────────────────────────────── */
 .main {
@@ -529,13 +723,39 @@ if (activeSaved) {
   gap: 14px;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 799px) {
+  .header {
+    position: fixed;
+    left: 0;
+    right: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+    background: transparent;
+    border-bottom: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .app-name {
+    color: #fff;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.25);
+  }
+  .locations-btn {
+    color: #fff;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.25);
+  }
   .main {
     padding-top: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+    gap: 10px;
+  }
+  .weather-layout,
+  .layout-right {
+    gap: 10px;
   }
   .layout-left {
-    margin-left: -20px;
-    margin-right: -20px;
+    margin-left: -10px;
+    margin-right: -10px;
   }
   .layout-left .conditions {
     border-radius: 0;
@@ -545,7 +765,7 @@ if (activeSaved) {
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1200px) {
   .main {
     max-width: none;
     padding: 16px 20px;
@@ -585,17 +805,29 @@ if (activeSaved) {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Stable fixed height for the canvas area. Using flex:1/auto causes
-     Chart.js's ResizeObserver to fire on attachment and cancel the creation
-     animation. A concrete calc() value keeps the container size unchanged
-     across data/day switches so the 400ms animation plays correctly.
-     calc: each tile = (100vh-135-14)/2 = 50vh-74.5px; minus card chrome
-     (top-pad 20 + header+margin ~40 + bottom-pad 16 = 76px) = 50vh-151px. */
+  /* Card fills the tile, becomes a flex column so chart-wrap can grow */
+  .layout-chart .chart-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HourlyChart's nav+chart row must also stretch */
+  .layout-chart .chart-and-nav {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Chart canvas area fills remaining card height instead of fixed px */
   .layout-chart .chart-wrap {
-    height: calc(50vh - 155px) !important;
+    flex: 1;
     min-height: 140px;
+    height: auto !important;
   }
 }
 
@@ -610,8 +842,8 @@ if (activeSaved) {
   text-align: center;
 }
 .empty-icon   { font-size: 4rem; margin-bottom: 8px; }
-.empty-title  { font-size: 1.2rem; font-weight: 600; color: #e2e8f0; }
-.empty-sub    { color: #64748b; max-width: 320px; }
+.empty-title  { font-size: 1.2rem; font-weight: 600; color: var(--text); }
+.empty-sub    { color: var(--text-muted); max-width: 320px; }
 
 .loading-state {
   display: flex;
@@ -619,7 +851,7 @@ if (activeSaved) {
   align-items: center;
   gap: 16px;
   padding: 80px 20px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .error-card {
@@ -662,19 +894,19 @@ if (activeSaved) {
 .data-footer {
   text-align: center;
   font-size: 0.78rem;
-  color: #334155;
+  color: var(--text-faint);
   padding-top: 8px;
 }
 .data-footer a {
-  color: #475569;
+  color: var(--text-faint);
   text-decoration: none;
 }
-.data-footer a:hover { color: #64748b; }
+.data-footer a:hover { color: var(--text-muted); }
 
 .refresh-btn {
   background: none;
   border: none;
-  color: #475569;
+  color: var(--text-faint);
   font-size: 1rem;
   cursor: pointer;
   padding: 0 2px;
@@ -682,7 +914,7 @@ if (activeSaved) {
   transition: color 0.15s;
   line-height: 1;
 }
-.refresh-btn:hover:not(:disabled) { color: #94a3b8; }
+.refresh-btn:hover:not(:disabled) { color: var(--text-muted); }
 .refresh-btn:disabled { cursor: default; }
 
 /* ── Settings panel ─────────────────────────────────────────────────────── */
@@ -699,8 +931,8 @@ if (activeSaved) {
   width: 300px;
   max-width: 90vw;
   height: 100%;
-  background: #0f1829;
-  border-left: 1px solid rgba(255,255,255,0.08);
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
   display: flex;
   flex-direction: column;
 }
@@ -710,24 +942,24 @@ if (activeSaved) {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-bottom: 1px solid var(--panel-divider);
 }
 
 .panel-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text);
 }
 
 .panel-close {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 1.1rem;
   padding: 4px 8px;
   transition: color 0.15s;
 }
-.panel-close:hover { color: #94a3b8; }
+.panel-close:hover { color: var(--text); }
 
 .settings-body {
   padding: 8px 0;
@@ -742,49 +974,29 @@ if (activeSaved) {
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--row-border);
 }
 
 .setting-label {
   font-size: 0.9rem;
-  color: #e2e8f0;
+  color: var(--text);
   font-weight: 500;
 }
 
 .setting-hint {
   font-size: 0.75rem;
-  color: #475569;
+  color: var(--text-faint);
   margin-top: 2px;
 }
 
-.unit-pill {
-  display: flex;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.unit-pill-opt {
-  padding: 5px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-  background: none;
-  border: none;
-  transition: background 0.15s, color 0.15s;
-}
-.unit-pill-opt.active {
-  background: rgba(56,189,248,0.18);
-  color: #38bdf8;
-}
 
 .toggle-switch {
   flex-shrink: 0;
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--toggle-bg);
+  border: 1px solid var(--toggle-border);
   position: relative;
   cursor: pointer;
   padding: 0;
@@ -810,19 +1022,6 @@ if (activeSaved) {
 }
 
 /* ── Tile list ───────────────────────────────────────────────────────────── */
-.setting-section {
-  padding-top: 8px;
-}
-
-.setting-section-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 12px 20px 4px;
-}
-
 .tile-list {
   display: flex;
   flex-direction: column;
@@ -835,14 +1034,14 @@ if (activeSaved) {
   padding: 10px 20px;
   cursor: grab;
   user-select: none;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid var(--tile-border);
   transition: background 0.15s, opacity 0.15s;
   touch-action: none;
 }
 .tile-row:active { cursor: grabbing; }
 
 .tile-drag-handle {
-  color: #334155;
+  color: var(--text-faint);
   font-size: 1.1rem;
   flex-shrink: 0;
   line-height: 1;
@@ -851,7 +1050,7 @@ if (activeSaved) {
 .tile-icon-label {
   flex: 1;
   font-size: 0.88rem;
-  color: #e2e8f0;
+  color: var(--text);
 }
 
 .tile-dragging {
@@ -875,6 +1074,168 @@ if (activeSaved) {
   transform: translateX(100%);
 }
 .panel-slide-enter-from, .panel-slide-leave-to {
+  opacity: 0;
+}
+
+/* ── Data Types modal ────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-dialog {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-dialog--wide {
+  width: 460px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 12px;
+}
+
+.modal-hint {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  padding: 0 20px 8px;
+  margin: 0;
+}
+
+.modal-dialog .tile-list {
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.units-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.unit-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--tile-border);
+}
+
+.unit-group-label {
+  font-size: 0.88rem;
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.unit-group-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.unit-modal-pill {
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--pill-border);
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.unit-modal-pill:hover:not(.active) {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+.unit-modal-pill.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+}
+
+.unit-pill {
+  display: flex;
+  border: 1px solid var(--pill-border);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.unit-pill-opt {
+  padding: 5px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+.unit-pill-opt.active {
+  background: rgba(56,189,248,0.18);
+  color: #38bdf8;
+}
+
+.setting-action-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.setting-action-btn:hover {
+  background: var(--btn-hover);
+  color: var(--text);
+}
+
+.setting-action-btn--danger {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.setting-action-btn--danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+
+.modal-fade-enter-active, .modal-fade-leave-active {
+  transition: opacity 0.2s;
+}
+.modal-fade-enter-active .modal-dialog,
+.modal-fade-leave-active .modal-dialog {
+  transition: transform 0.2s ease, opacity 0.2s;
+}
+.modal-fade-enter-from, .modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-from .modal-dialog,
+.modal-fade-leave-to .modal-dialog {
+  transform: scale(0.95);
   opacity: 0;
 }
 

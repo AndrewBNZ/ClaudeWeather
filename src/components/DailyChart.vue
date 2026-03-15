@@ -1,8 +1,8 @@
 <template>
-  <div class="chart-card card">
+  <div class="chart-card card" data-chart="daily">
     <div class="chart-header">
       <h3 class="chart-title">Daily</h3>
-      <span class="chart-subtitle">{{ config.icon }} {{ config.label }}</span>
+      <span class="chart-subtitle">{{ config.icon }} {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
     </div>
     <div class="chart-wrap">
       <div class="chart-scroll-inner" style="cursor: pointer">
@@ -24,20 +24,27 @@ Tooltip.positioners.linePoint = function(items) {
 import { DATA_TYPES, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
+const APP_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+
 const props = defineProps({
   daily:       { type: Object, required: true },
   hourly:      { type: Object, required: true },
   activeType:  { type: String, required: true },
-  units:       { type: String, required: true },
+  unitPrefs:   { type: Object, required: true },
   selectedDay: { type: Number, default: 0 },
 })
 
-const emit = defineEmits(['day-selected'])
+const emit = defineEmits(['day-selected', 'open-units-modal'])
 
 const canvasRef     = ref(null)
 let   chartInstance = null
 
 const config = computed(() => DATA_TYPES[props.activeType])
+const unitLabel = computed(() => {
+  const cfg = DATA_TYPES[props.activeType]
+  if (cfg.id === 'humidity' || cfg.id === 'cloudCover') return ''
+  return cfg.getUnit(props.unitPrefs)
+})
 
 function dayLabel(isoDate) {
   const d = new Date(isoDate + 'T12:00:00')
@@ -62,8 +69,9 @@ function buildChart() {
   }
 
   const cfg      = DATA_TYPES[props.activeType]
-  const unit     = cfg.getUnit(props.units)
-  const isMobile = window.innerWidth < 640
+  const unit     = cfg.getUnit(props.unitPrefs)
+  const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
+  const isMobile = window.innerWidth <= 800
   const labels   = props.daily.time.map(dayLabel)
 
   let datasets
@@ -94,10 +102,11 @@ function buildChart() {
       borderColor: barBg('ff', '66'),
       borderWidth: 1.5,
       borderRadius: 4,
+      borderSkipped: false,
     }]
   } else if (cfg.id === 'rain') {
     const precipValues = (props.daily.precipitation_sum ?? []).map(v =>
-      v != null ? +Number(v).toFixed(cfg.decimals) : null
+      v != null ? +Number(v).toFixed(decimals) : null
     )
     const probValues = props.daily.precipitation_probability_max ?? []
     datasets = [
@@ -127,9 +136,9 @@ function buildChart() {
     ]
   } else {
     let rawVals = getDailyValues(cfg)
-    if (cfg.scale) rawVals = rawVals.map(v => v != null ? cfg.scale(v, props.units) : null)
+    if (cfg.scale) rawVals = rawVals.map(v => v != null ? cfg.scale(v, props.unitPrefs) : null)
     const values = rawVals.map(v =>
-      v != null ? +Number(v).toFixed(cfg.decimals) : null
+      v != null ? +Number(v).toFixed(decimals) : null
     )
     datasets = [{
       label: cfg.label,
@@ -186,7 +195,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = '18px sans-serif'
+          ctx.font = `18px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -198,10 +207,10 @@ function buildChart() {
         // High temp at top of bar
         if (dataPoint[1] != null) {
           ctx.save()
-          ctx.font = 'bold 13px sans-serif'
+          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = '#e2e8f0'
+          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Math.round(dataPoint[1])}`, x, y - 2)
           ctx.restore()
         }
@@ -209,10 +218,10 @@ function buildChart() {
         // Low temp at bottom of bar
         if (dataPoint[0] != null) {
           ctx.save()
-          ctx.font = '13px sans-serif'
+          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          ctx.fillStyle = '#94a3b8'
+          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#64748b' : '#94a3b8'
           ctx.fillText(`${Math.round(dataPoint[0])}`, x, base + 2)
           ctx.restore()
         }
@@ -269,10 +278,10 @@ function buildChart() {
         const val = windVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = 'bold 13px sans-serif'
+          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = '#e2e8f0'
+          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Math.round(val)}`, x, y - 2)
           ctx.restore()
         }
@@ -281,12 +290,13 @@ function buildChart() {
   } : null
 
   // Generic plugin: draw condition emoji + value above each simple bar type
+  const labelSuffix = (cfg.id === 'humidity' || cfg.id === 'cloudCover') ? '%' : ''
   const useBarLabels = !isRain && !isTemp && !isWind
   let barDisplayVals = null
   if (useBarLabels) {
     let raw = getDailyValues(cfg)
-    if (cfg.scale) raw = raw.map(v => v != null ? cfg.scale(v, props.units) : null)
-    barDisplayVals = raw.map(v => v != null ? +Number(v).toFixed(cfg.decimals) : null)
+    if (cfg.scale) raw = raw.map(v => v != null ? cfg.scale(v, props.unitPrefs) : null)
+    barDisplayVals = raw.map(v => v != null ? +Number(v).toFixed(decimals) : null)
   }
   const barLabelPlugin = useBarLabels ? {
     id: 'barLabels',
@@ -299,7 +309,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = '18px sans-serif'
+          ctx.font = `18px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -309,11 +319,11 @@ function buildChart() {
         const val = barDisplayVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = 'bold 13px sans-serif'
+          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = '#e2e8f0'
-          ctx.fillText(`${val}`, x, y - 2)
+          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
+          ctx.fillText(`${val}${labelSuffix}`, x, y - 2)
           ctx.restore()
         }
       })
@@ -333,7 +343,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = '18px sans-serif'
+          ctx.font = `18px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -343,10 +353,10 @@ function buildChart() {
         const val = precipVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = 'bold 13px sans-serif'
+          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = '#e2e8f0'
+          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Number(val).toFixed(1)}`, x, y - 2)
           ctx.restore()
         }
@@ -372,6 +382,7 @@ function buildChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
+          enabled: isRain,
           ...(isRain ? { position: 'linePoint' } : {}),
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           borderColor: cfg.color,
@@ -403,7 +414,7 @@ function buildChart() {
         x: {
           position: 'top',
           grid:  { display: false },
-          ticks: { color: '#64748b' },
+          ticks: { color: '#64748b', padding: 0, font: { family: APP_FONT } },
           border: { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
@@ -430,7 +441,7 @@ function buildChart() {
 
 function scheduleBuild() { requestAnimationFrame(() => requestAnimationFrame(buildChart)) }
 watch(() => props.activeType,  scheduleBuild)
-watch(() => props.units,       scheduleBuild)
+watch(() => props.unitPrefs,       scheduleBuild)
 watch(() => props.daily,       scheduleBuild)
 watch(() => props.hourly,      scheduleBuild)
 watch(() => props.selectedDay, scheduleBuild)
@@ -453,12 +464,25 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
 .chart-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text);
+}
+.chart-title::after {
+  content: ' Forecast';
 }
 
 .chart-subtitle {
   font-size: 1rem;
-  color: #94a3b8;
+  color: var(--text-muted);
+}
+
+.chart-unit {
+  margin-left: 5px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.chart-unit:hover {
+  opacity: 1;
 }
 
 .chart-wrap {
@@ -473,12 +497,15 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
 
 /* Chart.js manages canvas dimensions; don't constrain with CSS */
 
-@media (max-width: 639px) {
+@media (max-width: 800px) {
   .chart-card {
-    padding: 12px 12px 10px;
+    padding: 8px 10px 8px;
   }
   .chart-subtitle {
     display: none;
+  }
+  .chart-wrap {
+    height: 190px;
   }
   .chart-wrap {
     overflow-x: auto;
@@ -490,6 +517,27 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   }
   .chart-scroll-inner {
     min-width: 700px;
+  }
+}
+
+@media (max-width: 800px) and (hover: hover) and (pointer: fine) {
+  .chart-wrap {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+  }
+  .chart-wrap::-webkit-scrollbar {
+    display: block;
+    height: 3px;
+  }
+  .chart-wrap::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .chart-wrap::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 2px;
+  }
+  .chart-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.45);
   }
 }
 </style>

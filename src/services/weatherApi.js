@@ -1,10 +1,6 @@
 const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
 
-export async function fetchWeather(lat, lon, units = 'metric') {
-  const tempUnit  = units === 'metric' ? 'celsius'    : 'fahrenheit'
-  const windUnit  = units === 'metric' ? 'kmh'        : 'mph'
-  const precipUnit = units === 'metric' ? 'mm'         : 'inch'
-
+export async function fetchWeather(lat, lon, unitPrefs) {
   const params = new URLSearchParams({
     latitude:  lat,
     longitude: lon,
@@ -50,11 +46,11 @@ export async function fetchWeather(lat, lon, units = 'metric') {
       'sunrise',
       'sunset',
     ].join(','),
-    temperature_unit:  tempUnit,
-    wind_speed_unit:   windUnit,
-    precipitation_unit: precipUnit,
-    timezone:          'auto',
-    forecast_days:     14,
+    temperature_unit:   unitPrefs.temperature,
+    wind_speed_unit:    unitPrefs.wind,
+    precipitation_unit: unitPrefs.precipitation,
+    timezone:           'auto',
+    forecast_days:      14,
   })
 
   const res = await fetch(`${BASE_URL}?${params}`)

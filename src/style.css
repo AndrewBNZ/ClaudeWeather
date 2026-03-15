@@ -5,6 +5,8 @@
 }
 
 :root {
+  --nav-h: 56px;
+  /* colour palette */
   --bg: #0b1120;
   --bg2: #111827;
   --card: rgba(255, 255, 255, 0.05);
@@ -17,6 +19,54 @@
   --radius: 16px;
   --radius-sm: 8px;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  /* chrome tokens */
+  --app-bg: radial-gradient(ellipse at top, #1e3a5f 0%, #0b1120 60%);
+  --header-bg: rgba(11, 17, 32, 0.85);
+  --header-border: rgba(255, 255, 255, 0.06);
+  --btn-bg: rgba(255, 255, 255, 0.06);
+  --btn-border: rgba(255, 255, 255, 0.1);
+  --btn-hover: rgba(255, 255, 255, 0.1);
+  --panel-bg: #0f1829;
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-divider: rgba(255, 255, 255, 0.07);
+  --row-border: rgba(255, 255, 255, 0.05);
+  --tile-border: rgba(255, 255, 255, 0.04);
+  --toggle-bg: rgba(255, 255, 255, 0.1);
+  --toggle-border: rgba(255, 255, 255, 0.15);
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.1);
+  --dropdown-bg: #1e293b;
+}
+
+/* ── Light theme overrides ─────────────────────────────────────────────── */
+.light-theme {
+  --bg: #f0f4f8;
+  --bg2: #e2e8f0;
+  --card: rgba(255, 255, 255, 0.78);
+  --card-border: rgba(0, 0, 0, 0.09);
+  --card-hover: rgba(0, 0, 0, 0.05);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-faint: #94a3b8;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  --app-bg: radial-gradient(ellipse at top, #bfdbfe 0%, #f0f4f8 60%);
+  --header-bg: rgba(248, 250, 255, 0.92);
+  --header-border: rgba(0, 0, 0, 0.08);
+  --btn-bg: rgba(0, 0, 0, 0.05);
+  --btn-border: rgba(0, 0, 0, 0.1);
+  --btn-hover: rgba(0, 0, 0, 0.08);
+  --panel-bg: #ffffff;
+  --panel-border: rgba(0, 0, 0, 0.1);
+  --panel-divider: rgba(0, 0, 0, 0.08);
+  --row-border: rgba(0, 0, 0, 0.06);
+  --tile-border: rgba(0, 0, 0, 0.04);
+  --toggle-bg: rgba(0, 0, 0, 0.08);
+  --toggle-border: rgba(0, 0, 0, 0.15);
+  --pill-border: rgba(0, 0, 0, 0.12);
+  --input-bg: rgba(0, 0, 0, 0.05);
+  --input-border: rgba(0, 0, 0, 0.12);
+  --dropdown-bg: #ffffff;
 }
 
 html, body {
@@ -31,7 +81,7 @@ html, body {
 
 #app {
   min-height: 100vh;
-  background: radial-gradient(ellipse at top, #1e3a5f 0%, #0b1120 60%);
+  background: var(--app-bg);
 }
 
 .card {

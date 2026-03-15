@@ -13,6 +13,7 @@
               :location-name="''"
               @location-selected="onLocationSelected"
               @geo-locate="emit('geo-locate', $event)"
+              @searching="emit('searching', $event)"
             />
           </div>
 
@@ -29,7 +30,6 @@
               :class="{ active: isActive(loc) }"
             >
               <button class="loc-name" @click="emit('select', loc)">
-                <span class="loc-icon">📍</span>
                 <span class="loc-name-text">{{ loc.name }}</span>
               </button>
               <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
@@ -50,7 +50,7 @@ const props = defineProps({
   isOpen:         { type: Boolean, required: true },
 })
 
-const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate'])
+const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate', 'searching'])
 
 function isActive(loc) {
   return props.activeLocation &&
@@ -79,8 +79,8 @@ function onLocationSelected(payload) {
   right: 0;
   width: 340px;
   height: 100vh;
-  background: #111827;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel-bg);
+  border-left: 1px solid var(--panel-border);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
@@ -92,20 +92,20 @@ function onLocationSelected(payload) {
   align-items: center;
   justify-content: space-between;
   padding: 20px 20px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--panel-divider);
   flex-shrink: 0;
 }
 
 .panel-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text);
 }
 
 .close-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 1rem;
   cursor: pointer;
   padding: 4px 8px;
@@ -113,25 +113,25 @@ function onLocationSelected(payload) {
   transition: color 0.15s, background 0.15s;
 }
 .close-btn:hover {
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  background: var(--btn-bg);
 }
 
 .search-wrap {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 8px 6px;
+  border-bottom: 1px solid var(--panel-divider);
   flex-shrink: 0;
 }
 
 .empty {
   padding: 32px 20px;
   text-align: center;
-  color: #64748b;
+  color: var(--text-muted);
 }
 .empty-sub {
   font-size: 0.85rem;
   margin-top: 6px;
-  color: #475569;
+  color: var(--text-faint);
 }
 
 .location-list {
@@ -148,7 +148,7 @@ function onLocationSelected(payload) {
   transition: background 0.15s, border-color 0.15s;
 }
 .location-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--btn-bg);
 }
 .location-item.active {
   border-left-color: #38bdf8;
@@ -164,7 +164,7 @@ function onLocationSelected(payload) {
   padding: 14px 16px;
   background: none;
   border: none;
-  color: #e2e8f0;
+  color: var(--text);
   font-size: 0.9rem;
   font-family: inherit;
   text-align: left;
@@ -183,12 +183,10 @@ function onLocationSelected(payload) {
   font-weight: 600;
 }
 
-.loc-icon { font-size: 14px; flex-shrink: 0; }
-
 .loc-delete {
   background: none;
   border: none;
-  color: #475569;
+  color: var(--text-faint);
   font-size: 0.75rem;
   cursor: pointer;
   padding: 14px 14px;

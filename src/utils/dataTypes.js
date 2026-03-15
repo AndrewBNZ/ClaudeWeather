@@ -1,4 +1,5 @@
-// Config for each selectable data type
+// Config for each selectable data type.
+// getUnit(unitPrefs) and scale(v, unitPrefs) receive the full unitPrefs object.
 export const DATA_TYPES = {
   temperature: {
     id: 'temperature',
@@ -8,7 +9,7 @@ export const DATA_TYPES = {
     dailyMaxKey: 'temperature_2m_max',
     dailyMinKey: 'temperature_2m_min',
     color: '#f97316',
-    getUnit: (units) => units === 'metric' ? '°C' : '°F',
+    getUnit: (p) => p.temperature === 'fahrenheit' ? '°F' : '°C',
     decimals: 1,
     floatingBar: true,
   },
@@ -20,7 +21,7 @@ export const DATA_TYPES = {
     dailyMaxKey: 'precipitation_sum',
     dailyMinKey: null,
     color: '#3b82f6',
-    getUnit: (units) => units === 'metric' ? 'mm' : 'in',
+    getUnit: (p) => p.precipitation === 'inch' ? 'in' : 'mm',
     decimals: 2,
     floatingBar: false,
   },
@@ -32,7 +33,7 @@ export const DATA_TYPES = {
     dailyMaxKey: 'wind_speed_10m_max',
     dailyMinKey: null,
     color: '#06b6d4',
-    getUnit: (units) => units === 'metric' ? 'km/h' : 'mph',
+    getUnit: (p) => ({ kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' })[p.wind] ?? 'km/h',
     decimals: 1,
     floatingBar: false,
   },
@@ -44,7 +45,7 @@ export const DATA_TYPES = {
     dailyMaxKey: 'apparent_temperature_max',
     dailyMinKey: 'apparent_temperature_min',
     color: '#a855f7',
-    getUnit: (units) => units === 'metric' ? '°C' : '°F',
+    getUnit: (p) => p.temperature === 'fahrenheit' ? '°F' : '°C',
     decimals: 1,
     floatingBar: true,
   },
@@ -95,9 +96,15 @@ export const DATA_TYPES = {
     dailyMinKey: null,
     dailyAvg: true,
     color: '#818cf8',
-    getUnit: () => 'hPa',
+    getUnit: (p) => ({ hpa: 'hPa', inhg: 'inHg', mmhg: 'mmHg' })[p.pressure] ?? 'hPa',
     decimals: 0,
+    getDecimals: (p) => p.pressure === 'inhg' ? 2 : p.pressure === 'mmhg' ? 1 : 0,
     floatingBar: false,
+    scale: (v, p) => {
+      if (p.pressure === 'inhg') return v * 0.02953
+      if (p.pressure === 'mmhg') return v * 0.75006
+      return v
+    },
   },
   visibility: {
     id: 'visibility',
@@ -108,10 +115,10 @@ export const DATA_TYPES = {
     dailyMinKey: null,
     dailyAvg: true,
     color: '#22d3ee',
-    getUnit: (units) => units === 'metric' ? 'km' : 'mi',
+    getUnit: (p) => p.visibility === 'mi' ? 'mi' : 'km',
     decimals: 1,
     floatingBar: false,
-    scale: (v, units) => units === 'metric' ? v / 1000 : v / 1609.344,
+    scale: (v, p) => p.visibility === 'mi' ? v / 1609.344 : v / 1000,
   },
 }
 

@@ -1,9 +1,9 @@
 <template>
-  <div class="chart-card card">
+  <div class="chart-card card" data-chart="hourly">
     <div class="chart-header">
       <div class="chart-title-group">
         <h3 class="chart-title">Hourly</h3>
-        <span class="chart-subtitle">{{ config.icon }} {{ config.label }}</span>
+        <span class="chart-subtitle">{{ config.icon }} {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
       </div>
       <div class="day-nav">
         <button
@@ -11,7 +11,7 @@
           class="today-jump-btn"
           @click="emit('select-day', 0)"
           title="Jump to today"
-        >Today</button>
+        >↩ Today</button>
         <select
           class="day-select"
           :value="dayIndex"
@@ -56,14 +56,17 @@ Tooltip.positioners.linePoint = function(items) {
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
+const APP_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+
 const props = defineProps({
   hourly:     { type: Object, required: true },
   activeType: { type: String, required: true },
-  units:      { type: String, required: true },
+  unitPrefs:  { type: Object, required: true },
   dayIndex:   { type: Number, default: 0 },
+  theme:      { type: String, default: 'dark' },
 })
 
-const emit = defineEmits(['select-day'])
+const emit = defineEmits(['select-day', 'open-units-modal'])
 
 const canvasRef     = ref(null)
 const chartWrapRef  = ref(null)
@@ -79,6 +82,11 @@ function scrollToCurrentHour(currentHour) {
 }
 
 const config = computed(() => DATA_TYPES[props.activeType])
+const unitLabel = computed(() => {
+  const cfg = DATA_TYPES[props.activeType]
+  if (cfg.id === 'humidity' || cfg.id === 'cloudCover') return ''
+  return cfg.getUnit(props.unitPrefs)
+})
 
 const dayOptions = computed(() => {
   const opts = []
@@ -102,7 +110,7 @@ function makePastShadingPlugin(currentHour, dayIndex) {
       const { ctx, chartArea } = chart
       const x = meta.data[currentHour].getProps(['x'], true).x
       ctx.save()
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)'
+      ctx.fillStyle = props.theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.14)'
       ctx.fillRect(chartArea.left, chartArea.top, x - chartArea.left, chartArea.bottom - chartArea.top)
       ctx.restore()
     },
@@ -121,7 +129,7 @@ const crosshairPlugin = {
     ctx.beginPath()
     ctx.moveTo(x, chartArea.top)
     ctx.lineTo(x, chartArea.bottom)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'
+    ctx.strokeStyle = props.theme === 'light' ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.12)'
     ctx.lineWidth = 1
     ctx.setLineDash([4, 4])
     ctx.stroke()
@@ -186,10 +194,11 @@ function makeWindArrowPlugin(directions, values, color, currentHour) {
         const v = values[i]
         if (v != null) {
           ctx.save()
-          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
+          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
+          const _isLight = document.documentElement.classList.contains('light-theme')
+        ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
           ctx.fillText(`${Math.round(v)}`, x, y + radius + 4)
           ctx.restore()
         }
@@ -199,7 +208,7 @@ function makeWindArrowPlugin(directions, values, color, currentHour) {
 }
 
 // Per-chart plugin that draws weather condition emoji + temperature value at each data point.
-function makeWeatherEmojiPlugin(codes, values, unit, currentHour) {
+function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '') {
   return {
     id: 'weatherEmoji',
     afterDatasetsDraw(chart) {
@@ -214,7 +223,7 @@ function makeWeatherEmojiPlugin(codes, values, unit, currentHour) {
         const emoji = getWeatherInfo(codes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `${emojiSize}px sans-serif`
+          ctx.font = `${emojiSize}px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(emoji, x, y)
@@ -225,11 +234,12 @@ function makeWeatherEmojiPlugin(codes, values, unit, currentHour) {
         const v = values[i]
         if (v != null) {
           ctx.save()
-          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
+          ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
-          ctx.fillText(`${Math.round(v)}`, x, y + emojiSize / 2 + 2)
+          const _isLight = document.documentElement.classList.contains('light-theme')
+        ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
+          ctx.fillText(`${Math.round(v)}${suffix}`, x, y + emojiSize / 2 + 2)
           ctx.restore()
         }
       })
@@ -253,7 +263,7 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
         const emoji = getWeatherInfo(codes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `${isCurrent ? 22 : 18}px sans-serif`
+          ctx.font = `${isCurrent ? 22 : 18}px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -261,10 +271,11 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
         }
 
         ctx.save()
-        ctx.font = `${isCurrent ? 'bold 14px' : '13px'} sans-serif`
+        ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
-        ctx.fillStyle = isCurrent ? '#ffffff' : '#cbd5e1'
+        const _isLight = document.documentElement.classList.contains('light-theme')
+        ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
         ctx.fillText(`${Number(val).toFixed(1)}`, x, y - 2)
         ctx.restore()
       })
@@ -289,14 +300,15 @@ function buildChart() {
   }
 
   const cfg      = DATA_TYPES[props.activeType]
-  const unit     = cfg.getUnit(props.units)
-  const isMobile = window.innerWidth < 640
+  const unit     = cfg.getUnit(props.unitPrefs)
+  const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
+  const isMobile = window.innerWidth <= 800
 
   const now = new Date()
   const start = props.dayIndex * 24
   const labels = props.hourly.time.slice(start, start + 24).map(hourLabel)
   let values = props.hourly[cfg.hourlyKey].slice(start, start + 24)
-  if (cfg.scale) values = values.map(v => v != null ? cfg.scale(v, props.units) : null)
+  if (cfg.scale) values = values.map(v => v != null ? cfg.scale(v, props.unitPrefs) : null)
   // Only highlight current hour when viewing today
   const currentHour = props.dayIndex === 0 ? now.getHours() : -1
 
@@ -308,7 +320,7 @@ function buildChart() {
   let globalYMin, globalYMax
   if (!isRain) {
     let allVals = (props.hourly[cfg.hourlyKey] ?? []).filter(v => v != null)
-    if (cfg.scale) allVals = allVals.map(v => cfg.scale(v, props.units))
+    if (cfg.scale) allVals = allVals.map(v => cfg.scale(v, props.unitPrefs))
     if (allVals.length) {
       const lo = Math.min(...allVals)
       const hi = Math.max(...allVals)
@@ -325,11 +337,12 @@ function buildChart() {
   // All non-rain charts: hide default dots (custom plugin draws icon + number instead)
   const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
   const pointColors = isRain ? labels.map((_, i) => i === currentHour ? '#ffffff' : cfg.color) : cfg.color
+  const labelSuffix = (cfg.id === 'humidity' || cfg.id === 'cloudCover') ? '%' : ''
   const extraPlugins = [
     makePastShadingPlugin(currentHour, props.dayIndex),
     crosshairPlugin,
     ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour)]
-      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, unit, currentHour)]
+      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix)]
       : []),
   ]
 
@@ -386,7 +399,7 @@ function buildChart() {
             padding: 10,
             callbacks: {
               label: (ctx) => ctx.datasetIndex === 0
-                ? ` ${Number(ctx.parsed.y).toFixed(cfg.decimals)} ${unit}`
+                ? ` ${Number(ctx.parsed.y).toFixed(decimals)} ${unit}`
                 : ` ${ctx.parsed.y}% chance of rain`,
             },
           },
@@ -394,8 +407,8 @@ function buildChart() {
         scales: {
           x: {
             position: 'top',
-            grid:  { color: 'rgba(255,255,255,0.04)' },
-            ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+            grid:  { color: props.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.04)' },
+            ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { family: APP_FONT } },
             border: { color: 'rgba(255,255,255,0.06)' },
           },
           y: {
@@ -449,7 +462,7 @@ function buildChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          enabled: !isMobile,
+          enabled: false,
           backgroundColor: 'rgba(15, 23, 42, 0.95)',
           borderColor: cfg.color,
           borderWidth: 1,
@@ -459,7 +472,7 @@ function buildChart() {
           callbacks: {
             label: (ctx) => {
               const v = ctx.parsed.y
-              const formatted = `${v != null ? Number(v).toFixed(cfg.decimals) : '–'}${unit ? ' ' + unit : ''}`
+              const formatted = `${v != null ? Number(v).toFixed(decimals) : '–'}${unit ? ' ' + unit : ''}`
               if (isWind && windDirs) {
                 const dir = getCompassDir(windDirs[ctx.dataIndex])
                 return ` ${formatted} ${dir}`
@@ -476,8 +489,8 @@ function buildChart() {
       scales: {
         x: {
           position: 'top',
-          grid:  { color: 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#64748b', maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+          grid:  { color: props.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.04)' },
+          ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
           border: { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
@@ -504,7 +517,8 @@ async function buildAndScroll() {
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
 watch(() => props.activeType, scheduleAndScroll)
-watch(() => props.units,      scheduleAndScroll)
+watch(() => props.unitPrefs,      scheduleAndScroll)
+watch(() => props.theme,      scheduleAndScroll)
 watch(() => props.hourly,     scheduleAndScroll)
 watch(() => props.dayIndex,   scheduleAndScroll)
 onMounted(() => requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)))
@@ -533,25 +547,28 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
 .chart-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text);
   white-space: nowrap;
+}
+.chart-title::after {
+  content: ' Forecast';
 }
 
 .today-jump-btn {
   font-size: 0.85rem;
   font-weight: 600;
   font-family: inherit;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   border-radius: 8px;
   padding: 3px 10px;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
 }
 .today-jump-btn:hover {
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  background: var(--btn-hover);
 }
 
 .day-nav {
@@ -580,13 +597,23 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   border-color: rgba(56, 189, 248, 0.45);
 }
 .day-select option {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--panel-bg);
+  color: var(--text);
 }
 
 .chart-subtitle {
   font-size: 1rem;
-  color: #94a3b8;
+  color: var(--text-muted);
+}
+
+.chart-unit {
+  margin-left: 5px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.chart-unit:hover {
+  opacity: 1;
 }
 
 .chart-and-nav {
@@ -606,12 +633,15 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   height: 100%;
 }
 
-@media (max-width: 639px) {
+@media (max-width: 800px) {
   .chart-card {
-    padding: 12px 12px 10px;
+    padding: 8px 10px 8px;
   }
   .chart-subtitle {
     display: none;
+  }
+  .chart-wrap {
+    height: 190px;
   }
   .chart-wrap {
     overflow-x: auto;
@@ -623,6 +653,27 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   }
   .chart-scroll-inner {
     min-width: 900px;
+  }
+}
+
+@media (max-width: 800px) and (hover: hover) and (pointer: fine) {
+  .chart-wrap {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+  }
+  .chart-wrap::-webkit-scrollbar {
+    display: block;
+    height: 3px;
+  }
+  .chart-wrap::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .chart-wrap::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 2px;
+  }
+  .chart-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.45);
   }
 }
 

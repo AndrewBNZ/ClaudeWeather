@@ -1,5 +1,5 @@
 <template>
-  <div class="scene" :style="sceneStyle">
+  <div class="scene" :style="sceneStyle" ref="sceneEl">
 
     <!-- Stars (night, clear/partly) -->
     <template v-if="showStars">
@@ -11,6 +11,20 @@
 
     <!-- Moon (crescent via box-shadow) -->
     <div v-if="showMoon" class="moon" />
+
+    <!-- Lightning bolts — rendered before clouds so clouds layer on top -->
+    <template v-if="isStorm && boltsVisible">
+      <div class="bolt bolt-1" :style="boltPositions[0]">
+        <svg viewBox="0 0 22 60" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="16,0 5,28 13,28 2,60 21,24 11,24" fill="white"/>
+        </svg>
+      </div>
+      <div class="bolt bolt-2" :style="boltPositions[1]">
+        <svg viewBox="0 0 16 48" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="12,0 3,22 9,22 1,48 15,19 8,19" fill="white"/>
+        </svg>
+      </div>
+    </template>
 
     <!-- Clouds -->
     <div v-for="(cl, i) in activeClouds" :key="i" class="cloud" :style="cl.style" />
@@ -25,14 +39,6 @@
       <div v-for="n in 22" :key="n" class="flake" :style="flakeStyle(n)" />
     </template>
 
-    <!-- Flying leaves -->
-    <template v-if="showLeaves">
-      <div v-for="n in leafCount" :key="n" class="leaf" :style="leafStyle(n)" />
-    </template>
-
-    <!-- Lightning flash -->
-    <div v-if="isStorm" class="lightning" />
-
     <!-- Landscape SVG -->
     <svg class="landscape" viewBox="0 0 400 90" preserveAspectRatio="none"
          xmlns="http://www.w3.org/2000/svg">
@@ -42,108 +48,71 @@
       <!-- Near hills -->
       <path d="M0,90 C50,70 130,76 210,72 C290,68 345,74 400,66 L400,90Z"
             :fill="hillNearColor" />
-      <!-- Tree trunk (tapered with root flare) -->
-      <path d="M74,83 C74,83 76,74 77,67 C77,63 78,61 80,60 C82,61 83,63 83,67 C84,74 86,83 86,83Z"
-            :fill="trunkColor" />
-      <!-- Tree foliage (swaying group) -->
-      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyle">
-        <!-- Shadow layer (back/bottom) -->
-        <ellipse cx="61"  cy="64" rx="19" ry="9"  :fill="foliage[1]" />
-        <ellipse cx="99"  cy="62" rx="19" ry="9"  :fill="foliage[1]" />
-        <ellipse cx="80"  cy="67" rx="23" ry="9"  :fill="foliage[1]" />
-        <!-- Main canopy body -->
-        <ellipse cx="80"  cy="52" rx="30" ry="14" :fill="foliage[0]" />
-        <ellipse cx="65"  cy="43" rx="20" ry="10" :fill="foliage[0]" />
-        <ellipse cx="95"  cy="44" rx="19" ry="10" :fill="foliage[0]" />
-        <ellipse cx="80"  cy="34" rx="20" ry="10" :fill="foliage[0]" />
-        <!-- Highlight layer (top-left light source) -->
-        <ellipse cx="72"  cy="37" rx="14" ry="7"  :fill="foliage[2]" />
-        <ellipse cx="85"  cy="27" rx="11" ry="6"  :fill="foliage[2]" />
+      <!-- Tree A — large (cx=80) -->
+      <rect x="77" y="72" width="6" height="10" :fill="trunkColor" />
+      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleA">
+        <polygon points="80,46 47,74 113,74" :fill="foliage[1]" />
+        <polygon points="80,31 51,61 109,61" :fill="foliage[0]" />
+        <polygon points="80,18 58,50 102,50"  :fill="foliage[0]" />
+        <polygon points="80,18 58,50 80,50"  :fill="foliage[2]" />
+        <polygon points="80,31 51,61 80,61"  :fill="foliage[2]" opacity="0.55" />
+      </g>
+      <!-- Tree B — medium (cx=180, 68% scale) -->
+      <rect x="177" y="75" width="5" height="7" :fill="trunkColor" />
+      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleB">
+        <polygon points="180,58 158,77 202,77" :fill="foliage[1]" />
+        <polygon points="180,47 160,68 200,68" :fill="foliage[0]" />
+        <polygon points="180,39 165,60 195,60" :fill="foliage[0]" />
+        <polygon points="180,39 165,60 180,60" :fill="foliage[2]" />
+        <polygon points="180,47 160,68 180,68" :fill="foliage[2]" opacity="0.55" />
+      </g>
+      <!-- Tree C — small (cx=265, 50% scale) -->
+      <rect x="262" y="77" width="5" height="5" :fill="trunkColor" />
+      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleC">
+        <polygon points="265,64 247,78 283,78" :fill="foliage[1]" />
+        <polygon points="265,57 250,72 280,72" :fill="foliage[0]" />
+        <polygon points="265,50 253,66 277,66" :fill="foliage[0]" />
+        <polygon points="265,50 253,66 265,66" :fill="foliage[2]" />
+        <polygon points="265,57 250,72 265,72" :fill="foliage[2]" opacity="0.55" />
       </g>
       <!-- Ground strip -->
       <rect x="0" y="82" width="400" height="8" :fill="groundColor" />
     </svg>
 
+    <!-- Flying leaves -->
+    <template v-if="showLeaves">
+      <div v-for="n in leafCount" :key="n" class="leaf" :style="leafStyle(n)" />
+    </template>
+
     <!-- Scrim: darkens bottom for text readability -->
     <div class="scrim" />
 
-    <!-- Preview controls -->
-    <div v-if="showSim" class="preview-bar">
-      <div class="preview-row">
-        <button v-for="t in timeOfDays" :key="t.tod"
-          class="preview-btn" :class="{ active: previewTod === t }"
-          @click="previewTod = previewTod === t ? null : t"
-          :title="t.label">{{ t.emoji }}</button>
-        <button v-if="previewTod" class="preview-btn live-btn" @click="previewTod = null">↺</button>
-      </div>
-      <div class="preview-row">
-        <button v-for="w in weatherPreviews" :key="w.group"
-          class="preview-btn" :class="{ active: previewWeather === w }"
-          @click="previewWeather = previewWeather === w ? null : w"
-          :title="w.label">{{ w.emoji }}</button>
-        <button v-if="previewWeather" class="preview-btn live-btn" @click="previewWeather = null">↺</button>
-      </div>
-      <div class="preview-row">
-        <button v-for="wl in windLevels" :key="wl.label"
-          class="preview-btn" :class="{ active: previewWind === wl }"
-          @click="previewWind = previewWind === wl ? null : wl"
-          :title="wl.label">{{ wl.emoji }}</button>
-        <button v-if="previewWind" class="preview-btn live-btn" @click="previewWind = null">↺</button>
-      </div>
-    </div>
+    <!-- Fireworks canvas -->
+    <canvas ref="fwCanvas" class="fw-canvas" />
+
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
-  weatherCode: { type: Number, default: 0 },
-  windSpeed:   { type: Number, default: 0 },
-  showSim:     { type: Boolean, default: false },
-  sunrise:     { type: String, default: null },
-  sunset:      { type: String, default: null },
+  weatherCode:     { type: Number,  default: 0 },
+  windSpeed:       { type: Number,  default: 0 },
+  sunrise:         { type: String,  default: null },
+  sunset:          { type: String,  default: null },
+  previewTod:      { type: String,  default: null },
+  previewWeather:  { type: String,  default: null },
+  previewWind:     { type: Number,  default: null },
+  showFireworks:   { type: Boolean, default: false },
 })
 
-// ── Preview controls ───────────────────────────────────────────────────────
-const timeOfDays = [
-  { emoji: '🌙', label: 'Night',   tod: 'night'   },
-  { emoji: '🌅', label: 'Sunrise', tod: 'sunrise'  },
-  { emoji: '☀️', label: 'Day',     tod: 'day'      },
-  { emoji: '🌇', label: 'Sunset',  tod: 'sunset'   },
-]
-const previewTod = ref(null)
-
-const weatherPreviews = [
-  { emoji: '✨',  label: 'Clear',        group: 'clear'  },
-  { emoji: '⛅',  label: 'Partly cloudy', group: 'partly' },
-  { emoji: '☁️',  label: 'Cloudy',        group: 'cloudy' },
-  { emoji: '🌧️', label: 'Rain',          group: 'rain'   },
-  { emoji: '🌨️', label: 'Snow',          group: 'snow'   },
-  { emoji: '⛈️', label: 'Storm',         group: 'storm'  },
-]
-const previewWeather = ref(null)
-
-const windLevels = [
-  { emoji: '🍃', label: 'Calm',    speed: 0  },
-  { emoji: '🌬️', label: 'Breeze', speed: 15 },
-  { emoji: '💨', label: 'Windy',   speed: 35 },
-  { emoji: '🌪️', label: 'Storm',  speed: 75 },
-]
-const previewWind = ref(null)
-const effectiveWind = computed(() => previewWind.value?.speed ?? props.windSpeed)
-
-watch(() => props.showSim, (val) => {
-  if (!val) {
-    previewTod.value     = null
-    previewWeather.value = null
-    previewWind.value    = null
-  }
-})
+// ── Derived preview values ─────────────────────────────────────────────────
+const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
 
 // ── Time of day ────────────────────────────────────────────────────────────
 const timeOfDay = computed(() => {
-  if (previewTod.value) return previewTod.value.tod
+  if (props.previewTod) return props.previewTod
   const now = Date.now()
   if (props.sunrise && props.sunset) {
     const riseMs = new Date(props.sunrise).getTime()
@@ -166,7 +135,7 @@ const isDay = computed(() => timeOfDay.value !== 'night')
 
 // ── Weather group ──────────────────────────────────────────────────────────
 const group = computed(() => {
-  if (previewWeather.value) return previewWeather.value.group
+  if (props.previewWeather) return props.previewWeather
   const c = props.weatherCode ?? 0
   if (c <= 1)                                              return 'clear'
   if (c === 2)                                             return 'partly'
@@ -181,43 +150,211 @@ const isRain  = computed(() => group.value === 'rain')
 const isSnow  = computed(() => group.value === 'snow')
 const isStorm = computed(() => group.value === 'storm')
 
+// ── Lightning bolt cloud-tracking ───────────────────────────────────────────
+const sceneEl       = ref(null)
+const boltsVisible  = ref(false)
+const boltPositions = ref([
+  { left: '26%', top: '20%' },
+  { left: '61%', top: '22%' },
+])
+
+const CLOUD_CFGS = [
+  { top: '6%',  w: 140, h: 48, delay: 0    },
+  { top: '16%', w: 105, h: 38, delay: -9   },
+  { top: '3%',  w: 120, h: 44, delay: -19  },
+  { top: '11%', w: 155, h: 52, delay: -28  },
+  { top: '20%', w:  90, h: 32, delay: -6   },
+  { top: '8%',  w: 130, h: 42, delay: -34  },
+]
+
+function pickBoltPositions() {
+  if (!sceneEl.value) return
+  const { width: sceneW, height: sceneH } = sceneEl.value.getBoundingClientRect()
+  const dur    = driftDur.value
+  const travel = sceneW + 360   // cloud travels from -160px to sceneW+200px
+  const now    = performance.now() / 1000
+
+  const visible = CLOUD_CFGS.slice(0, cloudCount.value).flatMap(cfg => {
+    const elapsed  = (now + Math.abs(cfg.delay)) % dur
+    const leftX    = -160 + (elapsed / dur) * travel
+    const centerX  = leftX + cfg.w / 2
+    if (centerX < 20 || centerX > sceneW - 20) return []
+    const bottomY  = sceneH * (parseFloat(cfg.top) / 100) + cfg.h
+    return [{ centerX, bottomY }]
+  })
+
+  if (visible.length === 0) {
+    boltsVisible.value = false
+    return
+  }
+  const shuffled = [...visible].sort(() => Math.random() - 0.5)
+  const a = shuffled[0]
+  const b = shuffled.length > 1 ? shuffled[1] : shuffled[0]
+  // Position each bolt so its top half is hidden behind the cloud:
+  //   bolt-1 is 60px tall → offset by 30px (half height)
+  //   bolt-2 is 45px tall → offset by 22px (half height)
+  boltPositions.value = [
+    { left: `${Math.round(a.centerX - 11)}px`, top: `${Math.round(a.bottomY - 30)}px` },
+    { left: `${Math.round(b.centerX - 8)}px`,  top: `${Math.round(b.bottomY - 22)}px` },
+  ]
+  boltsVisible.value = true
+}
+
+// ── Fireworks ──────────────────────────────────────────────────────────────
+const fwCanvas = ref(null)
+let fwRaf = null
+
+const FW_COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff922b', '#cc5de8', '#38bdf8', '#f06595']
+
+function startFireworks() {
+  const canvas = fwCanvas.value
+  if (!canvas) return
+  canvas.width  = canvas.offsetWidth  || canvas.parentElement?.offsetWidth  || 400
+  canvas.height = canvas.offsetHeight || canvas.parentElement?.offsetHeight || 200
+
+  const ctx     = canvas.getContext('2d')
+  const rockets = []
+  const sparks  = []
+  let lastTs    = null
+  let elapsed   = 0
+  let nextLaunch = 200
+
+  function launchRocket() {
+    rockets.push({
+      x:       (15 + Math.random() * 70) / 100,
+      y:       0.95,
+      targetY: 0.06 + Math.random() * 0.28,
+      speed:   0.013 + Math.random() * 0.008,
+      color:   FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)],
+      trail:   [],
+    })
+  }
+
+  function explode(r) {
+    const n = 28 + Math.floor(Math.random() * 14)
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2
+      const speed = 0.004 + Math.random() * 0.006
+      sparks.push({
+        x: r.x, y: r.targetY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        color: r.color,
+        life: 1,
+        decay: 0.016 + Math.random() * 0.01,
+        size:  1.5 + Math.random() * 1.5,
+      })
+    }
+  }
+
+  function frame(ts) {
+    if (!lastTs) lastTs = ts
+    const dt = Math.min(ts - lastTs, 50)
+    lastTs = ts
+    elapsed += dt
+
+    const W = canvas.width
+    const H = canvas.height
+    ctx.clearRect(0, 0, W, H)
+
+    if (elapsed < 3800) {
+      nextLaunch -= dt
+      if (nextLaunch <= 0) { launchRocket(); nextLaunch = 500 + Math.random() * 700 }
+    }
+
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i]
+      r.y -= r.speed * (dt / 16)
+      r.trail.push({ x: r.x, y: r.y })
+      if (r.trail.length > 10) r.trail.shift()
+      if (r.y <= r.targetY) { explode(r); rockets.splice(i, 1); continue }
+      for (let j = 0; j < r.trail.length; j++) {
+        ctx.globalAlpha = (j / r.trail.length) * 0.65
+        ctx.fillStyle = r.color
+        ctx.beginPath(); ctx.arc(r.trail[j].x * W, r.trail[j].y * H, 1.5, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalAlpha = 1; ctx.fillStyle = '#fff'
+      ctx.beginPath(); ctx.arc(r.x * W, r.y * H, 2, 0, Math.PI * 2); ctx.fill()
+    }
+
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i]
+      s.x  += s.vx * (dt / 16)
+      s.y  += s.vy * (dt / 16)
+      s.vy += 0.00018 * (dt / 16)
+      s.life -= s.decay * (dt / 16)
+      if (s.life <= 0) { sparks.splice(i, 1); continue }
+      ctx.globalAlpha = s.life * 0.85; ctx.fillStyle = s.color
+      ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.size * Math.sqrt(s.life), 0, Math.PI * 2); ctx.fill()
+    }
+
+    ctx.globalAlpha = 1
+    if (rockets.length > 0 || sparks.length > 0 || elapsed < 4200)
+      fwRaf = requestAnimationFrame(frame)
+    else { ctx.clearRect(0, 0, W, H); fwRaf = null }
+  }
+
+  if (fwRaf) cancelAnimationFrame(fwRaf)
+  fwRaf = requestAnimationFrame(frame)
+}
+
+function stopFireworks() {
+  if (fwRaf) { cancelAnimationFrame(fwRaf); fwRaf = null }
+  const c = fwCanvas.value
+  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height)
+}
+
+watch(() => props.showFireworks, val => { if (val) startFireworks(); else stopFireworks() })
+
+let boltTimer = null
+watch(isStorm, val => {
+  clearInterval(boltTimer)
+  boltTimer = null
+  if (val) {
+    pickBoltPositions()
+    boltTimer = setInterval(pickBoltPositions, 6000)
+  }
+}, { immediate: true })
+onBeforeUnmount(() => { clearInterval(boltTimer); stopFireworks() })
+
 const cloudCount = computed(() =>
-  ({ clear: 0, partly: 1, cloudy: 2, rain: 3, snow: 2, storm: 3 })[group.value] ?? 0
+  ({ clear: 0, partly: 3, cloudy: 5, rain: 5, snow: 4, storm: 6 })[group.value] ?? 0
 )
 
 // ── Sky gradient ───────────────────────────────────────────────────────────
 const SKY = {
+  // +1 shade brighter vs previous — Material shade references below each entry
   night: {
-    clear:  ['#060a14', '#0a1220', '#0c1e40'],
-    partly: ['#07101e', '#0d1a30', '#152440'],
-    cloudy: ['#0f172a', '#1e293b', '#2d3748'],
-    rain:   ['#0f172a', '#1e293b', '#334155'],
-    snow:   ['#1e293b', '#334155', '#475569'],
-    storm:  ['#020408', '#080d18', '#0f172a'],
+    clear:  ['#283593', '#303F9F', '#4527A0'],  // Indigo 800→700, Deep Purple 800
+    partly: ['#283593', '#303F9F', '#3F51B5'],  // Indigo 800→700→500
+    cloudy: ['#37474F', '#455A64', '#546E7A'],  // Blue Grey 800→700→600
+    rain:   ['#37474F', '#283593', '#303F9F'],  // Blue Grey 800, Indigo 800→700
+    snow:   ['#303F9F', '#3F51B5', '#546E7A'],  // Indigo 700→500, Blue Grey 600
+    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
   },
   sunrise: {
-    clear:  ['#1a0a3e', '#c2410c', '#fbbf24'],
-    partly: ['#1e1238', '#b45309', '#fcd34d'],
-    cloudy: ['#374151', '#78674a', '#9c8a6a'],
-    rain:   ['#1f2937', '#374151', '#4b5563'],
-    snow:   ['#7ba8c8', '#a8c9e0', '#cde3f2'],
-    storm:  ['#111827', '#1f2937', '#374151'],
+    clear:  ['#6A1B9A', '#C2185B', '#FB8C00'],  // Purple 800, Pink 700, Orange 600
+    partly: ['#7B1FA2', '#D81B60', '#F4511E'],  // Purple 700, Pink 600, Deep Orange 600
+    cloudy: ['#546E7A', '#78909C', '#90A4AE'],  // Blue Grey 600→400→300
+    rain:   ['#37474F', '#455A64', '#607D8B'],  // Blue Grey 800→700→500
+    snow:   ['#90CAF9', '#BBDEFB', '#E1F5FE'],  // Blue 200→100, Light Blue 50
+    storm:  ['#424242', '#37474F', '#4527A0'],  // Grey 800, Blue Grey 800, Deep Purple 800
   },
   day: {
-    clear:  ['#1e56d4', '#3b82f6', '#bfdbfe'],
-    partly: ['#2260c8', '#4b9ef5', '#dbeafe'],
-    cloudy: ['#4a5e75', '#68788e', '#99afc4'],
-    rain:   ['#1e293b', '#334155', '#475569'],
-    snow:   ['#7ba8c8', '#a8c9e0', '#cde3f2'],
-    storm:  ['#0f172a', '#1e293b', '#374151'],
+    clear:  ['#1976D2', '#42A5F5', '#81D4FA'],  // Blue 700→400, Light Blue 200
+    partly: ['#1E88E5', '#64B5F6', '#B3E5FC'],  // Blue 600→300, Light Blue 100
+    cloudy: ['#607D8B', '#90A4AE', '#B0BEC5'],  // Blue Grey 500→300→200
+    rain:   ['#37474F', '#546E7A', '#607D8B'],  // Blue Grey 800→600→500
+    snow:   ['#64B5F6', '#BBDEFB', '#E1F5FE'],  // Blue 300→100, Light Blue 50
+    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
   },
   sunset: {
-    clear:  ['#0f0c2e', '#7e22ce', '#f97316'],
-    partly: ['#1e1b4b', '#6d28d9', '#ea580c'],
-    cloudy: ['#374151', '#6b4226', '#9c6b38'],
-    rain:   ['#1e293b', '#334155', '#4b5563'],
-    snow:   ['#7ba8c8', '#a8c9e0', '#cde3f2'],
-    storm:  ['#0f172a', '#1e293b', '#374151'],
+    clear:  ['#6A1B9A', '#AD1457', '#F4511E'],  // Purple 800, Pink 800, Deep Orange 600
+    partly: ['#7B1FA2', '#C2185B', '#FF5722'],  // Purple 700, Pink 700, Deep Orange 500
+    cloudy: ['#455A64', '#607D8B', '#78909C'],  // Blue Grey 700→500→400
+    rain:   ['#37474F', '#455A64', '#283593'],  // Blue Grey 800→700, Indigo 800
+    snow:   ['#2196F3', '#90CAF9', '#B3E5FC'],  // Blue 500→200, Light Blue 100
+    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
   },
 }
 
@@ -229,7 +366,7 @@ const sceneStyle = computed(() => {
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
 const showSun   = computed(() => isDay.value && cloudCount.value === 0)
 const showMoon  = computed(() => timeOfDay.value === 'night' && cloudCount.value === 0)
-const showStars = computed(() => timeOfDay.value === 'night' && cloudCount.value < 2)
+const showStars = computed(() => timeOfDay.value === 'night' && cloudCount.value < 4)
 
 const stars = Array.from({ length: 38 }, (_, i) => ({
   id: i,
@@ -247,26 +384,31 @@ const stars = Array.from({ length: 38 }, (_, i) => ({
 const cloudColor = computed(() => {
   const g   = group.value
   const tod = timeOfDay.value
-  if (g === 'rain' || g === 'storm') return 'rgba(71,85,105,0.93)'
-  if (g === 'snow')                  return 'rgba(200,225,245,0.88)'
-  if (g === 'cloudy')                return 'rgba(148,163,184,0.88)'
-  if (tod === 'sunrise' || tod === 'sunset') return 'rgba(253,186,116,0.85)'
-  return 'rgba(255,255,255,0.82)'
+  if (g === 'rain' || g === 'storm') return 'rgba(84,110,122,0.93)'    // Blue Grey 600
+  if (g === 'snow')                  return 'rgba(236,239,241,0.90)'   // Blue Grey 50
+  if (g === 'cloudy')                return 'rgba(176,190,197,0.88)'   // Blue Grey 200
+  if (tod === 'sunrise')             return 'rgba(255,204,128,0.88)'   // Orange 200
+  if (tod === 'sunset')              return 'rgba(225,190,231,0.85)'   // Purple 100
+  if (tod === 'night')               return 'rgba(232,234,246,0.70)'   // Indigo 50
+  return 'rgba(255,255,255,0.85)'
 })
 
 const driftDur = computed(() => {
   const s = effectiveWind.value
   if (s > 50) return 7
   if (s > 30) return 13
-  if (s > 15) return 24
-  return 38
+  if (s > 10) return 28  // breeze (15 km/h) lands here
+  return 65              // calm (0) — very slow lazy drift
 })
 
 const activeClouds = computed(() =>
   [
-    { top: '7%',  w: 130, h: 44, delay: 0   },
-    { top: '18%', w: 100, h: 36, delay: -11 },
-    { top: '4%',  w: 115, h: 42, delay: -22 },
+    { top: '6%',  w: 140, h: 48, delay: 0    },
+    { top: '16%', w: 105, h: 38, delay: -9   },
+    { top: '3%',  w: 120, h: 44, delay: -19  },
+    { top: '11%', w: 155, h: 52, delay: -28  },
+    { top: '20%', w:  90, h: 32, delay: -6   },
+    { top: '8%',  w: 130, h: 42, delay: -34  },
   ]
   .slice(0, cloudCount.value)
   .map(cfg => ({
@@ -299,7 +441,7 @@ function dropStyle(n) {
     height:            `${14 + (n % 4) * 5}px`,
     opacity:            isStorm.value ? 0.75 : 0.5,
     animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
-    animationDuration: `${(0.45 + (n % 5) * 0.1).toFixed(2)}s`,
+    animationDuration: `${(0.70 + (n % 5) * 0.1).toFixed(2)}s`,
     '--rain-angle':    `${(rainAngle.value + angleVariation).toFixed(1)}deg`,
     '--rain-drift':    `${rainDrift.value.toFixed(0)}px`,
   }
@@ -327,47 +469,62 @@ function flakeStyle(n) {
 const hillFarColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#031208'
-  if (g === 'snow')                  return '#c0dff5'
-  if (g === 'rain' || g === 'storm') return '#0c3820'
-  return '#15803d'
+  if (tod === 'night')               return '#4527A0'  // Deep Purple 800
+  if (tod === 'sunrise')             return '#6A1B9A'  // Purple 800
+  if (tod === 'sunset')              return '#6A1B9A'  // Purple 800
+  if (g === 'snow')                  return '#CFD8DC'  // Blue Grey 100
+  if (g === 'rain' || g === 'storm') return '#388E3C'  // Green 700
+  return '#43A047'                                     // Green 600
 })
 
 const hillNearColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#010a04'
-  if (g === 'snow')                  return '#a0cce8'
-  if (g === 'rain' || g === 'storm') return '#092b17'
-  return '#166534'
+  if (tod === 'night')               return '#283593'  // Indigo 800
+  if (tod === 'sunrise')             return '#4527A0'  // Deep Purple 800
+  if (tod === 'sunset')              return '#4527A0'  // Deep Purple 800
+  if (g === 'snow')                  return '#B0BEC5'  // Blue Grey 200
+  if (g === 'rain' || g === 'storm') return '#2E7D32'  // Green 800
+  return '#388E3C'                                     // Green 700
 })
 
 const groundColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#010804'
-  if (g === 'snow')                  return '#d4eaf8'
-  if (g === 'rain' || g === 'storm') return '#08220f'
-  return '#14532d'
+  if (tod === 'night')               return '#283593'  // Indigo 800
+  if (tod === 'sunrise')             return '#303F9F'  // Indigo 700
+  if (tod === 'sunset')              return '#303F9F'  // Indigo 700
+  if (g === 'snow')                  return '#ECEFF1'  // Blue Grey 50
+  if (g === 'rain' || g === 'storm') return '#2E7D32'  // Green 800
+  return '#2E7D32'                                     // Green 800
 })
 
 const foliage = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return ['#03180a', '#010d05', '#041f0c']
-  if (g === 'snow')                  return ['#c0dff5', '#a0cce8', '#dbeeff']
-  if (g === 'rain' || g === 'storm') return ['#0d6b35', '#094d26', '#128040']
-  if (tod === 'sunset')              return ['#1a8040', '#155e30', '#22c55e']
-  return ['#16a34a', '#166534', '#4ade80']
+  if (tod === 'night')               return ['#303F9F', '#283593', '#4527A0']  // Indigo 700, 800, Deep Purple 800
+  if (tod === 'sunrise')             return ['#558B2F', '#2E7D32', '#689F38']  // Light Green 800, Green 800, Light Green 700
+  if (tod === 'sunset')              return ['#6A1B9A', '#4527A0', '#7B1FA2']  // Purple 800, Deep Purple 800, Purple 700
+  if (g === 'snow')                  return ['#E1F5FE', '#BBDEFB', '#E3F2FD']  // Light Blue 50, Blue 100, Blue 50
+  if (g === 'rain' || g === 'storm') return ['#388E3C', '#2E7D32', '#43A047']  // Green 700, 800, 600
+  return ['#4CAF50', '#388E3C', '#81C784']                                     // Green 500, 700, 300
 })
 
 const trunkColor = computed(() => {
-  if (timeOfDay.value === 'night') return '#2a1a08'
-  if (group.value === 'snow')      return '#6b4c2a'
-  return '#5c3d1e'
+  if (timeOfDay.value === 'night')   return '#283593'  // Indigo 800
+  if (timeOfDay.value === 'sunrise') return '#5D4037'  // Brown 700
+  if (timeOfDay.value === 'sunset')  return '#6A1B9A'  // Purple 800
+  if (group.value === 'snow')        return '#8D6E63'  // Brown 400
+  return '#6D4C41'                                     // Brown 600
 })
 
 // ── Leaves ─────────────────────────────────────────────────────────────────
+const leafColors = computed(() => [
+  ...foliage.value,
+  '#8D6E63',  // Brown 400
+  '#795548',  // Brown 500
+  '#A1887F',  // Brown 300
+])
 const showLeaves = computed(() => effectiveWind.value >= 15)
 const leafCount  = computed(() => {
   const s = effectiveWind.value
@@ -376,15 +533,18 @@ const leafCount  = computed(() => {
   return 4
 })
 
+// Tree A ≈ 20%, Tree B ≈ 45%, Tree C ≈ 66% of scene width
+const TREE_ORIGINS = [17, 42, 63]
 function leafStyle(n) {
-  const col  = foliage.value[n % 3]
-  const size = 5 + (n % 3) * 2 // 5, 7, 9px
+  const col    = leafColors.value[n % leafColors.value.length]
+  const size   = 5 + (n % 3) * 2
+  const treeX  = TREE_ORIGINS[n % 3] + (n % 4) * 1.2
   return {
     width:             `${size}px`,
     height:            `${(size * 0.6).toFixed(0)}px`,
     background:        col,
-    bottom:            `${14 + (n * 9 % 18)}%`,
-    left:              `${17 + (n % 5) * 1.5}%`,
+    bottom:            `${14 + (n * 7 % 16)}%`,
+    left:              `${treeX}%`,
     borderRadius:      '50% 10% 50% 10%',
     animationDelay:    `${-((n * 0.71) % 3.5).toFixed(2)}s`,
     animationDuration: `${(2.0 + (n % 5) * 0.55).toFixed(1)}s`,
@@ -393,17 +553,16 @@ function leafStyle(n) {
 }
 
 // ── Tree sway ──────────────────────────────────────────────────────────────
-const treeStyle = computed(() => {
+function swayVars() {
   const s = effectiveWind.value
-  if (s < 5) return {}
+  if (s < 5) return null
   const dur   = s > 40 ? 0.3  : s > 20 ? 0.7  : 1.8
   const angle = s > 40 ? 14   : s > 20 ? 7    : 4
-  return {
-    '--sway-from':  `${(angle * 0.3).toFixed(1)}deg`,
-    '--sway-angle': `${angle}deg`,
-    '--sway-dur':   `${dur}s`,
-  }
-})
+  return { '--sway-from': `${(angle * 0.3).toFixed(1)}deg`, '--sway-angle': `${angle}deg`, '--sway-dur': `${dur}s` }
+}
+const treeStyleA = computed(() => swayVars() ?? {})
+const treeStyleB = computed(() => swayVars() ? { ...swayVars(), animationDelay: '-0.5s' } : {})
+const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: '-1.1s' } : {})
 </script>
 
 <style scoped>
@@ -434,21 +593,21 @@ const treeStyle = computed(() => {
   right: 6%;
   width: 54px;
   height: 54px;
-  background: radial-gradient(circle at 38% 38%, #fef9c3, #fbbf24 45%, #f59e0b 70%, transparent);
+  background: radial-gradient(circle at 38% 38%, #FFFFFF, #FFD54F 40%, #FFA000 68%, transparent);
   border-radius: 50%;
-  box-shadow: 0 0 44px 14px rgba(251,191,36,0.38), 0 0 90px 28px rgba(251,191,36,0.14);
+  box-shadow: 0 0 28px 8px rgba(255,213,79,0.45), 0 0 60px 24px rgba(255,179,0,0.22), 0 0 100px 40px rgba(255,160,0,0.12);
 }
 
 /* ── Moon ─────────────────────────────────────────────────────────────────── */
 .moon {
   position: absolute;
-  top: 9%;
-  right: 15%;
+  top: 5%;
+  right: 6%;
   width: 40px;
   height: 40px;
-  background: #dde6f0;
+  background: #F5F5F5;
   border-radius: 50%;
-  box-shadow: -10px 6px 0 -4px #080d1a, 0 0 16px rgba(220,230,240,0.22);
+  box-shadow: -11px 7px 0 -3px #283593, 0 0 20px 4px rgba(187,222,251,0.40);
 }
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */
@@ -488,7 +647,7 @@ const treeStyle = computed(() => {
   position: absolute;
   top: -28px;
   width: 1.5px;
-  background: linear-gradient(to bottom, transparent, rgba(147,197,253,0.75));
+  background: linear-gradient(to bottom, transparent, rgba(129,212,250,0.75));
   border-radius: 2px;
   animation: scene-rain linear infinite;
 }
@@ -510,16 +669,23 @@ const treeStyle = computed(() => {
   to   { transform: translateY(110vh) translateX(var(--snow-drift, 18px)); }
 }
 
-/* ── Lightning ────────────────────────────────────────────────────────────── */
-.lightning {
+/* ── Lightning bolts ──────────────────────────────────────────────────────── */
+.bolt {
   position: absolute;
-  inset: 0;
-  animation: scene-lightning 5s ease-in-out infinite;
+  opacity: 0;
   pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(255,255,255,0.9)) drop-shadow(0 0 14px rgba(180,210,255,0.7));
+  animation: scene-bolt 6s linear infinite;
+  overflow: visible;
 }
-@keyframes scene-lightning {
-  0%, 86%, 90%, 94%, 100% { background: transparent; }
-  88%, 92%                { background: rgba(255,255,255,0.07); }
+.bolt svg { width: 100%; height: 100%; }
+.bolt-1 { width: 22px; height: 60px; }
+.bolt-2 { width: 15px; height: 45px; animation-delay: -3.2s; }
+
+@keyframes scene-bolt {
+  0%, 87%, 100% { opacity: 0; }
+  89%, 90%      { opacity: 1; }
+  92%           { opacity: 0; }
 }
 
 /* ── Landscape ────────────────────────────────────────────────────────────── */
@@ -534,7 +700,8 @@ const treeStyle = computed(() => {
 /* ── Tree sway ────────────────────────────────────────────────────────────── */
 .tree-sway {
   animation: scene-sway var(--sway-dur, 1.8s) ease-in-out infinite alternate;
-  transform-origin: 80px 86px;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 @keyframes scene-sway {
   from { transform: rotate(var(--sway-from, 1deg)); }
@@ -553,54 +720,14 @@ const treeStyle = computed(() => {
   );
 }
 
-/* ── Preview bar ──────────────────────────────────────────────────────────── */
-.preview-bar {
+
+/* ── Fireworks canvas ────────────────────────────────────────────────────── */
+.fw-canvas {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 10;
-  pointer-events: all;
-}
-
-.preview-row {
-  display: flex;
-  gap: 4px;
-}
-
-.preview-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 6px;
-  background: rgba(10, 18, 36, 0.65);
-  backdrop-filter: blur(4px);
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-  padding: 0;
-  line-height: 1;
-}
-
-.preview-btn:hover {
-  background: rgba(30, 50, 90, 0.8);
-  border-color: rgba(255,255,255,0.4);
-}
-
-.preview-btn.active {
-  background: rgba(56, 130, 246, 0.5);
-  border-color: rgba(147, 197, 253, 0.7);
-}
-
-.live-btn {
-  font-size: 16px;
-  color: #93c5fd;
-  font-weight: 700;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 /* ── Leaves ───────────────────────────────────────────────────────────────── */
