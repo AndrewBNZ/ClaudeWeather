@@ -2,6 +2,7 @@
   <div class="conditions card">
 
     <WeatherScene
+      @grass-color="emit('grass-color', $event)"
       :weather-code="data.weather_code"
       :wind-speed="data.wind_speed_10m"
       :sunrise="todaySunrise"
@@ -10,6 +11,7 @@
       :preview-weather="previewWeather"
       :preview-wind="previewWind"
       :show-fireworks="showFireworks || fireworksPreview"
+      :shooting-star-trigger="shootingStarTrigger"
     />
 
     <!-- Sim controls -->
@@ -43,6 +45,7 @@
         <div class="sim-row">
           <span class="sim-row-label">Effects</span>
           <button class="sim-btn" :class="{ active: fireworksPreview }" title="Fireworks" @click="triggerFireworksPreview">🎆</button>
+          <button class="sim-btn" title="Shooting star" @click="triggerShootingStar">🌠</button>
         </div>
       </div>
       <button class="sim-toggle" title="Show/hide Weather Sim" @click="simExpanded = !simExpanded">
@@ -50,25 +53,8 @@
       </button>
     </div>
 
-    <div class="grass-bar">
-      <span class="grass-meta">
-        Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-        <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-        <template v-if="countdown && !loading"> · <span class="grass-countdown">{{ countdown }}</span></template>
-        <button class="grass-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh" style="margin-left:3px">
-          <span :class="{ spinning: loading }">↻</span>
-        </button>
-      </span>
-      <button class="grass-cog" @click="emit('open-data-types')" title="Configure data types">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
-    </div>
-
     <div class="cond-content">
-    <div class="cond-body">
+    <div class="cond-body" :style="{ visibility: showSim && simExpanded ? 'hidden' : 'visible' }">
       <!-- Main temp block — clicking selects "temperature" -->
       <button
         class="cond-main selectable"
@@ -114,7 +100,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import WeatherScene from './WeatherScene.vue'
 
@@ -154,6 +140,9 @@ function triggerFireworksPreview() {
   fwPreviewTimer = setTimeout(() => { fireworksPreview.value = false }, 5000)
 }
 
+const shootingStarTrigger = ref(0)
+function triggerShootingStar() { shootingStarTrigger.value++ }
+
 const props = defineProps({
   data:         { type: Object, required: true },
   daily:        { type: Object, default: null },
@@ -163,29 +152,9 @@ const props = defineProps({
   showSim:       { type: Boolean, default: false },
   showFireworks: { type: Boolean, default: false },
   tileConfig:    { type: Array, default: null },
-  updatedAt:    { type: String, default: '' },
-  fetchedAt:    { type: Date, default: null },
-  loading:      { type: Boolean, default: false },
 })
 
-const REFRESH_MS = 15 * 60 * 1000
-const countdown = ref('')
-
-function updateCountdown() {
-  if (!props.fetchedAt) { countdown.value = ''; return }
-  const remaining = Math.max(0, props.fetchedAt.getTime() + REFRESH_MS - Date.now())
-  const totalSecs = Math.ceil(remaining / 1000)
-  const m = Math.floor(totalSecs / 60)
-  const s = totalSecs % 60
-  countdown.value = `${m}:${String(s).padStart(2, '0')}`
-}
-
-let countdownTimer = null
-onMounted(() => { updateCountdown(); countdownTimer = setInterval(updateCountdown, 1000) })
-onUnmounted(() => clearInterval(countdownTimer))
-watch(() => props.fetchedAt, updateCountdown)
-
-const emit = defineEmits(['select', 'refresh', 'open-data-types'])
+const emit = defineEmits(['select', 'grass-color'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
@@ -440,7 +409,7 @@ function fmt(v, decimals) {
 .detail-icon { font-size: 20px; flex-shrink: 0; }
 
 .detail-label {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.72);
   letter-spacing: 0.01em;
   font-weight: 500;
@@ -574,70 +543,36 @@ function fmt(v, decimals) {
 }
 
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
-.grass-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 10px 5px;
-  background: rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(4px);
-  pointer-events: all;
-}
 
-.grass-meta {
-  font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.42);
-  line-height: 1;
-}
-.grass-meta a {
-  color: inherit;
-  text-decoration: none;
-}
-.grass-meta a:hover { color: rgba(255, 255, 255, 0.65); }
-.grass-countdown { font-variant-numeric: tabular-nums; }
-
-.grass-refresh {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.42);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0 1px;
-  vertical-align: middle;
-  line-height: 1;
-  transition: color 0.15s;
-}
-.grass-refresh:hover:not(:disabled) { color: rgba(255, 255, 255, 0.7); }
-.grass-refresh:disabled { cursor: default; }
-
-.grass-cog {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.38);
-  cursor: pointer;
-  padding: 2px 4px;
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
-  flex-shrink: 0;
-}
-.grass-cog:hover {
-  color: rgba(255, 255, 255, 0.75);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.spinning {
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
+@media (orientation: landscape) and (max-height: 500px) {
+  .cond-content {
+    padding: 10px 12px 40px;
+    gap: 8px;
+  }
+  .cond-body {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 5px;
+  }
+  .cond-main {
+    padding: 4px 6px;
+    gap: 3px;
+  }
+  .weather-icon { font-size: 30px; }
+  .temperature  { font-size: 1.7rem; }
+  .unit         { font-size: 1rem; }
+  .condition    { font-size: 0.82rem; }
+  .cond-details {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-auto-rows: 46px;
+    gap: 5px;
+  }
+  .detail-item {
+    padding: 2px 6px;
+    gap: 7px;
+  }
+  .detail-icon { font-size: 17px; }
+  .detail-label { font-size: 0.72rem; }
+  .detail-value { font-size: 0.78rem; }
 }
 
 @media (min-width: 640px) and (max-width: 1199px) {
@@ -673,7 +608,7 @@ function fmt(v, decimals) {
     gap: 7px;
   }
   .detail-icon { font-size: 17px; }
-  .detail-label { font-size: 0.65rem; }
+  .detail-label { font-size: 0.72rem; }
   .detail-value { font-size: 0.78rem; }
 }
 </style>

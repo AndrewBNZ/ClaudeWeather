@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
     <div v-if="step !== null" class="tut-root">
-      <!-- Spotlight + dimmer: hidden while the locations panel is open -->
-      <template v-if="!panelOpen">
+      <!-- Spotlight + dimmer: hidden while the locations panel is open or tutorial is pending -->
+      <template v-if="!panelOpen && !hidden">
         <div v-if="spotRect" class="tut-spotlight" :style="spotlightStyle" />
         <div v-else class="tut-dimmer" />
       </template>
@@ -18,8 +18,8 @@
           />
         </div>
         <p class="tut-icon">{{ current.icon }}</p>
-        <h3 class="tut-title">{{ panelOpen && step === 0 ? 'Find your location' : current.title }}</h3>
-        <p class="tut-desc">{{ panelOpen && step === 0 ? 'Tap 📍 to use your current location, or type a city name into the search box.' : current.desc }}</p>
+        <h3 class="tut-title">{{ panelOpen && step === 1 ? 'Find your location' : (!isMobile && current.desktopTitle) ? current.desktopTitle : current.title }}</h3>
+        <p class="tut-desc">{{ panelOpen && step === 1 ? 'Hit "Current Location" to use your GPS, or search for any city. Save as many as you like and switch between them anytime.' : (!isMobile && current.desktopDesc) ? current.desktopDesc : current.desc }}</p>
         <div class="tut-actions">
           <button class="tut-skip" @click="emit('finish')">Skip tutorial</button>
           <button
@@ -41,37 +41,44 @@ const MOBILE_BREAKPOINT = 768
 
 const STEPS = [
   {
+    target: null,
+    icon: '🌤️',
+    title: 'Welcome to ClaudeWeather',
+    desc: 'Checking the weather is basically a hobby at this point — you might as well do it in style. Live animated scenes, hour-by-hour breakdowns, 14 days out. All a tap away.',
+  },
+  {
     target: '.add-location-btn',
     icon: '📍',
-    title: 'Add your first location',
-    desc: 'Search for a city or use your device location to get the current conditions and forecast.',
+    title: 'First things first',
+    desc: 'Tap here to pick a location — use your current one or search for any city. You can save as many as you like.',
     autoAdvance: true,
   },
   {
-    target: '.cond-details',
+    target: '.cond-body',
     icon: '👆',
-    title: 'Switch data types',
-    desc: "Tap any tile — wind, rain, humidity, and more — to change what's shown in the charts.",
+    title: 'Tap a tile, see it graphed',
+    desc: 'Temperature, wind, rain, humidity — tap any tile up here and it instantly plots in the charts below. Go on, try a few.',
   },
   {
     target: '[data-chart="daily"]',
     icon: '📅',
-    title: 'Browse the forecast',
-    desc: 'Tap a day in the daily chart to see its hour-by-hour breakdown in the hourly chart above.',
+    title: 'Pick any day',
+    desc: 'Tap a day in this chart to load its full hourly breakdown. Up to 14 days, always at your fingertips.',
   },
   {
     target: '[data-chart="hourly"]',
     icon: '👈',
-    title: 'See more of the day',
-    desc: 'Swipe left and right to see the full hour-by-hour breakdown. Use the arrows on either side to jump to the previous or next day.',
-    mobileOnly: true,
+    title: 'Swipe through the hours',
+    desc: 'Drag the hourly chart to scroll through the day. Hit the arrows at either edge to jump to the next or previous day.',
+    desktopTitle: 'Browse the hours',
+    desktopDesc: 'The day picker at the top-right is another way to switch days — jump to a specific date, step back and forth with the arrows, or snap back to today.',
     yOffset: -40,
   },
   {
     target: '.settings-btn',
     icon: '⚙️',
-    title: 'Make it yours',
-    desc: 'Choose your theme, set preferred units, and pick which data types are displayed.',
+    title: 'Make it feel like home',
+    desc: 'Pick your theme, set your units, and choose which tiles matter to you. It\'s your weather — set it up just how you like.',
   },
 ]
 
@@ -85,16 +92,8 @@ const emit = defineEmits(['next', 'finish'])
 
 const current = computed(() => STEPS[props.step] ?? STEPS[0])
 
-// Dots: filter out mobile-only steps on desktop
-const displayStepCount = computed(() =>
-  isMobile.value ? STEPS.length : STEPS.filter(s => !s.mobileOnly).length
-)
-const displayStepIndex = computed(() => {
-  const s = props.step ?? 0
-  if (isMobile.value) return s
-  // Subtract any mobile-only steps that come before the current step
-  return s - STEPS.slice(0, s).filter(s => s.mobileOnly).length
-})
+const displayStepCount = computed(() => STEPS.length)
+const displayStepIndex = computed(() => props.step ?? 0)
 
 const spotRect  = ref(null)
 const windowW   = ref(window.innerWidth)
@@ -112,12 +111,7 @@ function measure() {
   spotRect.value = el ? el.getBoundingClientRect() : null
 }
 
-watch(() => props.step, async (v) => {
-  // Auto-skip mobile-only steps on desktop
-  if (v !== null && STEPS[v]?.mobileOnly && !isMobile.value) {
-    emit('next')
-    return
-  }
+watch(() => props.step, async () => {
   spotRect.value = null
   await nextTick()
   measure()
@@ -155,10 +149,10 @@ const cardStyle = computed(() => {
   const base = { width: `${CARD_W}px` }
 
   // While the locations panel is open, sit just to the left of the panel
-  if (props.panelOpen && props.step === 0) {
+  if (props.panelOpen && props.step === 1) {
     const panelW = Math.min(300, vw * 0.9)
     const left = Math.max(16, vw - panelW - CARD_W - 16)
-    return { ...base, top: '120px', left: `${left}px` }
+    return { ...base, top: '210px', left: `${left}px` }
   }
 
   if (!spotRect.value) {

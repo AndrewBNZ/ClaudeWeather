@@ -5,40 +5,51 @@
         <h3 class="chart-title">Hourly</h3>
         <span class="chart-subtitle">{{ config.icon }} {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
       </div>
-      <div class="day-nav">
-        <button
-          v-if="dayIndex > 0"
-          class="today-jump-btn"
-          @click="emit('select-day', 0)"
-          title="Jump to today"
-        >↩ Today</button>
-        <select
-          class="day-select"
-          :value="dayIndex"
-          @change="emit('select-day', Number($event.target.value))"
-        >
-          <option v-for="(opt, i) in dayOptions" :key="i" :value="i">{{ opt }}</option>
-        </select>
+      <div class="day-nav" :style="{ '--type-color': config.color }">
+        <div class="day-btn-group" ref="dropdownRef">
+          <button
+            class="day-step-btn"
+            :disabled="dayIndex === 0"
+            @click="emit('select-day', 0)"
+            title="Jump to today"
+          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="19 18 13 12 19 6"/><line x1="5" y1="6" x2="5" y2="18"/></svg></button>
+          <button
+            class="day-step-btn"
+            :disabled="dayIndex === 0"
+            @click="emit('select-day', dayIndex - 1)"
+            :title="dayIndex > 0 ? `Back: ${dayOptions[dayIndex - 1]}` : ''"
+          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="day-select-btn" ref="selectBtnRef" @click="toggleDropdown">
+            {{ dayOptions[dayIndex] }}
+            <span class="day-select-arrow" :class="{ open: dropdownOpen }">▾</span>
+          </button>
+          <button
+            class="day-step-btn"
+            :disabled="dayIndex >= dayOptions.length - 1"
+            @click="emit('select-day', dayIndex + 1)"
+            :title="dayIndex < dayOptions.length - 1 ? `Next: ${dayOptions[dayIndex + 1]}` : ''"
+          ><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+        <Teleport to="body">
+          <div v-if="dropdownOpen" class="day-dropdown" :style="dropdownStyle">
+            <button
+              v-for="(opt, i) in dayOptionsParts"
+              :key="i"
+              class="day-dropdown-item"
+              :class="{ active: i === dayIndex }"
+              @click="selectDay(i)"
+            >
+              <span class="day-dow">{{ opt.label }}</span>
+              <span class="day-date">{{ opt.date }}</span>
+            </button>
+          </div>
+        </Teleport>
       </div>
     </div>
-    <div class="chart-and-nav">
-      <button
-        v-if="dayIndex > 0"
-        class="prev-day-btn"
-        @click="emit('select-day', dayIndex - 1)"
-        :title="`Back: ${dayOptions[dayIndex - 1]}`"
-      >‹</button>
-      <div class="chart-wrap" ref="chartWrapRef">
-        <div class="chart-scroll-inner">
-          <canvas ref="canvasRef"></canvas>
-        </div>
+    <div class="chart-wrap" ref="chartWrapRef" :style="{ '--type-color': config.color }">
+      <div class="chart-scroll-inner">
+        <canvas ref="canvasRef"></canvas>
       </div>
-      <button
-        v-if="dayIndex < dayOptions.length - 1"
-        class="next-day-btn"
-        @click="emit('select-day', dayIndex + 1)"
-        :title="`Next: ${dayOptions[dayIndex + 1]}`"
-      >›</button>
     </div>
   </div>
 </template>
@@ -70,7 +81,35 @@ const emit = defineEmits(['select-day', 'open-units-modal'])
 
 const canvasRef     = ref(null)
 const chartWrapRef  = ref(null)
+const dropdownRef   = ref(null)
+const selectBtnRef  = ref(null)
+const dropdownOpen  = ref(false)
+const dropdownStyle = ref({})
 let   chartInstance = null
+
+function toggleDropdown() {
+  if (!dropdownOpen.value && selectBtnRef.value) {
+    const r = selectBtnRef.value.getBoundingClientRect()
+    dropdownStyle.value = {
+      position: 'fixed',
+      top: `${r.bottom + 6}px`,
+      right: `${window.innerWidth - r.right}px`,
+      zIndex: 9999,
+    }
+  }
+  dropdownOpen.value = !dropdownOpen.value
+}
+
+function selectDay(i) {
+  emit('select-day', i)
+  dropdownOpen.value = false
+}
+
+function onDocClick(e) {
+  if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+    dropdownOpen.value = false
+  }
+}
 
 function scrollToCurrentHour(currentHour) {
   if (currentHour < 0 || !chartWrapRef.value) return
@@ -94,10 +133,22 @@ const dayOptions = computed(() => {
     const isoDate = props.hourly?.time?.[i * 24]
     if (!isoDate) break
     if (i === 0) { opts.push('Today'); continue }
-    opts.push(new Date(isoDate.slice(0, 10) + 'T12:00:00').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' }))
+    opts.push(new Date(isoDate.slice(0, 10) + 'T12:00:00').toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }))
   }
   return opts
 })
+
+const dayOptionsParts = computed(() =>
+  dayOptions.value.map((opt, i) => {
+    const isoDate = props.hourly?.time?.[i * 24]
+    const dateStr = isoDate
+      ? new Date(isoDate.slice(0, 10) + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' })
+      : ''
+    if (i === 0) return { label: 'Today', date: dateStr }
+    const comma = opt.indexOf(', ')
+    return { label: opt.slice(0, comma), date: opt.slice(comma + 2) }
+  })
+)
 
 // Shades past hours with a semi-transparent overlay (today only).
 function makePastShadingPlugin(currentHour, dayIndex) {
@@ -217,7 +268,7 @@ function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '') {
       meta.data.forEach((point, i) => {
         const { x, y } = point.getProps(['x', 'y'], true)
         const isCurrent = i === currentHour
-        const emojiSize = isCurrent ? 22 : 18
+        const emojiSize = isCurrent ? 26 : 22
 
         // Emoji centered on the data point
         const emoji = getWeatherInfo(codes[i])?.emoji
@@ -263,7 +314,7 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
         const emoji = getWeatherInfo(codes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `${isCurrent ? 22 : 18}px ${APP_FONT}`
+          ctx.font = `${isCurrent ? 26 : 22}px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -521,8 +572,14 @@ watch(() => props.unitPrefs,      scheduleAndScroll)
 watch(() => props.theme,      scheduleAndScroll)
 watch(() => props.hourly,     scheduleAndScroll)
 watch(() => props.dayIndex,   scheduleAndScroll)
-onMounted(() => requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)))
-onBeforeUnmount(() => { chartInstance?.destroy() })
+onMounted(() => {
+  document.addEventListener('click', onDocClick, true)
+  requestAnimationFrame(() => requestAnimationFrame(buildAndScroll))
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick, true)
+  chartInstance?.destroy()
+})
 </script>
 
 <style scoped>
@@ -554,22 +611,6 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   content: ' Forecast';
 }
 
-.today-jump-btn {
-  font-size: 0.85rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--text-muted);
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  border-radius: 8px;
-  padding: 3px 10px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-}
-.today-jump-btn:hover {
-  color: var(--text);
-  background: var(--btn-hover);
-}
 
 .day-nav {
   margin-left: auto;
@@ -578,27 +619,99 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   gap: 6px;
 }
 
-.day-select {
+.day-btn-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.day-btn-group > .day-step-btn,
+.day-btn-group > .day-select-btn {
+  border-radius: 0;
+  border-right-width: 0;
+}
+.day-btn-group > .day-step-btn:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.day-btn-group > .day-step-btn:last-of-type {
+  border-radius: 0 8px 8px 0;
+  border-right-width: 1px;
+}
+
+.day-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.85rem;
   font-weight: 600;
   font-family: inherit;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--type-color, #38bdf8);
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
   border-radius: 8px;
   padding: 3px 8px;
+  min-width: 125px;
+  justify-content: center;
   cursor: pointer;
   outline: none;
   transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
-.day-select:hover,
-.day-select:focus {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.45);
+.day-select-btn:hover {
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 15%, transparent);
+  border-color: color-mix(in srgb, var(--type-color, #38bdf8) 45%, transparent);
 }
-.day-select option {
+
+.day-select-arrow {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  display: inline-block;
+  transition: transform 0.15s;
+}
+.day-select-arrow.open {
+  transform: rotate(180deg);
+}
+
+.day-dropdown {
+  position: fixed;
+  min-width: 140px;
   background: var(--panel-bg);
+  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.day-dropdown-item {
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+}
+.day-date {
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.day-dropdown-item:hover {
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 12%, transparent);
   color: var(--text);
+}
+.day-dropdown-item.active {
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 18%, transparent);
+  color: var(--type-color, #38bdf8);
+  font-weight: 600;
 }
 
 .chart-subtitle {
@@ -614,11 +727,6 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
 }
 .chart-unit:hover {
   opacity: 1;
-}
-
-.chart-and-nav {
-  display: flex;
-  align-items: stretch;
 }
 
 .chart-wrap {
@@ -656,6 +764,27 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   }
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+  .chart-card {
+    padding: 8px 10px;
+  }
+  .chart-subtitle {
+    display: none;
+  }
+  .chart-wrap {
+    height: 160px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chart-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  .chart-scroll-inner {
+    min-width: 900px;
+  }
+}
+
 @media (max-width: 800px) and (hover: hover) and (pointer: fine) {
   .chart-wrap {
     scrollbar-width: thin;
@@ -677,40 +806,26 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
   }
 }
 
-.prev-day-btn,
-.next-day-btn {
-  width: 28px;
+.day-step-btn {
+  width: 26px;
   flex-shrink: 0;
-  border: none;
-  color: rgba(56, 189, 248, 0.4);
-  font-size: 1.4rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: var(--type-color, #38bdf8);
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  padding: 0;
 }
-
-.prev-day-btn {
-  background: linear-gradient(to left, transparent, rgba(56, 189, 248, 0.06));
-  border-right: 2px solid rgba(56, 189, 248, 0.2);
-  border-radius: 4px 0 0 4px;
+.day-step-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--type-color, #38bdf8) 18%, transparent);
+  border-color: color-mix(in srgb, var(--type-color, #38bdf8) 50%, transparent);
 }
-.prev-day-btn:hover {
-  background: linear-gradient(to left, transparent, rgba(56, 189, 248, 0.15));
-  border-right-color: rgba(56, 189, 248, 0.6);
-  color: #38bdf8;
-}
-
-.next-day-btn {
-  background: linear-gradient(to right, transparent, rgba(56, 189, 248, 0.06));
-  border-left: 2px solid rgba(56, 189, 248, 0.2);
-  border-radius: 0 4px 4px 0;
-}
-.next-day-btn:hover {
-  background: linear-gradient(to right, transparent, rgba(56, 189, 248, 0.15));
-  border-left-color: rgba(56, 189, 248, 0.6);
-  color: #38bdf8;
+.day-step-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 /* Chart.js manages canvas dimensions; don't constrain with CSS */

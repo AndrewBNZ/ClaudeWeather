@@ -5,10 +5,7 @@
         <span class="app-name">{{ locationName || 'ClaudeWeather' }}</span>
       </div>
       <div class="header-right">
-        <button class="locations-btn" @click="panelOpen = true" title="Saved locations">
-          ☰
-          <span v-if="savedLocations.length" class="loc-count">{{ savedLocations.length }}</span>
-        </button>
+        <button class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
         <button class="settings-btn" @click="settingsOpen = true" title="Settings">⚙️</button>
       </div>
     </header>
@@ -18,7 +15,6 @@
       <div v-if="!location && !loading" class="empty-state">
         <div class="empty-icon">🌍</div>
         <p class="empty-title">Where in the world are you?</p>
-        <p class="empty-sub">Search for a location or allow location access to get started.</p>
         <button class="add-location-btn" @click="panelOpen = true">+ Add a location</button>
       </div>
 
@@ -38,7 +34,7 @@
       <!-- Main content -->
       <template v-else-if="weatherData">
         <div class="weather-layout">
-          <aside class="layout-left">
+          <aside class="layout-left" :style="{ '--grass-color': grassColor }">
             <CurrentConditions
               :data="weatherData.current"
               :daily="weatherData.daily"
@@ -48,12 +44,8 @@
               :show-sim="showSim"
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
-              :updated-at="updatedAt"
-              :fetched-at="fetchedAt"
-              :loading="loading"
               @select="activeDataType = $event"
-              @refresh="loadWeather"
-              @open-data-types="dataTypesModalOpen = true"
+              @grass-color="grassColor = $event"
             />
           </aside>
           <div class="layout-right">
@@ -108,6 +100,15 @@
           </div>
         </div>
 
+        <div class="data-footer">
+          Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+          <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+          <template v-if="countdown && !loading"> · <span class="footer-countdown">{{ countdown }}</span></template>
+          <button class="refresh-btn" @click="loadWeather" :disabled="loading" title="Refresh">
+            <span :class="{ spinning: loading }">↻</span>
+          </button>
+        </div>
+
       </template>
     </main>
 
@@ -137,14 +138,14 @@
             </div>
             <div class="setting-row">
               <div>
-                <div class="setting-label">Data Types</div>
+                <div class="setting-label">Weather Details</div>
                 <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
               </div>
               <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
             </div>
             <div class="setting-row">
               <div>
-                <div class="setting-label">Swap Chart Positions</div>
+                <div class="setting-label">Chart Order</div>
                 <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
               </div>
               <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
@@ -203,7 +204,7 @@
       <div v-if="dataTypesModalOpen" class="modal-overlay" @click.self="dataTypesModalOpen = false">
         <div class="modal-dialog">
           <div class="modal-header">
-            <span class="panel-title">Data Types</span>
+            <span class="panel-title">Weather Details</span>
             <button class="panel-close" @click="dataTypesModalOpen = false">✕</button>
           </div>
           <p class="modal-hint">Drag to reorder · tap to show/hide</p>
@@ -238,6 +239,8 @@
       :locations="savedLocations"
       :active-location="location"
       :is-open="panelOpen"
+      :is-geo-active="isGeoActive"
+      :geo-location-name="isGeoActive ? locationName : ''"
       @select="onPanelSelect"
       @delete="onPanelDelete"
       @close="panelOpen = false; tutSearching = false"
@@ -247,9 +250,9 @@
     />
 
     <TutorialGuide
-      :step="tutorialStep === 0 && (location || savedLocations.length > 0) ? null : tutorialStep"
+      :step="tutorialStep"
       :panel-open="panelOpen"
-      :hidden="tutSearching"
+      :hidden="tutSearching || tutPendingLocation"
       @next="onTutorialNext"
       @finish="finishTutorial"
     />
@@ -267,9 +270,11 @@ import { fetchWeather }        from './services/weatherApi.js'
 import { reverseGeocode }      from './services/geocoding.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const TUTORIAL_KEY = 'claudeweather-tutorial-done'
+const TUTORIAL_KEY      = 'claudeweather-tutorial-done'
+const TUTORIAL_STEP_KEY = 'claudeweather-tutorial-step'
 const LOCATIONS_KEY   = 'claudeweather-locations'
 const ACTIVE_KEY      = 'claudeweather-active'
+const GEO_ACTIVE_KEY  = 'claudeweather-geo-active'
 const DATATYPE_KEY    = 'claudeweather-datatype'
 const UNIT_PREFS_KEY  = 'claudeweather-unitprefs'
 const LEGACY_UNITS_KEY = 'claudeweather-units'
@@ -378,11 +383,13 @@ const tileConfig     = ref(loadTileConfig())
 const savedLocations = ref(loadSavedLocations())
 const panelOpen          = ref(false)
 const tutSearching       = ref(false)
+const tutPendingLocation = ref(false)
 const settingsOpen       = ref(false)
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
+const isGeoActive    = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location       = ref(null)   // { lat, lon }
 const unitPrefs      = ref(loadUnitPrefs())
 const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
@@ -391,29 +398,48 @@ const weatherData    = ref(null)
 const loading        = ref(false)
 const error          = ref(null)
 const updatedAt      = ref('')
+const grassColor     = ref('#43A047')
 const locationName   = ref('')
 const fetchedAt      = ref(null)   // Date of last successful fetch
 
 // ── Tutorial ──────────────────────────────────────────────────────────────────
-// Show only for first-time users (no saved locations and tutorial not yet done)
+// Resume from saved step if tutorial not yet done, otherwise hidden
 const tutorialStep = ref(
-  !localStorage.getItem(TUTORIAL_KEY) && savedLocations.value.length === 0 ? 0 : null
+  !localStorage.getItem(TUTORIAL_KEY)
+    ? (parseInt(localStorage.getItem(TUTORIAL_STEP_KEY) ?? '0') || 0)
+    : null
 )
 
+watch(tutorialStep, (v) => {
+  try {
+    if (v !== null) localStorage.setItem(TUTORIAL_STEP_KEY, String(v))
+    else localStorage.removeItem(TUTORIAL_STEP_KEY)
+  } catch {}
+})
+
 function onTutorialNext() {
-  if (tutorialStep.value !== null && tutorialStep.value < 4) tutorialStep.value++
+  if (tutorialStep.value !== null && tutorialStep.value < 5) tutorialStep.value++
   else finishTutorial()
 }
 
-const showFireworks = ref(false)
+const showFireworks   = ref(false)
+const pendingFireworks = ref(false)
 let fwTimer = null
 
-function finishTutorial() {
+function launchFireworks() {
+  if (!weatherData.value) return
+  showFireworks.value = true
+  fwTimer = setTimeout(() => { showFireworks.value = false }, 5000)
+}
+
+function finishTutorial(deferFireworks = false) {
   try { localStorage.setItem(TUTORIAL_KEY, 'true') } catch {}
+  try { localStorage.removeItem(TUTORIAL_STEP_KEY) } catch {}
   tutorialStep.value = null
-  if (weatherData.value) {
-    showFireworks.value = true
-    fwTimer = setTimeout(() => { showFireworks.value = false }, 5000)
+  if (deferFireworks) {
+    pendingFireworks.value = true
+  } else {
+    launchFireworks()
   }
 }
 
@@ -422,16 +448,17 @@ function resetAll() {
   window.location.reload()
 }
 
-// Auto-advance step 0 once a location is added and weather has loaded
-watch([savedLocations, weatherData], ([locs, data]) => {
-  if (tutorialStep.value === 0 && locs.length > 0 && data) {
-    setTimeout(() => { tutorialStep.value = 1 }, 600)
+// Auto-advance step 1 once a location is added and weather has loaded
+watch([savedLocations, weatherData, isGeoActive], ([locs, data, geo]) => {
+  if (tutorialStep.value === 1 && (locs.length > 0 || geo) && data) {
+    setTimeout(() => { tutorialStep.value = 2; tutPendingLocation.value = false }, 600)
   }
-})
+}, { immediate: true })
 
-// Finish tutorial when user opens settings on step 3
+// Finish tutorial when user opens settings on the last step; fire when they close it
 watch(settingsOpen, (open) => {
-  if (open && tutorialStep.value === 3) finishTutorial()
+  if (open && tutorialStep.value === 5) { finishTutorial(true); return }
+  if (!open && pendingFireworks.value) { pendingFireworks.value = false; launchFireworks() }
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -458,30 +485,44 @@ function addToSaved(lat, lon, name) {
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+function clearGeoActive() {
+  isGeoActive.value = false
+  try { localStorage.removeItem(GEO_ACTIVE_KEY) } catch {}
+}
+
 function onLocationSelected({ lat, lon, name }) {
+  if (tutorialStep.value === 1) tutPendingLocation.value = true
+  clearGeoActive()
   location.value     = { lat, lon }
   locationName.value = name
   persistActive({ lat, lon })
   addToSaved(lat, lon, name)
 }
 
-async function onGeoLocate({ lat, lon }) {
+// Apply a geolocated position — shared by panel button and startup auto-geolocate
+async function applyGeoLocation(lat, lon) {
+  isGeoActive.value  = true
   location.value     = { lat, lon }
   locationName.value = 'Locating…'
+  try { localStorage.setItem(GEO_ACTIVE_KEY, 'true') } catch {}
   try {
     const name = await reverseGeocode(lat, lon)
     locationName.value = name
     persistActive({ lat, lon })
-    addToSaved(lat, lon, name)
   } catch {
     locationName.value = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`
     persistActive({ lat, lon })
-    addToSaved(lat, lon, locationName.value)
   }
+}
+
+async function onGeoLocate({ lat, lon }) {
+  if (tutorialStep.value === 1) tutPendingLocation.value = true
+  await applyGeoLocation(lat, lon)
   panelOpen.value = false
 }
 
 function onPanelSelect(loc) {
+  clearGeoActive()
   location.value     = { lat: loc.lat, lon: loc.lon }
   locationName.value = loc.name
   persistActive(loc)
@@ -493,8 +534,8 @@ function onPanelDelete(loc) {
     l => !(l.lat === loc.lat && l.lon === loc.lon)
   )
   persistLocations(savedLocations.value)
-  // If deleting the active location, switch to first remaining or clear
-  if (location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
+  // If deleting the active location (and not in geo mode), switch to first remaining or clear
+  if (!isGeoActive.value && location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
     const next = savedLocations.value[0] ?? null
     location.value     = next ? { lat: next.lat, lon: next.lon } : null
     locationName.value = next?.name ?? ''
@@ -518,7 +559,7 @@ async function loadWeather(silent = false) {
       locationName.value = data.timezone ?? locationName.value
     }
     fetchedAt.value = new Date()
-    updatedAt.value = fetchedAt.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    updatedAt.value = fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   } catch (e) {
     error.value = e.message ?? 'Failed to load weather data.'
   } finally {
@@ -591,27 +632,71 @@ function onTileTouchEnd() {
   tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
 }
 
+// ── Countdown to next auto-refresh ────────────────────────────────────────────
+const countdown = ref('')
+function updateCountdown() {
+  if (!fetchedAt.value) { countdown.value = ''; return }
+  const remaining = Math.max(0, fetchedAt.value.getTime() + STALE_MS - Date.now())
+  const totalSecs = Math.ceil(remaining / 1000)
+  const m = Math.floor(totalSecs / 60)
+  const s = totalSecs % 60
+  countdown.value = `${m}:${String(s).padStart(2, '0')}`
+}
+let countdownTimer = null
+
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 let refreshTimer = null
 onMounted(() => {
+  updateCountdown()
+  countdownTimer = setInterval(updateCountdown, 1000)
   refreshTimer = setInterval(() => {
     if (location.value && isStale()) loadWeather(true)
   }, STALE_MS)
-})
-onUnmounted(() => clearInterval(refreshTimer))
 
-// On load: restore last active location (or fall back to first saved); auto-open panel for new users
-const activeSaved = (() => {
-  const active = loadActiveKey()
-  if (active) {
-    const match = savedLocations.value.find(l => l.lat === active.lat && l.lon === active.lon)
-    if (match) return match
+  // If "Current Location" was the last active selection, re-geolocate silently
+  if (isGeoActive.value) {
+    loading.value = true
+    if (!navigator.geolocation) {
+      loading.value = false
+      clearGeoActive()
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => { await applyGeoLocation(pos.coords.latitude, pos.coords.longitude) },
+      () => { loading.value = false; clearGeoActive() },
+      { timeout: 10000 }
+    )
   }
-  return savedLocations.value[0] ?? null
-})()
-if (activeSaved) {
-  location.value     = { lat: activeSaved.lat, lon: activeSaved.lon }
-  locationName.value = activeSaved.name
+})
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    updateCountdown()
+    checkAndRefresh()
+  }
+}
+document.addEventListener('visibilitychange', onVisibilityChange)
+onUnmounted(() => {
+  clearInterval(refreshTimer)
+  clearInterval(countdownTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+})
+watch(fetchedAt, updateCountdown)
+
+// On load: restore last active location (or fall back to first saved).
+// Skip if "Current Location" is active — onMounted will geolocate instead.
+if (!isGeoActive.value) {
+  const activeSaved = (() => {
+    const active = loadActiveKey()
+    if (active) {
+      const match = savedLocations.value.find(l => l.lat === active.lat && l.lon === active.lon)
+      if (match) return match
+    }
+    return savedLocations.value[0] ?? null
+  })()
+  if (activeSaved) {
+    location.value     = { lat: activeSaved.lat, lon: activeSaved.lon }
+    locationName.value = activeSaved.name
+  }
 }
 
 </script>
@@ -650,29 +735,23 @@ if (activeSaved) {
 }
 
 .locations-btn {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  width: 42px;
+  height: 34px;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  border-radius: 9999px;
-  padding: 6px 14px;
+  justify-content: center;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: background 0.2s;
 }
 .locations-btn:hover { background: var(--btn-hover); }
 
-.loc-count {
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: #38bdf8;
-  color: #0b1120;
-  border-radius: 9999px;
-  padding: 1px 6px;
-  line-height: 1.4;
-}
 
 .app-name {
   font-size: 1.1rem;
@@ -686,12 +765,19 @@ if (activeSaved) {
 }
 
 .settings-btn {
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
   border-radius: 9999px;
-  padding: 6px 12px;
+  width: 42px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
   font-size: 1.1rem;
+  cursor: pointer;
   transition: background 0.2s;
 }
 .settings-btn:hover { background: var(--btn-hover); }
@@ -754,14 +840,69 @@ if (activeSaved) {
     gap: 10px;
   }
   .layout-left {
+    position: relative;
     margin-left: -10px;
     margin-right: -10px;
+  }
+  .layout-left::after {
+    content: '';
+    position: absolute;
+    bottom: -18px;
+    left: 0;
+    right: 0;
+    height: 26px;
+    background: linear-gradient(to bottom, var(--grass-color) 0%, var(--grass-color) 35%, transparent 100%);
+    pointer-events: none;
+  }
+  .layout-right {
+    position: relative;
+    z-index: 1;
+    margin-top: -18px;
   }
   .layout-left .conditions {
     border-radius: 0;
     border-left: none;
     border-right: none;
     border-top: none;
+    border-bottom: none;
+  }
+}
+
+/* ── Mobile landscape: side-by-side with scrollable charts ─────────────── */
+@media (orientation: landscape) and (max-height: 500px) {
+  .main {
+    padding: 0;
+    gap: 0;
+  }
+  .weather-layout {
+    flex-direction: row;
+    align-items: stretch;
+    height: 100vh;
+    gap: 0;
+  }
+  .layout-left {
+    width: 40%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .layout-left .conditions {
+    flex: 1;
+    border-radius: 0;
+    border: none;
+  }
+  .layout-right {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 8px;
+    box-sizing: border-box;
   }
 }
 
@@ -892,16 +1033,20 @@ if (activeSaved) {
 
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 .data-footer {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   font-size: 0.78rem;
   color: var(--text-faint);
-  padding-top: 8px;
+  padding: 8px 0 4px;
 }
 .data-footer a {
   color: var(--text-faint);
   text-decoration: none;
 }
 .data-footer a:hover { color: var(--text-muted); }
+.footer-countdown { font-variant-numeric: tabular-nums; }
 
 .refresh-btn {
   background: none;
@@ -916,6 +1061,14 @@ if (activeSaved) {
 }
 .refresh-btn:hover:not(:disabled) { color: var(--text-muted); }
 .refresh-btn:disabled { cursor: default; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinning {
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
 
 /* ── Settings panel ─────────────────────────────────────────────────────── */
 .panel-overlay {

@@ -39,6 +39,29 @@ const emit = defineEmits(['day-selected', 'open-units-modal'])
 const canvasRef     = ref(null)
 let   chartInstance = null
 
+function handleCanvasClick(e) {
+  if (!chartInstance) return
+  const x = e.offsetX
+  const y = e.offsetY
+  const { top, left, right } = chartInstance.chartArea
+
+  if (y < top && x >= left && x <= right) {
+    // Click landed in the axis label band — find closest tick
+    const xScale = chartInstance.scales.x
+    let closest = 0, minDist = Infinity
+    xScale.ticks.forEach((_, i) => {
+      const dist = Math.abs(xScale.getPixelForTick(i) - x)
+      if (dist < minDist) { minDist = dist; closest = i }
+    })
+    emit('day-selected', closest)
+    return
+  }
+
+  // Click inside chart area — use Chart.js hit detection
+  const hits = chartInstance.getElementsAtEventForMode(e, 'index', { intersect: false }, true)
+  if (hits.length) emit('day-selected', hits[0].index)
+}
+
 const config = computed(() => DATA_TYPES[props.activeType])
 const unitLabel = computed(() => {
   const cfg = DATA_TYPES[props.activeType]
@@ -195,7 +218,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `18px ${APP_FONT}`
+          ctx.font = `22px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -309,7 +332,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `18px ${APP_FONT}`
+          ctx.font = `22px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -343,7 +366,7 @@ function buildChart() {
         const emoji = getWeatherInfo(wxCodes[i])?.emoji
         if (emoji) {
           ctx.save()
-          ctx.font = `18px ${APP_FONT}`
+          ctx.font = `22px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillText(emoji, x, y - 16)
@@ -375,10 +398,6 @@ function buildChart() {
       maintainAspectRatio: false,
       animation: { duration: 400 },
       interaction: { mode: 'index', intersect: false },
-      onClick: (event, _, chart) => {
-        const hits = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, true)
-        if (hits.length) emit('day-selected', hits[0].index)
-      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -445,8 +464,14 @@ watch(() => props.unitPrefs,       scheduleBuild)
 watch(() => props.daily,       scheduleBuild)
 watch(() => props.hourly,      scheduleBuild)
 watch(() => props.selectedDay, scheduleBuild)
-onMounted(() => requestAnimationFrame(() => requestAnimationFrame(buildChart)))
-onBeforeUnmount(() => { chartInstance?.destroy() })
+onMounted(() => {
+  canvasRef.value.addEventListener('click', handleCanvasClick)
+  requestAnimationFrame(() => requestAnimationFrame(buildChart))
+})
+onBeforeUnmount(() => {
+  canvasRef.value?.removeEventListener('click', handleCanvasClick)
+  chartInstance?.destroy()
+})
 </script>
 
 <style scoped>
@@ -508,6 +533,27 @@ onBeforeUnmount(() => { chartInstance?.destroy() })
     height: 190px;
   }
   .chart-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .chart-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  .chart-scroll-inner {
+    min-width: 700px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .chart-card {
+    padding: 8px 10px;
+  }
+  .chart-subtitle {
+    display: none;
+  }
+  .chart-wrap {
+    height: 160px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;

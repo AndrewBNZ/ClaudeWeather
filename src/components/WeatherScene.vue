@@ -9,8 +9,20 @@
     <!-- Sun -->
     <div v-if="showSun" class="sun" />
 
-    <!-- Moon (crescent via box-shadow) -->
-    <div v-if="showMoon" class="moon" />
+    <!-- Shooting star -->
+    <div
+      v-if="shootingStarKey > 0"
+      :key="shootingStarKey"
+      class="shooting-star"
+      :style="shootingStarStyle"
+    />
+
+    <!-- Moon (phase-accurate SVG) -->
+    <svg v-if="showMoon" class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }">
+      <circle cx="20" cy="20" r="20" fill="#1a237e" />
+      <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
+      <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
+    </svg>
 
     <!-- Lightning bolts — rendered before clouds so clouds layer on top -->
     <template v-if="isStorm && boltsVisible">
@@ -49,27 +61,27 @@
       <path d="M0,90 C50,70 130,76 210,72 C290,68 345,74 400,66 L400,90Z"
             :fill="hillNearColor" />
       <!-- Tree A — large (cx=80) -->
-      <rect x="77" y="72" width="6" height="10" :fill="trunkColor" />
+      <rect x="77" y="69" width="6" height="13" :fill="trunkColor" />
       <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleA">
-        <polygon points="80,46 47,74 113,74" :fill="foliage[1]" />
+        <polygon points="80,46 47,74 113,74" :fill="foliage[0]" />
         <polygon points="80,31 51,61 109,61" :fill="foliage[0]" />
         <polygon points="80,18 58,50 102,50"  :fill="foliage[0]" />
         <polygon points="80,18 58,50 80,50"  :fill="foliage[2]" />
         <polygon points="80,31 51,61 80,61"  :fill="foliage[2]" opacity="0.55" />
       </g>
       <!-- Tree B — medium (cx=180, 68% scale) -->
-      <rect x="177" y="75" width="5" height="7" :fill="trunkColor" />
+      <rect x="177" y="72" width="5" height="10" :fill="trunkColor" />
       <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleB">
-        <polygon points="180,58 158,77 202,77" :fill="foliage[1]" />
+        <polygon points="180,58 158,77 202,77" :fill="foliage[0]" />
         <polygon points="180,47 160,68 200,68" :fill="foliage[0]" />
         <polygon points="180,39 165,60 195,60" :fill="foliage[0]" />
         <polygon points="180,39 165,60 180,60" :fill="foliage[2]" />
         <polygon points="180,47 160,68 180,68" :fill="foliage[2]" opacity="0.55" />
       </g>
       <!-- Tree C — small (cx=265, 50% scale) -->
-      <rect x="262" y="77" width="5" height="5" :fill="trunkColor" />
+      <rect x="262" y="74" width="5" height="8" :fill="trunkColor" />
       <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleC">
-        <polygon points="265,64 247,78 283,78" :fill="foliage[1]" />
+        <polygon points="265,64 247,78 283,78" :fill="foliage[0]" />
         <polygon points="265,57 250,72 280,72" :fill="foliage[0]" />
         <polygon points="265,50 253,66 277,66" :fill="foliage[0]" />
         <polygon points="265,50 253,66 265,66" :fill="foliage[2]" />
@@ -97,15 +109,18 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
-  weatherCode:     { type: Number,  default: 0 },
-  windSpeed:       { type: Number,  default: 0 },
-  sunrise:         { type: String,  default: null },
-  sunset:          { type: String,  default: null },
-  previewTod:      { type: String,  default: null },
-  previewWeather:  { type: String,  default: null },
-  previewWind:     { type: Number,  default: null },
-  showFireworks:   { type: Boolean, default: false },
+  weatherCode:          { type: Number,  default: 0 },
+  windSpeed:            { type: Number,  default: 0 },
+  sunrise:              { type: String,  default: null },
+  sunset:               { type: String,  default: null },
+  previewTod:           { type: String,  default: null },
+  previewWeather:       { type: String,  default: null },
+  previewWind:          { type: Number,  default: null },
+  showFireworks:        { type: Boolean, default: false },
+  shootingStarTrigger:  { type: Number,  default: 0 },
 })
+
+const emit = defineEmits(['grass-color'])
 
 // ── Derived preview values ─────────────────────────────────────────────────
 const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
@@ -306,6 +321,39 @@ function stopFireworks() {
 
 watch(() => props.showFireworks, val => { if (val) startFireworks(); else stopFireworks() })
 
+// ── Shooting stars ─────────────────────────────────────────────────────────
+const shootingStarKey   = ref(0)
+const shootingStarStyle = ref({})
+
+const shootingStarsEnabled = computed(() =>
+  timeOfDay.value === 'night' && (group.value === 'clear' || group.value === 'partly')
+)
+
+function fireStar() {
+  const startX = 5  + Math.random() * 60   // % from left (leave room for trail)
+  const startY = 3  + Math.random() * 25   // % from top
+  const angle  = 20 + Math.random() * 25   // degrees: 20–45
+  shootingStarStyle.value = {
+    left: `${startX}%`,
+    top:  `${startY}%`,
+    '--star-angle': `${angle}deg`,
+  }
+  shootingStarKey.value++
+}
+
+let autoStarTimer = null
+function scheduleNextStar() {
+  const delay = 25000 + Math.random() * 45000  // 25–70 seconds
+  autoStarTimer = setTimeout(() => { fireStar(); scheduleNextStar() }, delay)
+}
+
+watch(shootingStarsEnabled, enabled => {
+  clearTimeout(autoStarTimer)
+  if (enabled) scheduleNextStar()
+}, { immediate: true })
+
+watch(() => props.shootingStarTrigger, (val, old) => { if (val !== old) fireStar() })
+
 let boltTimer = null
 watch(isStorm, val => {
   clearInterval(boltTimer)
@@ -315,7 +363,7 @@ watch(isStorm, val => {
     boltTimer = setInterval(pickBoltPositions, 6000)
   }
 }, { immediate: true })
-onBeforeUnmount(() => { clearInterval(boltTimer); stopFireworks() })
+onBeforeUnmount(() => { clearInterval(boltTimer); clearTimeout(autoStarTimer); stopFireworks() })
 
 const cloudCount = computed(() =>
   ({ clear: 0, partly: 3, cloudy: 5, rain: 5, snow: 4, storm: 6 })[group.value] ?? 0
@@ -323,38 +371,37 @@ const cloudCount = computed(() =>
 
 // ── Sky gradient ───────────────────────────────────────────────────────────
 const SKY = {
-  // +1 shade brighter vs previous — Material shade references below each entry
   night: {
-    clear:  ['#283593', '#303F9F', '#4527A0'],  // Indigo 800→700, Deep Purple 800
-    partly: ['#283593', '#303F9F', '#3F51B5'],  // Indigo 800→700→500
-    cloudy: ['#37474F', '#455A64', '#546E7A'],  // Blue Grey 800→700→600
-    rain:   ['#37474F', '#283593', '#303F9F'],  // Blue Grey 800, Indigo 800→700
-    snow:   ['#303F9F', '#3F51B5', '#546E7A'],  // Indigo 700→500, Blue Grey 600
-    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
+    clear:  ['#303F9F', '#3949AB', '#512DA8'],  // Indigo 700→600, Deep Purple 700
+    partly: ['#303F9F', '#3949AB', '#5C6BC0'],  // Indigo 700→600→400
+    cloudy: ['#455A64', '#546E7A', '#607D8B'],  // Blue Grey 700→600→500
+    rain:   ['#455A64', '#303F9F', '#3949AB'],  // Blue Grey 700, Indigo 700→600
+    snow:   ['#3949AB', '#5C6BC0', '#607D8B'],  // Indigo 600→400, Blue Grey 500
+    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
   },
   sunrise: {
-    clear:  ['#6A1B9A', '#C2185B', '#FB8C00'],  // Purple 800, Pink 700, Orange 600
-    partly: ['#7B1FA2', '#D81B60', '#F4511E'],  // Purple 700, Pink 600, Deep Orange 600
-    cloudy: ['#546E7A', '#78909C', '#90A4AE'],  // Blue Grey 600→400→300
-    rain:   ['#37474F', '#455A64', '#607D8B'],  // Blue Grey 800→700→500
+    clear:  ['#7B1FA2', '#D81B60', '#FF9800'],  // Purple 700, Pink 600, Orange 500
+    partly: ['#8E24AA', '#E91E63', '#FF5722'],  // Purple 600, Pink 500, Deep Orange 500
+    cloudy: ['#607D8B', '#90A4AE', '#B0BEC5'],  // Blue Grey 500→300→200
+    rain:   ['#455A64', '#546E7A', '#78909C'],  // Blue Grey 700→600→400
     snow:   ['#90CAF9', '#BBDEFB', '#E1F5FE'],  // Blue 200→100, Light Blue 50
-    storm:  ['#424242', '#37474F', '#4527A0'],  // Grey 800, Blue Grey 800, Deep Purple 800
+    storm:  ['#616161', '#455A64', '#512DA8'],  // Grey 700, Blue Grey 700, Deep Purple 700
   },
   day: {
-    clear:  ['#1976D2', '#42A5F5', '#81D4FA'],  // Blue 700→400, Light Blue 200
-    partly: ['#1E88E5', '#64B5F6', '#B3E5FC'],  // Blue 600→300, Light Blue 100
-    cloudy: ['#607D8B', '#90A4AE', '#B0BEC5'],  // Blue Grey 500→300→200
-    rain:   ['#37474F', '#546E7A', '#607D8B'],  // Blue Grey 800→600→500
+    clear:  ['#1E88E5', '#64B5F6', '#B3E5FC'],  // Blue 600→300, Light Blue 100
+    partly: ['#2196F3', '#90CAF9', '#E1F5FE'],  // Blue 500→200, Light Blue 50
+    cloudy: ['#78909C', '#B0BEC5', '#CFD8DC'],  // Blue Grey 400→200→100
+    rain:   ['#455A64', '#607D8B', '#78909C'],  // Blue Grey 700→500→400
     snow:   ['#64B5F6', '#BBDEFB', '#E1F5FE'],  // Blue 300→100, Light Blue 50
-    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
+    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
   },
   sunset: {
-    clear:  ['#6A1B9A', '#AD1457', '#F4511E'],  // Purple 800, Pink 800, Deep Orange 600
-    partly: ['#7B1FA2', '#C2185B', '#FF5722'],  // Purple 700, Pink 700, Deep Orange 500
-    cloudy: ['#455A64', '#607D8B', '#78909C'],  // Blue Grey 700→500→400
-    rain:   ['#37474F', '#455A64', '#283593'],  // Blue Grey 800→700, Indigo 800
-    snow:   ['#2196F3', '#90CAF9', '#B3E5FC'],  // Blue 500→200, Light Blue 100
-    storm:  ['#424242', '#37474F', '#283593'],  // Grey 800, Blue Grey 800, Indigo 800
+    clear:  ['#7B1FA2', '#C2185B', '#FF5722'],  // Purple 700, Pink 700, Deep Orange 500
+    partly: ['#8E24AA', '#D81B60', '#FF7043'],  // Purple 600, Pink 600, Deep Orange 400
+    cloudy: ['#546E7A', '#78909C', '#90A4AE'],  // Blue Grey 600→400→300
+    rain:   ['#455A64', '#546E7A', '#303F9F'],  // Blue Grey 700→600, Indigo 700
+    snow:   ['#42A5F5', '#BBDEFB', '#E1F5FE'],  // Blue 400→100, Light Blue 50
+    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
   },
 }
 
@@ -365,8 +412,39 @@ const sceneStyle = computed(() => {
 
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
 const showSun   = computed(() => isDay.value && cloudCount.value === 0)
-const showMoon  = computed(() => timeOfDay.value === 'night' && cloudCount.value === 0)
+const showMoon  = computed(() => timeOfDay.value === 'night')
+const moonOpacity = computed(() => {
+  const c = cloudCount.value
+  if (c === 0) return 1
+  if (c <= 3)  return 0.55
+  if (c <= 5)  return 0.25
+  return 0.12  // storm / fully overcast
+})
 const showStars = computed(() => timeOfDay.value === 'night' && cloudCount.value < 4)
+
+// ── Moon phase ─────────────────────────────────────────────────────────────
+// Phase 0 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
+const moonPhase = computed(() => {
+  const knownNewMoon  = new Date('2000-01-06T18:14:00Z').getTime()
+  const lunarPeriod   = 29.53058867 * 24 * 60 * 60 * 1000
+  const now           = Date.now()
+  return ((now - knownNewMoon) % lunarPeriod + lunarPeriod) % lunarPeriod / lunarPeriod
+})
+
+const moonPhasePath = computed(() => {
+  const p  = moonPhase.value
+  if (p < 0.02 || p > 0.98) return ''   // new moon — show only dark disc
+
+  const R  = 20
+  const cx = 20, cy = 20
+  const tx = Math.cos(2 * Math.PI * p) * R  // signed terminator x-radius
+  const atx = Math.abs(tx)
+
+  const s1 = p < 0.5 ? 1 : 0   // outer arc: clockwise (right) for waxing, CCW (left) for waning
+  const s2 = tx < 0  ? 1 : 0   // terminator: convex (gibbous) when tx negative, concave (crescent) when positive
+
+  return `M ${cx},${cy - R} A ${R},${R} 0 0,${s1} ${cx},${cy + R} A ${atx},${R} 0 0,${s2} ${cx},${cy - R} Z`
+})
 
 const stars = Array.from({ length: 38 }, (_, i) => ({
   id: i,
@@ -469,53 +547,55 @@ function flakeStyle(n) {
 const hillFarColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#4527A0'  // Deep Purple 800
-  if (tod === 'sunrise')             return '#6A1B9A'  // Purple 800
-  if (tod === 'sunset')              return '#6A1B9A'  // Purple 800
+  if (tod === 'night')               return '#512DA8'  // Deep Purple 700
+  if (tod === 'sunrise')             return '#7B1FA2'  // Purple 700
+  if (tod === 'sunset')              return '#7B1FA2'  // Purple 700
   if (g === 'snow')                  return '#CFD8DC'  // Blue Grey 100
-  if (g === 'rain' || g === 'storm') return '#388E3C'  // Green 700
-  return '#43A047'                                     // Green 600
+  if (g === 'rain' || g === 'storm') return '#4CAF50'  // Green 500
+  return '#66BB6A'                                     // Green 400
 })
 
 const hillNearColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#283593'  // Indigo 800
-  if (tod === 'sunrise')             return '#4527A0'  // Deep Purple 800
-  if (tod === 'sunset')              return '#4527A0'  // Deep Purple 800
+  if (tod === 'night')               return '#303F9F'  // Indigo 700
+  if (tod === 'sunrise')             return '#512DA8'  // Deep Purple 700
+  if (tod === 'sunset')              return '#512DA8'  // Deep Purple 700
   if (g === 'snow')                  return '#B0BEC5'  // Blue Grey 200
-  if (g === 'rain' || g === 'storm') return '#2E7D32'  // Green 800
-  return '#388E3C'                                     // Green 700
+  if (g === 'rain' || g === 'storm') return '#43A047'  // Green 600
+  return '#4CAF50'                                     // Green 500
 })
 
 const groundColor = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return '#283593'  // Indigo 800
-  if (tod === 'sunrise')             return '#303F9F'  // Indigo 700
-  if (tod === 'sunset')              return '#303F9F'  // Indigo 700
+  if (tod === 'night')               return '#303F9F'  // Indigo 700
+  if (tod === 'sunrise')             return '#3949AB'  // Indigo 600
+  if (tod === 'sunset')              return '#3949AB'  // Indigo 600
   if (g === 'snow')                  return '#ECEFF1'  // Blue Grey 50
-  if (g === 'rain' || g === 'storm') return '#2E7D32'  // Green 800
-  return '#2E7D32'                                     // Green 800
+  if (g === 'rain' || g === 'storm') return '#43A047'  // Green 600
+  return '#43A047'                                     // Green 600
 })
+
+watch(groundColor, val => emit('grass-color', val), { immediate: true })
 
 const foliage = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return ['#303F9F', '#283593', '#4527A0']  // Indigo 700, 800, Deep Purple 800
-  if (tod === 'sunrise')             return ['#558B2F', '#2E7D32', '#689F38']  // Light Green 800, Green 800, Light Green 700
-  if (tod === 'sunset')              return ['#6A1B9A', '#4527A0', '#7B1FA2']  // Purple 800, Deep Purple 800, Purple 700
+  if (tod === 'night')               return ['#3949AB', '#303F9F', '#512DA8']  // Indigo 600, 700, Deep Purple 700
+  if (tod === 'sunrise')             return ['#689F38', '#388E3C', '#7CB342']  // Light Green 700, Green 700, Light Green 600
+  if (tod === 'sunset')              return ['#7B1FA2', '#512DA8', '#8E24AA']  // Purple 700, Deep Purple 700, Purple 600
   if (g === 'snow')                  return ['#E1F5FE', '#BBDEFB', '#E3F2FD']  // Light Blue 50, Blue 100, Blue 50
-  if (g === 'rain' || g === 'storm') return ['#388E3C', '#2E7D32', '#43A047']  // Green 700, 800, 600
-  return ['#4CAF50', '#388E3C', '#81C784']                                     // Green 500, 700, 300
+  if (g === 'rain' || g === 'storm') return ['#2E7D32', '#1B5E20', '#388E3C']  // Green 800, 900, 700
+  return ['#66BB6A', '#43A047', '#A5D6A7']                                     // Green 400, 600, 200
 })
 
 const trunkColor = computed(() => {
-  if (timeOfDay.value === 'night')   return '#283593'  // Indigo 800
-  if (timeOfDay.value === 'sunrise') return '#5D4037'  // Brown 700
-  if (timeOfDay.value === 'sunset')  return '#6A1B9A'  // Purple 800
-  if (group.value === 'snow')        return '#8D6E63'  // Brown 400
-  return '#6D4C41'                                     // Brown 600
+  if (timeOfDay.value === 'night')   return '#1A237E'  // Indigo 900
+  if (timeOfDay.value === 'sunrise') return '#6D4C41'  // Brown 600
+  if (timeOfDay.value === 'sunset')  return '#7B1FA2'  // Purple 700
+  if (group.value === 'snow')        return '#A1887F'  // Brown 300
+  return '#795548'                                     // Brown 500
 })
 
 // ── Leaves ─────────────────────────────────────────────────────────────────
@@ -586,6 +666,26 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   50%       { opacity: 0.1; }
 }
 
+/* ── Shooting star ────────────────────────────────────────────────────────── */
+.shooting-star {
+  position: absolute;
+  width: 130px;
+  height: 2px;
+  background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.95) 100%);
+  border-radius: 1px;
+  transform-origin: right center;
+  transform: rotate(var(--star-angle, 30deg)) translateX(0);
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.85));
+  animation: scene-shoot 0.75s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes scene-shoot {
+  0%   { transform: rotate(var(--star-angle, 30deg)) translateX(0);      opacity: 0; }
+  8%   { opacity: 1; }
+  75%  { opacity: 0.7; }
+  100% { transform: rotate(var(--star-angle, 30deg)) translateX(360px);  opacity: 0; }
+}
+
 /* ── Sun ──────────────────────────────────────────────────────────────────── */
 .sun {
   position: absolute;
@@ -603,11 +703,12 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   position: absolute;
   top: 5%;
   right: 6%;
-  width: 40px;
-  height: 40px;
-  background: #F5F5F5;
-  border-radius: 50%;
-  box-shadow: -11px 7px 0 -3px #283593, 0 0 20px 4px rgba(187,222,251,0.40);
+  width: 64px;
+  height: 64px;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 6px rgba(187,222,251,0.55))
+    drop-shadow(0 0 18px rgba(187,222,251,0.28));
 }
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */
@@ -715,8 +816,8 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   background: linear-gradient(
     to bottom,
     rgba(0, 0, 0, 0.00) 0%,
-    rgba(0, 0, 0, 0.12) 50%,
-    rgba(0, 0, 0, 0.48) 100%
+    rgba(0, 0, 0, 0.18) 55%,
+    rgba(0, 0, 0, 0.05) 100%
   );
 }
 
@@ -744,5 +845,10 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   75%  { transform: translateX(260px) translateY(calc(var(--wa) * -1)) rotate(340deg); }
   88%  {                                                                                opacity: 0.6; }
   100% { transform: translateX(370px) translateY(0)                    rotate(470deg); opacity: 0; }
+}
+
+@media (max-width: 799px) {
+  .sun  { top: calc(var(--nav-h) + 12px); }
+  .moon { top: calc(var(--nav-h) + 12px); }
 }
 </style>
