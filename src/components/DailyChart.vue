@@ -32,6 +32,7 @@ const props = defineProps({
   activeType:  { type: String, required: true },
   unitPrefs:   { type: Object, required: true },
   selectedDay: { type: Number, default: 0 },
+  theme:       { type: String, default: 'dark' },
 })
 
 const emit = defineEmits(['day-selected', 'open-units-modal'])
@@ -95,6 +96,7 @@ function buildChart() {
   const unit     = cfg.getUnit(props.unitPrefs)
   const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
   const isMobile = window.innerWidth <= 800
+  const isLight  = props.theme === 'light'
   const labels   = props.daily.time.map(dayLabel)
 
   let datasets
@@ -233,7 +235,7 @@ function buildChart() {
           ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
+          ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Math.round(dataPoint[1])}`, x, y - 2)
           ctx.restore()
         }
@@ -244,7 +246,7 @@ function buildChart() {
           ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#64748b' : '#94a3b8'
+          ctx.fillStyle = props.theme === 'light' ? '#64748b' : '#94a3b8'
           ctx.fillText(`${Math.round(dataPoint[0])}`, x, base + 2)
           ctx.restore()
         }
@@ -304,7 +306,7 @@ function buildChart() {
           ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
+          ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Math.round(val)}`, x, y - 2)
           ctx.restore()
         }
@@ -345,7 +347,7 @@ function buildChart() {
           ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
+          ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${val}${labelSuffix}`, x, y - 2)
           ctx.restore()
         }
@@ -379,7 +381,7 @@ function buildChart() {
           ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillStyle = document.documentElement.classList.contains('light-theme') ? '#1e293b' : '#e2e8f0'
+          ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
           ctx.fillText(`${Number(val).toFixed(1)}`, x, y - 2)
           ctx.restore()
         }
@@ -403,11 +405,11 @@ function buildChart() {
         tooltip: {
           enabled: isRain,
           ...(isRain ? { position: 'linePoint' } : {}),
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          backgroundColor: isLight ? 'rgba(255,255,255,0.97)' : 'rgba(15, 23, 42, 0.95)',
           borderColor: cfg.color,
           borderWidth: 1,
-          titleColor: '#94a3b8',
-          bodyColor: '#f1f5f9',
+          titleColor: isLight ? '#64748b' : '#94a3b8',
+          bodyColor: isLight ? '#1e293b' : '#f1f5f9',
           padding: 10,
           callbacks: {
             label: (ctx) => {
@@ -434,7 +436,7 @@ function buildChart() {
           position: 'top',
           grid:  { display: false },
           ticks: { color: '#64748b', padding: 0, font: { family: APP_FONT } },
-          border: { color: 'rgba(255,255,255,0.06)' },
+          border: { color: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)' },
         },
         y: {
           ...(sharedYMin != null ? { min: sharedYMin, max: sharedYMax } : {}),
@@ -460,10 +462,11 @@ function buildChart() {
 
 function scheduleBuild() { requestAnimationFrame(() => requestAnimationFrame(buildChart)) }
 watch(() => props.activeType,  scheduleBuild)
-watch(() => props.unitPrefs,       scheduleBuild)
+watch(() => props.unitPrefs,   scheduleBuild)
 watch(() => props.daily,       scheduleBuild)
 watch(() => props.hourly,      scheduleBuild)
 watch(() => props.selectedDay, scheduleBuild)
+watch(() => props.theme,       scheduleBuild)
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
   requestAnimationFrame(() => requestAnimationFrame(buildChart))

@@ -248,7 +248,7 @@ function makeWindArrowPlugin(directions, values, color, currentHour) {
           ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          const _isLight = document.documentElement.classList.contains('light-theme')
+          const _isLight = props.theme === 'light'
         ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
           ctx.fillText(`${Math.round(v)}`, x, y + radius + 4)
           ctx.restore()
@@ -288,7 +288,7 @@ function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '') {
           ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
-          const _isLight = document.documentElement.classList.contains('light-theme')
+          const _isLight = props.theme === 'light'
         ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
           ctx.fillText(`${Math.round(v)}${suffix}`, x, y + emojiSize / 2 + 2)
           ctx.restore()
@@ -325,7 +325,7 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
         ctx.font = `${isCurrent ? 'bold 14px' : '13px'} ${APP_FONT}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'bottom'
-        const _isLight = document.documentElement.classList.contains('light-theme')
+        const _isLight = props.theme === 'light'
         ctx.fillStyle = isCurrent ? (_isLight ? '#0f172a' : '#ffffff') : (_isLight ? '#334155' : '#cbd5e1')
         ctx.fillText(`${Number(val).toFixed(1)}`, x, y - 2)
         ctx.restore()

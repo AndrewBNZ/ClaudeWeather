@@ -56,7 +56,7 @@
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :day-index="selectedDay"
-                  :theme="theme"
+                  :theme="resolvedTheme"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -68,6 +68,7 @@
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :selected-day="selectedDay"
+                  :theme="resolvedTheme"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -81,6 +82,7 @@
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :selected-day="selectedDay"
+                  :theme="resolvedTheme"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -91,7 +93,7 @@
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :day-index="selectedDay"
-                  :theme="theme"
+                  :theme="resolvedTheme"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -260,7 +262,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CurrentConditions from './components/CurrentConditions.vue'
 import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
@@ -373,6 +375,10 @@ function loadSavedLocations() {
 // ── State ────────────────────────────────────────────────────────────────────
 const theme          = ref(localStorage.getItem(THEME_KEY) ?? 'system')
 const systemDark     = window.matchMedia('(prefers-color-scheme: dark)')
+const systemIsDark   = ref(systemDark.matches)
+const resolvedTheme  = computed(() =>
+  theme.value === 'light' ? 'light' : theme.value === 'dark' ? 'dark' : systemIsDark.value ? 'dark' : 'light'
+)
 function applyTheme(v) {
   const isLight = v === 'light' || (v === 'system' && !systemDark.matches)
   document.documentElement.classList.toggle('light-theme', isLight)
@@ -577,7 +583,7 @@ watch(unitPrefs, (newVal, oldVal) => {
 }, { deep: true })
 watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
 watch(dailyFirst, (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
-systemDark.addEventListener('change', () => { if (theme.value === 'system') applyTheme('system') })
+systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 watch(theme,      (v) => {
   localStorage.setItem(THEME_KEY, v)
   applyTheme(v)
