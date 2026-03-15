@@ -239,7 +239,7 @@ function startFireworks() {
       x:       (15 + Math.random() * 70) / 100,
       y:       0.95,
       targetY: 0.06 + Math.random() * 0.28,
-      speed:   0.013 + Math.random() * 0.008,
+      speed:   0.007 + Math.random() * 0.004,
       color:   FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)],
       trail:   [],
     })
@@ -249,14 +249,14 @@ function startFireworks() {
     const n = 28 + Math.floor(Math.random() * 14)
     for (let i = 0; i < n; i++) {
       const angle = (i / n) * Math.PI * 2
-      const speed = 0.004 + Math.random() * 0.006
+      const speed = 0.002 + Math.random() * 0.003
       sparks.push({
         x: r.x, y: r.targetY,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         color: r.color,
         life: 1,
-        decay: 0.016 + Math.random() * 0.01,
+        decay: 0.009 + Math.random() * 0.005,
         size:  1.5 + Math.random() * 1.5,
       })
     }
@@ -296,7 +296,7 @@ function startFireworks() {
       const s = sparks[i]
       s.x  += s.vx * (dt / 16)
       s.y  += s.vy * (dt / 16)
-      s.vy += 0.00018 * (dt / 16)
+      s.vy += 0.00009 * (dt / 16)
       s.life -= s.decay * (dt / 16)
       if (s.life <= 0) { sparks.splice(i, 1); continue }
       ctx.globalAlpha = s.life * 0.85; ctx.fillStyle = s.color
