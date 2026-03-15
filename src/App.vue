@@ -657,7 +657,7 @@ onMounted(() => {
   countdownTimer = setInterval(updateCountdown, 1000)
   refreshTimer = setInterval(() => {
     if (location.value && isStale()) loadWeather(true)
-  }, STALE_MS)
+  }, 30_000)
 
   // If "Current Location" was the last active selection, re-geolocate silently
   if (isGeoActive.value) {
