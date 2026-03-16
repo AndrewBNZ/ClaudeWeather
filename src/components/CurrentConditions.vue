@@ -669,7 +669,7 @@ function fmt(v, decimals) {
 
 @media (max-width: 999px) {
   .conditions {
-    min-height: 350px;
+    min-height: 325px;
   }
 }
 
