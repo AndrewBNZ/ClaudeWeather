@@ -135,7 +135,7 @@
     <Transition name="settings-drop">
       <div v-if="settingsOpen" class="settings-dropdown" :style="settingsDropdownStyle">
         <div class="settings-body">
-          <div class="setting-row">
+          <div class="setting-row setting-row--col">
             <div>
               <div class="setting-label">Theme</div>
               <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
@@ -1189,6 +1189,12 @@ if (!isGeoActive.value) {
   border-bottom: 1px solid var(--row-border);
 }
 
+.setting-row--col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
 .setting-label {
   font-size: 0.9rem;
   color: var(--text);
@@ -1409,6 +1415,15 @@ if (!isGeoActive.value) {
   border: 1px solid var(--pill-border);
   border-radius: 9999px;
   overflow: hidden;
+}
+
+.setting-row--col .unit-pill {
+  border-radius: 10px;
+}
+
+.setting-row--col .unit-pill-opt {
+  flex: 1;
+  text-align: center;
 }
 
 .unit-pill-opt {
