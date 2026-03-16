@@ -1,6 +1,6 @@
 {
   "name": "ClaudeWeather",
-  "short_name": "Weather",
+  "short_name": "ClaudeWeather",
   "start_url": "/ClaudeWeather/",
   "display": "standalone",
   "background_color": "#000000",
