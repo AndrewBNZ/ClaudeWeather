@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .chart-card {
     padding: 8px 10px;
   }

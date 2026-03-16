@@ -832,11 +832,12 @@ if (!isGeoActive.value) {
   }
 }
 
-/* ── Mobile landscape: side-by-side with scrollable charts ─────────────── */
-@media (orientation: landscape) and (max-height: 500px) {
+/* ── Mobile/tablet landscape: side-by-side with scrollable charts ──────── */
+@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .main {
     padding: 0;
     gap: 0;
+    max-width: none;
   }
   .weather-layout {
     flex-direction: row;
@@ -860,13 +861,35 @@ if (!isGeoActive.value) {
   .layout-right {
     flex: 1;
     min-width: 0;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
     gap: 8px;
     padding: 8px;
     box-sizing: border-box;
+  }
+  .layout-chart {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-chart .chart-card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .layout-chart .chart-and-nav {
+    flex: 1;
+    min-height: 0;
+  }
+  .layout-chart .chart-wrap {
+    flex: 1;
+    min-height: 80px;
+    height: auto !important;
   }
 }
 
@@ -1057,6 +1080,7 @@ if (!isGeoActive.value) {
 .data-footer a:hover { color: var(--text-muted); }
 .footer-countdown { font-variant-numeric: tabular-nums; }
 @media (min-width: 1500px) { .data-footer { display: none; } }
+@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) { .data-footer { display: none; } }
 
 .refresh-btn {
   background: none;

@@ -626,7 +626,7 @@ function fmt(v, decimals) {
 
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
 
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .cond-content {
     padding: 56px 12px 40px;
     gap: 8px;
@@ -663,7 +663,8 @@ function fmt(v, decimals) {
   }
 }
 
-@media (min-width: 1500px) {
+@media (min-width: 1500px),
+       (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .scene-footer { display: block; }
 }
 
