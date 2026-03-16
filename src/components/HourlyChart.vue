@@ -72,10 +72,12 @@ const APP_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', syste
 
 const props = defineProps({
   hourly:     { type: Object, required: true },
+  daily:      { type: Object, default: null },
   activeType: { type: String, required: true },
   unitPrefs:  { type: Object, required: true },
   dayIndex:   { type: Number, default: 0 },
   theme:      { type: String, default: 'dark' },
+  utcOffset:  { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['select-day', 'open-units-modal'])
@@ -310,6 +312,50 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
   }
 }
 
+// Parses "2025-06-21T05:23" → 5.383 (fractional hour)
+function parseSunHour(isoStr) {
+  if (!isoStr) return null
+  const t = isoStr.slice(11)
+  const [h, m] = t.split(':').map(Number)
+  return h + m / 60
+}
+
+// Draws sunrise/sunset vertical markers with emoji icons on the chart.
+function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
+  return {
+    id: 'sunriseSunset',
+    afterDatasetsDraw(chart) {
+      if (sunriseHour == null && sunsetHour == null) return
+      const { ctx, chartArea, scales } = chart
+      const xMin = scales.x.getPixelForValue(0)
+      const xMax = scales.x.getPixelForValue(24)
+
+      for (const [hour, emoji, lightColor, darkColor] of [
+        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)'],
+        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)'],
+      ]) {
+        if (hour == null || hour < 0 || hour > 24) continue
+        const x = xMin + (hour / 24) * (xMax - xMin)
+
+        ctx.save()
+        ctx.beginPath()
+        ctx.moveTo(x, chartArea.top + 24)
+        ctx.lineTo(x, chartArea.bottom)
+        ctx.strokeStyle = props.theme === 'light' ? lightColor : darkColor
+        ctx.lineWidth = 1.5
+        ctx.setLineDash([4, 3])
+        ctx.stroke()
+
+        ctx.font = `16px ${APP_FONT}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.fillText(emoji, x, chartArea.top + 2)
+        ctx.restore()
+      }
+    },
+  }
+}
+
 function hourLabel(isoStr) {
   const h = parseInt(isoStr.slice(11, 13))
   if (h === 0)  return '12am'
@@ -331,13 +377,16 @@ function buildChart() {
   const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
   const isMobile = window.innerWidth <= 1000
 
-  const now = new Date()
+  const locDate    = new Date(Date.now() + props.utcOffset * 1000)
+  const locHour    = locDate.getUTCHours()
+  const locDateStr = locDate.toISOString().slice(0, 10)
   const start = props.dayIndex * 24
   const labels = props.hourly.time.slice(start, start + 25).map(hourLabel)
   let values = props.hourly[cfg.hourlyKey].slice(start, start + 25)
   if (cfg.scale) values = values.map(v => v != null ? cfg.scale(v, props.unitPrefs) : null)
-  // Only highlight current hour when viewing today
-  const currentHour = props.dayIndex === 0 ? now.getHours() : -1
+  // Only highlight current hour when viewing the location's current date
+  const dayDateStr  = props.hourly.time[start]?.slice(0, 10)
+  const currentHour = dayDateStr === locDateStr ? locHour : -1
 
   const isWind = cfg.id === 'wind'
   const isRain = cfg.id === 'rain'
@@ -365,9 +414,14 @@ function buildChart() {
   const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
   const pointColors = isRain ? labels.map((_, i) => i === currentHour ? '#ffffff' : cfg.color) : cfg.color
   const labelSuffix = (cfg.id === 'humidity' || cfg.id === 'cloudCover') ? '%' : ''
+  const sunriseHour = parseSunHour(props.daily?.sunrise?.[props.dayIndex])
+  const sunsetHour  = parseSunHour(props.daily?.sunset?.[props.dayIndex])
+  const sunPlugin   = makeSunriseSunsetPlugin(sunriseHour, sunsetHour)
+
   const extraPlugins = [
     makePastShadingPlugin(currentHour, props.dayIndex),
     crosshairPlugin,
+    sunPlugin,
     ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour)]
       : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix)]
       : []),
@@ -406,7 +460,7 @@ function buildChart() {
           },
         ],
       },
-      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, makeRainLabelPlugin(wxCodes, values, currentHour)],
+      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour)],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -538,8 +592,9 @@ function buildChart() {
 async function buildAndScroll() {
   buildChart()
   await nextTick()
-  const currentHour = props.dayIndex === 0 ? new Date().getHours() : 6
-  scrollToCurrentHour(currentHour)
+  const locDate = new Date(Date.now() + props.utcOffset * 1000)
+  const scrollHour = props.dayIndex === 0 ? locDate.getUTCHours() : 6
+  scrollToCurrentHour(scrollHour)
 }
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
@@ -568,7 +623,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .chart-title-group {
@@ -752,9 +807,6 @@ onBeforeUnmount(() => {
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .chart-card {
     padding: 8px 10px;
-  }
-  .chart-subtitle {
-    display: none;
   }
   .chart-wrap {
     height: 160px;

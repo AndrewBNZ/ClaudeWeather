@@ -1,6 +1,50 @@
 const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
 
-export async function fetchWeather(lat, lon, unitPrefs) {
+function cacheKey(lat, lon, unitPrefs) {
+  const rLat = Math.round(lat * 10000) / 10000
+  const rLon = Math.round(lon * 10000) / 10000
+  return `weather_cache_${rLat}_${rLon}_${unitPrefs.temperature}_${unitPrefs.wind}_${unitPrefs.precipitation}`
+}
+
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const entry = JSON.parse(raw)
+    if (Date.now() - entry.timestamp < CACHE_TTL_MS) return entry
+  } catch {}
+  return null
+}
+
+function writeCache(key, data) {
+  const timestamp = Date.now()
+  try {
+    localStorage.setItem(key, JSON.stringify({ timestamp, data }))
+  } catch {}
+  return timestamp
+}
+
+export function clearWeatherCache(lat, lon) {
+  const rLat = Math.round(lat * 10000) / 10000
+  const rLon = Math.round(lon * 10000) / 10000
+  const prefix = `weather_cache_${rLat}_${rLon}_`
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith(prefix))
+      .forEach(k => localStorage.removeItem(k))
+  } catch {}
+}
+
+// Returns { data, timestamp } where timestamp is when the data was originally fetched.
+export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false } = {}) {
+  const key = cacheKey(lat, lon, unitPrefs)
+
+  if (!forceRefresh) {
+    const cached = readCache(key)
+    if (cached) return { data: cached.data, timestamp: cached.timestamp }
+  }
+
   const params = new URLSearchParams({
     latitude:  lat,
     longitude: lon,
@@ -55,5 +99,7 @@ export async function fetchWeather(lat, lon, unitPrefs) {
 
   const res = await fetch(`${BASE_URL}?${params}`)
   if (!res.ok) throw new Error(`Weather API error: ${res.status}`)
-  return res.json()
+  const data = await res.json()
+  const timestamp = writeCache(key, data)
+  return { data, timestamp }
 }

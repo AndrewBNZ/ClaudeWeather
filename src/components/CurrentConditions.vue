@@ -18,6 +18,7 @@
       :sunrise="todaySunrise"
       :sunset="todaySunset"
       :lat="lat"
+      :utc-offset="utcOffset"
       :preview-tod="previewTod"
       :preview-weather="previewWeather"
       :preview-wind="previewWind"
@@ -189,6 +190,7 @@ const props = defineProps({
   activeType:   { type: String, required: true },
   locationName: { type: String, default: '' },
   lat:           { type: Number,  default: 0 },
+  utcOffset:     { type: Number,  default: 0 },
   showSim:       { type: Boolean, default: false },
   showFireworks: { type: Boolean, default: false },
   tileConfig:    { type: Array, default: null },

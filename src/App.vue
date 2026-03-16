@@ -28,7 +28,7 @@
       <div v-else-if="error" class="error-card card">
         <span class="error-icon">⚠️</span>
         <p>{{ error }}</p>
-        <button class="retry-btn" @click="loadWeather">Try again</button>
+        <button class="retry-btn" @click="loadWeather(false, true)">Try again</button>
       </div>
 
       <!-- Main content -->
@@ -42,6 +42,7 @@
               :active-type="activeDataType"
               :location-name="locationName"
               :lat="location?.lat ?? 0"
+              :utc-offset="weatherData.utc_offset_seconds ?? 0"
               :show-sim="showSim"
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
@@ -52,7 +53,7 @@
               @grass-color="grassColor = $event"
               @open-locations="panelOpen = true"
               @open-settings="settingsOpen = true"
-              @refresh="loadWeather"
+              @refresh="loadWeather(false, true)"
             />
           </aside>
           <div class="layout-right">
@@ -60,10 +61,12 @@
               <div class="layout-chart">
                 <HourlyChart
                   :hourly="weatherData.hourly"
+                  :daily="weatherData.daily"
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :day-index="selectedDay"
                   :theme="resolvedTheme"
+                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -76,6 +79,7 @@
                   :unit-prefs="unitPrefs"
                   :selected-day="selectedDay"
                   :theme="resolvedTheme"
+                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -90,6 +94,7 @@
                   :unit-prefs="unitPrefs"
                   :selected-day="selectedDay"
                   :theme="resolvedTheme"
+                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -97,10 +102,12 @@
               <div class="layout-chart">
                 <HourlyChart
                   :hourly="weatherData.hourly"
+                  :daily="weatherData.daily"
                   :active-type="activeDataType"
                   :unit-prefs="unitPrefs"
                   :day-index="selectedDay"
                   :theme="resolvedTheme"
+                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -113,7 +120,7 @@
           Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
           <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
           <template v-if="countdown && !loading"> · <span class="footer-countdown">{{ countdown }}</span></template>
-          <button class="refresh-btn" @click="loadWeather" :disabled="loading" title="Refresh">
+          <button class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
             <span :class="{ spinning: loading }">↻</span>
           </button>
         </div>
@@ -279,7 +286,7 @@ import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
-import { fetchWeather }        from './services/weatherApi.js'
+import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { reverseGeocode }      from './services/geocoding.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -488,7 +495,7 @@ function isStale() {
 }
 
 function checkAndRefresh() {
-  if (location.value && isStale()) loadWeather()
+  if (location.value && isStale()) loadWeather(false, true)
 }
 
 function addToSaved(lat, lon, name) {
@@ -549,6 +556,7 @@ function onPanelDelete(loc) {
     l => !(l.lat === loc.lat && l.lon === loc.lon)
   )
   persistLocations(savedLocations.value)
+  clearWeatherCache(loc.lat, loc.lon)
   // If deleting the active location (and not in geo mode), switch to first remaining or clear
   if (!isGeoActive.value && location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
     const next = savedLocations.value[0] ?? null
@@ -558,22 +566,23 @@ function onPanelDelete(loc) {
   }
 }
 
-async function loadWeather(silent = false) {
+async function loadWeather(silent = false, forceRefresh = false) {
   if (!location.value) return
   if (!silent || !weatherData.value) loading.value = true
   error.value   = null
   try {
-    const data = await fetchWeather(location.value.lat, location.value.lon, unitPrefs.value)
+    const { data, timestamp } = await fetchWeather(location.value.lat, location.value.lon, unitPrefs.value, { forceRefresh })
     // Stitch current hour's precipitation probability into the current object
     // (Open-Meteo only provides this in hourly, not current)
+    const locHour = new Date(Date.now() + data.utc_offset_seconds * 1000).getUTCHours()
     data.current.precipitation_probability =
-      data.hourly?.precipitation_probability?.[new Date().getHours()] ?? null
+      data.hourly?.precipitation_probability?.[locHour] ?? null
     weatherData.value = data
     // Use timezone abbreviation from response as a location hint when geolocating
     if (locationName.value === 'Locating…' && data.timezone_abbreviation) {
       locationName.value = data.timezone ?? locationName.value
     }
-    fetchedAt.value = new Date()
+    fetchedAt.value = new Date(timestamp)
     updatedAt.value = fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   } catch (e) {
     error.value = e.message ?? 'Failed to load weather data.'
@@ -670,7 +679,7 @@ onMounted(() => {
   updateCountdown()
   countdownTimer = setInterval(updateCountdown, 1000)
   refreshTimer = setInterval(() => {
-    if (location.value && isStale()) loadWeather(true)
+    if (location.value && isStale()) loadWeather(true, true)
   }, 30_000)
 
   // If "Current Location" was the last active selection, re-geolocate silently

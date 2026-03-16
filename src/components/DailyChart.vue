@@ -34,6 +34,7 @@ const props = defineProps({
   unitPrefs:   { type: Object, required: true },
   selectedDay: { type: Number, default: 0 },
   theme:       { type: String, default: 'dark' },
+  utcOffset:   { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['day-selected', 'open-units-modal'])
@@ -68,11 +69,13 @@ const config = computed(() => DATA_TYPES[props.activeType])
 const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
 
 function dayLabel(isoDate) {
-  const d = new Date(isoDate + 'T12:00:00')
-  const today = new Date()
-  if (d.toDateString() === today.toDateString()) return 'Today'
-  const weekday = d.toLocaleDateString('en', { weekday: 'short' })
-  const day     = d.toLocaleDateString('en', { day: 'numeric' })
+  const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
+  if (isoDate === locDateStr) return 'Today'
+  // Parse in UTC so browser timezone doesn't shift the displayed weekday/day
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d, 12))
+  const weekday = date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+  const day     = date.toLocaleDateString('en', { day: 'numeric',  timeZone: 'UTC' })
   return `${weekday} ${day}`
 }
 
@@ -451,7 +454,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .chart-title {
@@ -516,9 +519,6 @@ onBeforeUnmount(() => {
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .chart-card {
     padding: 8px 10px;
-  }
-  .chart-subtitle {
-    display: none;
   }
   .chart-wrap {
     height: 160px;

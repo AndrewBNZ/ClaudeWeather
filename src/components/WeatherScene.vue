@@ -155,6 +155,7 @@ const props = defineProps({
   previewWeather:       { type: String,  default: null },
   previewWind:          { type: Number,  default: null },
   lat:                  { type: Number,  default: 0 },
+  utcOffset:            { type: Number,  default: 0 },
   showFireworks:        { type: Boolean, default: false },
   shootingStarTrigger:  { type: Number,  default: 0 },
   forceBirds:           { type: Boolean, default: false },
@@ -170,19 +171,23 @@ const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
 // ── Time of day ────────────────────────────────────────────────────────────
 const timeOfDay = computed(() => {
   if (props.previewTod) return props.previewTod
-  const now = Date.now()
+  // Shift Date.now() into the location's timezone so we compare apples-to-apples
+  // with the bare ISO strings Open-Meteo returns (which are in local time, no tz suffix).
+  const locationNowMs = Date.now() + props.utcOffset * 1000
   if (props.sunrise && props.sunset) {
-    const riseMs = new Date(props.sunrise).getTime()
-    const setMs  = new Date(props.sunset).getTime()
+    // Append 'Z' so the browser parses the local-time strings as UTC,
+    // matching the shifted locationNowMs value.
+    const riseMs = new Date(props.sunrise + 'Z').getTime()
+    const setMs  = new Date(props.sunset  + 'Z').getTime()
     const transitionMs = 25 * 60 * 1000 // 25-min transition window
-    if (now < riseMs - transitionMs)                   return 'night'
-    if (now < riseMs + transitionMs)                   return 'sunrise'
-    if (now < setMs  - transitionMs)                   return 'day'
-    if (now < setMs  + transitionMs)                   return 'sunset'
+    if (locationNowMs < riseMs - transitionMs) return 'night'
+    if (locationNowMs < riseMs + transitionMs) return 'sunrise'
+    if (locationNowMs < setMs  - transitionMs) return 'day'
+    if (locationNowMs < setMs  + transitionMs) return 'sunset'
     return 'night'
   }
-  // Fallback to clock hours if no data
-  const h = new Date().getHours()
+  // Fallback to clock hours at the location
+  const h = new Date(locationNowMs).getUTCHours()
   if (h >= 5  && h < 8)  return 'sunrise'
   if (h >= 8  && h < 18) return 'day'
   if (h >= 18 && h < 21) return 'sunset'
