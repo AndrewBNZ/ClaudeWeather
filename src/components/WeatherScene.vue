@@ -612,8 +612,7 @@ const activeClouds = computed(() =>
     { top: '20%', w:  90, h: 32, delay: -6   },
     { top: '8%',  w: 130, h: 42, delay: -34  },
   ]
-  .slice(0, cloudCount.value)
-  .map(cfg => ({
+  .map((cfg, i) => ({
     style: {
       top:               cfg.top,
       width:             `${cfg.w}px`,
@@ -621,6 +620,8 @@ const activeClouds = computed(() =>
       '--cloud-color':   cloudColor.value,
       animationDuration: `${driftDur.value}s`,
       animationDelay:    `${cfg.delay}s`,
+      opacity:           i < cloudCount.value ? 1 : 0,
+      transition:        'opacity 2s ease',
     },
   }))
 )
