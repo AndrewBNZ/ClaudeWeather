@@ -9,7 +9,7 @@
       </div>
       <div class="scene-btns">
         <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">☰</button>
-        <button class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">⚙️</button>
+        <button data-settings-btn class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">⚙️</button>
       </div>
     </div>
 
@@ -671,7 +671,7 @@ function fmt(v, decimals) {
 
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .cond-content {
-    padding: 56px 12px 40px;
+    padding: 72px 12px 40px;
     gap: 8px;
   }
   .cond-body {

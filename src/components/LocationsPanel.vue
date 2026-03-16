@@ -70,20 +70,11 @@ watch(() => props.isOpen, (open) => {
     const btn = document.querySelector('[data-locations-btn]')
     if (btn) {
       const rect = btn.getBoundingClientRect()
-      const isMobile = window.innerWidth <= 520
-      if (isMobile) {
-        dropdownStyle.value = {
-          top:   `${rect.bottom + 6}px`,
-          left:  '8px',
-          right: '8px',
-        }
-      } else {
-        dropdownStyle.value = {
-          top:   `${rect.bottom + 6}px`,
-          right: `${window.innerWidth - rect.right}px`,
-          width: '300px',
-        }
-      }
+      const card = document.querySelector('.conditions')
+      const cardRect = card?.getBoundingClientRect()
+      dropdownStyle.value = cardRect
+        ? { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
+        : { top: `${rect.bottom + 6}px`, left: '8px', right: '8px' }
     }
     if (!props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
   }

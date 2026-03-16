@@ -3,7 +3,7 @@
     <header v-if="!weatherData" class="header">
       <div class="header-right">
         <button data-locations-btn class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
-        <button class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">⚙️</button>
+        <button data-settings-btn class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">⚙️</button>
       </div>
     </header>
 
@@ -128,66 +128,67 @@
       </template>
     </main>
 
-    <!-- Settings panel -->
-    <transition name="panel-slide">
-      <div v-if="settingsOpen" class="panel-overlay" @click.self="settingsOpen = false">
-        <div class="settings-panel">
-          <div class="panel-header">
-            <span class="panel-title">Settings</span>
-            <button class="panel-close" @click="settingsOpen = false">✕</button>
+    <!-- Settings dropdown -->
+    <Transition name="fade">
+      <div v-if="settingsOpen" class="settings-clickaway" @click="settingsOpen = false" />
+    </Transition>
+    <Transition name="settings-drop">
+      <div v-if="settingsOpen" class="settings-dropdown" :style="settingsDropdownStyle">
+        <div class="settings-body">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Theme</div>
+              <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
+            </div>
+            <div class="unit-pill">
+              <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
+              <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
+              <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
+              <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+            </div>
           </div>
-          <div class="settings-body">
-            <div class="setting-row">
-              <span class="setting-label">Theme</span>
-              <div class="unit-pill">
-                <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
-                <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
-                <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
-              </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Units</div>
+              <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
             </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Units</div>
-                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
-              </div>
-              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+            <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Weather Details</div>
+              <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
             </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Weather Details</div>
-                <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
-              </div>
-              <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
+            <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Swap chart positions</div>
+              <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
             </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Chart Order</div>
-                <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
-              </div>
-              <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
-                <span class="toggle-thumb" />
-              </button>
+            <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
+              <span class="toggle-thumb" />
+            </button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Reset</div>
+              <div class="setting-hint">Clear all settings and restart tutorial</div>
             </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Reset</div>
-                <div class="setting-hint">Clear all settings and restart tutorial</div>
-              </div>
-              <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset →</button>
+            <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Weather Simulator</div>
+              <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Weather Simulator</div>
-                <div class="setting-hint">Preview weather effects on the scene</div>
-              </div>
-              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
-                <span class="toggle-thumb" />
-              </button>
-            </div>
+            <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
+              <span class="toggle-thumb" />
+            </button>
           </div>
         </div>
       </div>
-    </transition>
+    </Transition>
 
     <!-- Units modal -->
     <transition name="modal-fade">
@@ -394,21 +395,31 @@ function loadSavedLocations() {
 const theme          = ref(localStorage.getItem(THEME_KEY) ?? 'system')
 const systemDark     = window.matchMedia('(prefers-color-scheme: dark)')
 const systemIsDark   = ref(systemDark.matches)
-const resolvedTheme  = computed(() =>
-  theme.value === 'light' ? 'light' : theme.value === 'dark' ? 'dark' : systemIsDark.value ? 'dark' : 'light'
-)
+function isAutoNight() { const h = new Date().getHours(); return h < 6 || h >= 20 }
+const autoIsDark     = ref(isAutoNight())
+const resolvedTheme  = computed(() => {
+  if (theme.value === 'light') return 'light'
+  if (theme.value === 'dark')  return 'dark'
+  if (theme.value === 'auto')  return autoIsDark.value ? 'dark' : 'light'
+  return systemIsDark.value ? 'dark' : 'light'
+})
 function applyTheme(v) {
-  const isLight = v === 'light' || (v === 'system' && !systemDark.matches)
+  let isLight
+  if (v === 'light')       isLight = true
+  else if (v === 'dark')   isLight = false
+  else if (v === 'auto')   isLight = !autoIsDark.value
+  else                     isLight = !systemDark.matches
   document.documentElement.classList.toggle('light-theme', isLight)
 }
 applyTheme(theme.value)
 
 const tileConfig     = ref(loadTileConfig())
 const savedLocations = ref(loadSavedLocations())
-const panelOpen          = ref(false)
-const tutSearching       = ref(false)
-const tutPendingLocation = ref(false)
-const settingsOpen       = ref(false)
+const panelOpen             = ref(false)
+const tutSearching          = ref(false)
+const tutPendingLocation    = ref(false)
+const settingsOpen          = ref(false)
+const settingsDropdownStyle = ref({})
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
@@ -481,6 +492,17 @@ watch([savedLocations, weatherData, isGeoActive], ([locs, data, geo]) => {
 watch(settingsOpen, (open) => {
   if (open && tutorialStep.value === 5) { finishTutorial(true); return }
   if (!open && pendingFireworks.value) { pendingFireworks.value = false; launchFireworks() }
+  if (open) {
+    const btn = document.querySelector('[data-settings-btn]')
+    if (btn) {
+      const rect = btn.getBoundingClientRect()
+      const card = document.querySelector('.conditions')
+      const cardRect = card?.getBoundingClientRect()
+      settingsDropdownStyle.value = cardRect
+        ? { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
+        : { top: `${rect.bottom + 6}px`, left: '8px', right: '8px' }
+    }
+  }
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -602,6 +624,7 @@ watch(unitPrefs, (newVal, oldVal) => {
 watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
 watch(dailyFirst, (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
+watch(autoIsDark, () => { if (theme.value === 'auto') applyTheme('auto') })
 watch(theme,      (v) => {
   localStorage.setItem(THEME_KEY, v)
   applyTheme(v)
@@ -671,6 +694,7 @@ function updateCountdown() {
   const s = totalSecs % 60
   countdown.value = `${m}:${String(s).padStart(2, '0')}`
 }
+let autoTimer      = null
 let countdownTimer = null
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
@@ -678,6 +702,7 @@ let refreshTimer = null
 onMounted(() => {
   updateCountdown()
   countdownTimer = setInterval(updateCountdown, 1000)
+  autoTimer = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
   refreshTimer = setInterval(() => {
     if (location.value && isStale()) loadWeather(true, true)
   }, 30_000)
@@ -707,6 +732,7 @@ document.addEventListener('visibilitychange', onVisibilityChange)
 onUnmounted(() => {
   clearInterval(refreshTimer)
   clearInterval(countdownTimer)
+  clearInterval(autoTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 watch(fetchedAt, updateCountdown)
@@ -1113,32 +1139,21 @@ if (!isGeoActive.value) {
   animation: spin 0.8s linear infinite;
 }
 
-/* ── Settings panel ─────────────────────────────────────────────────────── */
-.panel-overlay {
+/* ── Settings dropdown ───────────────────────────────────────────────────── */
+.settings-clickaway {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
   z-index: 200;
-  display: flex;
-  justify-content: flex-end;
 }
 
-.settings-panel {
-  width: 300px;
-  max-width: 90vw;
-  height: 100%;
+.settings-dropdown {
+  position: fixed;
+  z-index: 201;
   background: var(--panel-bg);
-  border-left: 1px solid var(--panel-border);
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--panel-divider);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 .panel-title {
@@ -1162,6 +1177,7 @@ if (!isGeoActive.value) {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  max-height: calc(100dvh - 80px);
 }
 
 .setting-row {
@@ -1258,19 +1274,13 @@ if (!isGeoActive.value) {
   border-top-color: rgba(56, 189, 248, 0.35);
 }
 
-.panel-slide-enter-active, .panel-slide-leave-active {
-  transition: opacity 0.2s;
+.settings-drop-enter-active, .settings-drop-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform-origin: top right;
 }
-.panel-slide-enter-active .settings-panel,
-.panel-slide-leave-active .settings-panel {
-  transition: transform 0.25s ease;
-}
-.panel-slide-enter-from .settings-panel,
-.panel-slide-leave-to .settings-panel {
-  transform: translateX(100%);
-}
-.panel-slide-enter-from, .panel-slide-leave-to {
+.settings-drop-enter-from, .settings-drop-leave-to {
   opacity: 0;
+  transform: scale(0.95) translateY(-6px);
 }
 
 /* ── Data Types modal ────────────────────────────────────────────────────── */
