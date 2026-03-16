@@ -1,12 +1,9 @@
 <template>
   <div class="app-shell">
-    <header class="header">
-      <div class="header-left">
-        <span class="app-name">{{ locationName || 'ClaudeWeather' }}</span>
-      </div>
+    <header v-if="!weatherData" class="header">
       <div class="header-right">
         <button class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
-        <button class="settings-btn" @click="settingsOpen = true" title="Settings">⚙️</button>
+        <button class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">⚙️</button>
       </div>
     </header>
 
@@ -48,8 +45,14 @@
               :show-sim="showSim"
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
+              :updated-at="updatedAt"
+              :countdown="countdown"
+              :loading="loading"
               @select="activeDataType = $event"
               @grass-color="grassColor = $event"
+              @open-locations="panelOpen = true"
+              @open-settings="settingsOpen = true"
+              @refresh="loadWeather"
             />
           </aside>
           <div class="layout-right">
@@ -438,12 +441,10 @@ function onTutorialNext() {
 
 const showFireworks   = ref(false)
 const pendingFireworks = ref(false)
-let fwTimer = null
-
 function launchFireworks() {
   if (!weatherData.value) return
   showFireworks.value = true
-  fwTimer = setTimeout(() => { showFireworks.value = false }, 5000)
+  setTimeout(() => { showFireworks.value = false }, 5000)
 }
 
 function finishTutorial(deferFireworks = false) {
@@ -634,7 +635,7 @@ function onTileDrop(e, i) {
   tileDragIndex.value = null; tileDragOver.value = null
 }
 
-function onTileTouchStart(e, i) { tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i }
+function onTileTouchStart(_e, i) { tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i }
 function onTileTouchMove(e) {
   if (tileTouchIdx === null) return
   e.preventDefault()
@@ -729,31 +730,23 @@ if (!isGeoActive.value) {
 }
 
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 24px;
+  justify-content: flex-end;
+  padding: 12px 16px;
   background: var(--header-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--header-border);
 }
 
-.header-left, .header-right {
+.header-right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.header-left {
-  min-width: 0;
-  flex: 1;
-  margin-right: 16px;
-}
 
-.locations-btn {
+.locations-btn, .settings-btn {
   background: var(--btn-bg);
   border: 1px solid var(--btn-border);
   backdrop-filter: blur(8px);
@@ -769,37 +762,7 @@ if (!isGeoActive.value) {
   cursor: pointer;
   transition: background 0.2s;
 }
-.locations-btn:hover { background: var(--btn-hover); }
-
-
-.app-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.settings-btn {
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
-  backdrop-filter: blur(8px);
-  border-radius: 9999px;
-  width: 42px;
-  height: 34px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.settings-btn:hover { background: var(--btn-hover); }
+.locations-btn:hover, .settings-btn:hover { background: var(--btn-hover); }
 
 /* ── Main ───────────────────────────────────────────────────────────────── */
 .main {
@@ -829,25 +792,6 @@ if (!isGeoActive.value) {
 }
 
 @media (max-width: 999px) {
-  .header {
-    position: fixed;
-    left: 0;
-    right: 0;
-    padding-left: 14px;
-    padding-right: 14px;
-    background: transparent;
-    border-bottom: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-  .app-name {
-    color: #fff;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.25);
-  }
-  .locations-btn {
-    color: #fff;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.25);
-  }
   .main {
     padding-top: 0;
     padding-left: 10px;
@@ -929,16 +873,16 @@ if (!isGeoActive.value) {
 @media (min-width: 1500px) {
   .main {
     max-width: none;
-    padding: 16px 20px;
+    padding: 14px;
   }
 
   /* Pin the weather layout to a known height so both columns can share
-     the same source of truth. 135px ≈ header(56) + main-padding(32) +
-     gap+footer(47). Both columns then fill this via align-items:stretch. */
+     the same source of truth. 75px ≈ main-padding(28) + gap+footer(47).
+     Both columns then fill this via align-items:stretch. */
   .weather-layout {
     flex-direction: row;
     align-items: stretch;
-    height: calc(100vh - 135px);
+    height: calc(100vh - 75px);
   }
 
   .layout-left {
@@ -990,6 +934,7 @@ if (!isGeoActive.value) {
     min-height: 140px;
     height: auto !important;
   }
+
 }
 
 /* ── Empty / Loading / Error states ────────────────────────────────────── */
@@ -1111,6 +1056,7 @@ if (!isGeoActive.value) {
 }
 .data-footer a:hover { color: var(--text-muted); }
 .footer-countdown { font-variant-numeric: tabular-nums; }
+@media (min-width: 1500px) { .data-footer { display: none; } }
 
 .refresh-btn {
   background: none;

@@ -1,6 +1,15 @@
 <template>
   <div class="conditions card">
 
+    <!-- Scene header: location name + nav buttons overlaid on the scene -->
+    <div class="scene-header">
+      <span class="scene-location">{{ locationName || 'ClaudeWeather' }}</span>
+      <div class="scene-btns">
+        <button class="scene-btn" @click="emit('open-locations')" title="Saved locations">☰</button>
+        <button class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">⚙️</button>
+      </div>
+    </div>
+
     <WeatherScene
       @grass-color="emit('grass-color', $event)"
       :weather-code="data.weather_code"
@@ -58,6 +67,16 @@
       </div>
       <button class="sim-toggle" :class="{ 'sim-active': hasPreview }" title="Show/hide Weather Sim" @click="simExpanded = !simExpanded">
         {{ simExpanded ? '▾' : '▴' }}
+      </button>
+    </div>
+
+    <!-- Scene footer (desktop only) -->
+    <div class="scene-footer">
+      Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+      <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+      <template v-if="countdown && !loading"> · <span class="scene-footer-countdown">{{ countdown }}</span></template>
+      <button class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
+        <span :class="{ spinning: loading }">↻</span>
       </button>
     </div>
 
@@ -173,9 +192,12 @@ const props = defineProps({
   showSim:       { type: Boolean, default: false },
   showFireworks: { type: Boolean, default: false },
   tileConfig:    { type: Array, default: null },
+  updatedAt:    { type: String, default: '' },
+  countdown:    { type: String, default: '' },
+  loading:      { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['select', 'grass-color'])
+const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
@@ -251,13 +273,67 @@ function fmt(v, decimals) {
   padding: 0;
 }
 
+/* ── Scene header (location name + nav buttons) ─────────────────────────── */
+.scene-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  pointer-events: none;
+}
+.scene-header > * { pointer-events: all; }
+
+.scene-location {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.55), 0 0 16px rgba(0,0,0,0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.scene-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.scene-btn {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  width: 36px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.scene-btn:hover { background: rgba(0, 0, 0, 0.5); }
+
 .cond-content {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 18px 18px 16px;
+  padding: 66px 18px 16px;
 }
 
 
@@ -516,11 +592,43 @@ function fmt(v, decimals) {
   50%       { box-shadow: 0 0 8px 3px rgba(255, 210, 80, 0.55); border-color: rgba(255, 210, 80, 1.0); }
 }
 
+/* ── Scene footer (desktop only) ───────────────────────────────────────── */
+.scene-footer {
+  display: none;
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  z-index: 2;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+.scene-footer > * { pointer-events: all; }
+.scene-footer a {
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+}
+.scene-footer a:hover { color: rgba(255, 255, 255, 0.85); }
+.scene-footer-countdown { font-variant-numeric: tabular-nums; }
+.scene-footer-refresh {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.95rem;
+  padding: 0 0 0 6px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.scene-footer-refresh:hover:not(:disabled) { color: rgba(255, 255, 255, 0.9); }
+.scene-footer-refresh:disabled { cursor: default; }
+
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
 
 @media (orientation: landscape) and (max-height: 500px) {
   .cond-content {
-    padding: 10px 12px 40px;
+    padding: 56px 12px 40px;
     gap: 8px;
   }
   .cond-body {
@@ -555,10 +663,8 @@ function fmt(v, decimals) {
   }
 }
 
-@media (min-width: 640px) and (max-width: 999px) {
-  .cond-content {
-    padding-top: calc(var(--nav-h) + 10px);
-  }
+@media (min-width: 1500px) {
+  .scene-footer { display: block; }
 }
 
 @media (max-width: 999px) {
@@ -569,7 +675,7 @@ function fmt(v, decimals) {
 
 @media (max-width: 639px) {
   .cond-content {
-    padding: calc(var(--nav-h) + 10px) 12px 40px;
+    padding: 66px 12px 40px;
     gap: 8px;
   }
   .cond-body {

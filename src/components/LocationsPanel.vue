@@ -10,6 +10,7 @@
 
           <div class="search-wrap">
             <LocationSearch
+              ref="searchRef"
               :location-name="''"
               @location-selected="onLocationSelected"
               @searching="emit('searching', $event)"
@@ -52,8 +53,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import LocationSearch from './LocationSearch.vue'
+
+const searchRef = ref(null)
 
 const props = defineProps({
   locations:       { type: Array,   required: true },
@@ -64,6 +67,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate', 'searching'])
+
+watch(() => props.isOpen, (open) => {
+  if (open && !props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
+})
 
 const geoLoading = ref(false)
 

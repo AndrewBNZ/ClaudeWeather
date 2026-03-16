@@ -570,8 +570,8 @@ const stars = Array.from({ length: 38 }, (_, i) => ({
   style: {
     left:            `${(i * 31 + 17) % 88}%`,
     top:             `${(i * 19 + 5)  % 50}%`,
-    width:           `${1 + (i % 2)}px`,
-    height:          `${1 + (i % 2)}px`,
+    width:           `${2 + (i % 2)}px`,
+    height:          `${2 + (i % 2)}px`,
     opacity:          0.4 + (i % 5) * 0.12,
     animationDelay:  `${((i * 0.7) % 3).toFixed(1)}s`,
   },
@@ -808,7 +808,7 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
 /* ── Sun ──────────────────────────────────────────────────────────────────── */
 .sun {
   position: absolute;
-  top: 5%;
+  top: 68px;
   right: 6%;
   width: 54px;
   height: 54px;
@@ -820,7 +820,7 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
 /* ── Moon ─────────────────────────────────────────────────────────────────── */
 .moon {
   position: absolute;
-  top: 5%;
+  top: 68px;
   right: 6%;
   width: 64px;
   height: 64px;
@@ -1021,8 +1021,4 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   to   { transform: translateX(250vw); }
 }
 
-@media (max-width: 999px) {
-  .sun  { top: calc(var(--nav-h) + 12px); }
-  .moon { top: calc(var(--nav-h) + 12px); }
-}
 </style>

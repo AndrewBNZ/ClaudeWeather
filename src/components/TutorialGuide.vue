@@ -75,7 +75,7 @@ const STEPS = [
     yOffset: -40,
   },
   {
-    target: '.settings-btn',
+    target: '[data-tut="settings"]',
     icon: '⚙️',
     title: 'Make it feel like home',
     desc: 'Pick your theme, set your units, and choose which tiles matter to you. It\'s your weather — set it up just how you like.',

@@ -33,6 +33,9 @@
 import { ref } from 'vue'
 import { searchLocations, formatLocationName } from '../services/geocoding.js'
 
+const inputRef = ref(null)
+defineExpose({ focus: () => inputRef.value?.focus() })
+
 defineProps({
   locationName: String,
 })
