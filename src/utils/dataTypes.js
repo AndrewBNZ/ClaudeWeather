@@ -138,3 +138,10 @@ export function getDailyAvgFromHourly(hourly, key) {
 export function getDailyHumidityFromHourly(hourly) {
   return getDailyAvgFromHourly(hourly, 'relative_humidity_2m')
 }
+
+// Returns the display unit string for a given data type, or '' for unit-less types
+export function getUnitLabel(activeType, unitPrefs) {
+  const cfg = DATA_TYPES[activeType]
+  if (!cfg || cfg.id === 'humidity' || cfg.id === 'cloudCover') return ''
+  return cfg.getUnit(unitPrefs)
+}

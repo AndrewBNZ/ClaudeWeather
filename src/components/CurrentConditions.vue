@@ -5,13 +5,18 @@
       @grass-color="emit('grass-color', $event)"
       :weather-code="data.weather_code"
       :wind-speed="data.wind_speed_10m"
+      :cloud-cover="data.cloud_cover"
       :sunrise="todaySunrise"
       :sunset="todaySunset"
+      :lat="lat"
       :preview-tod="previewTod"
       :preview-weather="previewWeather"
       :preview-wind="previewWind"
       :show-fireworks="showFireworks || fireworksPreview"
       :shooting-star-trigger="shootingStarTrigger"
+      :force-birds="simBirds"
+      :force-aurora="simAurora"
+      :force-fog="simFog"
     />
 
     <!-- Sim controls -->
@@ -46,15 +51,18 @@
           <span class="sim-row-label">Effects</span>
           <button class="sim-btn" :class="{ active: fireworksPreview }" title="Fireworks" @click="triggerFireworksPreview">🎆</button>
           <button class="sim-btn" title="Shooting star" @click="triggerShootingStar">🌠</button>
+          <button class="sim-btn" :class="{ active: simBirds }"  title="Birds"   @click="simBirds  = !simBirds">🐦</button>
+          <button class="sim-btn" :class="{ active: simAurora }" title="Aurora"  @click="simAurora = !simAurora">🌌</button>
+          <button class="sim-btn" :class="{ active: simFog }"    title="Fog"     @click="simFog    = !simFog">🌫️</button>
         </div>
       </div>
-      <button class="sim-toggle" title="Show/hide Weather Sim" @click="simExpanded = !simExpanded">
+      <button class="sim-toggle" :class="{ 'sim-active': hasPreview }" title="Show/hide Weather Sim" @click="simExpanded = !simExpanded">
         {{ simExpanded ? '▾' : '▴' }}
       </button>
     </div>
 
     <div class="cond-content">
-    <div class="cond-body" :style="{ visibility: showSim && simExpanded ? 'hidden' : 'visible' }">
+    <div class="cond-body" :style="{ visibility: showSim && hasPreview ? 'hidden' : 'visible' }">
       <!-- Main temp block — clicking selects "temperature" -->
       <button
         class="cond-main selectable"
@@ -100,16 +108,17 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
+import { DATA_TYPES } from '../utils/dataTypes.js'
 import WeatherScene from './WeatherScene.vue'
 
 // ── Sim preview state ──────────────────────────────────────────────────────
 const timeOfDays = [
-  { emoji: '🌙', label: 'Night',   tod: 'night'   },
   { emoji: '🌅', label: 'Sunrise', tod: 'sunrise'  },
   { emoji: '☀️', label: 'Day',     tod: 'day'      },
   { emoji: '🌇', label: 'Sunset',  tod: 'sunset'   },
+  { emoji: '🌙', label: 'Night',   tod: 'night'    },
 ]
 const weatherPreviews = [
   { emoji: '✨',  label: 'Clear',         group: 'clear'  },
@@ -125,12 +134,21 @@ const windLevels = [
   { emoji: '💨', label: 'Windy',   speed: 35 },
   { emoji: '🌪️', label: 'Storm',  speed: 75 },
 ]
-const simExpanded    = ref(true)
+const simExpanded    = ref(false)
 const previewTod     = ref(null)  // string: 'night'|'sunrise'|'day'|'sunset'|null
 const previewWeather = ref(null)  // string: 'clear'|'partly'|'cloudy'|'rain'|'snow'|'storm'|null
 const previewWind    = ref(null)  // number: 0|15|35|75|null
-const hasPreview     = computed(() => previewTod.value !== null || previewWeather.value !== null || previewWind.value !== null)
-function resetSim() { previewTod.value = null; previewWeather.value = null; previewWind.value = null }
+const simBirds       = ref(false)
+const simAurora      = ref(false)
+const simFog         = ref(false)
+const hasPreview     = computed(() =>
+  previewTod.value !== null || previewWeather.value !== null || previewWind.value !== null ||
+  simBirds.value || simAurora.value || simFog.value
+)
+function resetSim() {
+  previewTod.value = null; previewWeather.value = null; previewWind.value = null
+  simBirds.value = false; simAurora.value = false; simFog.value = false
+}
 
 const fireworksPreview = ref(false)
 let fwPreviewTimer = null
@@ -139,6 +157,8 @@ function triggerFireworksPreview() {
   fireworksPreview.value = true
   fwPreviewTimer = setTimeout(() => { fireworksPreview.value = false }, 5000)
 }
+
+onBeforeUnmount(() => clearTimeout(fwPreviewTimer))
 
 const shootingStarTrigger = ref(0)
 function triggerShootingStar() { shootingStarTrigger.value++ }
@@ -149,6 +169,7 @@ const props = defineProps({
   unitPrefs:    { type: Object, required: true },
   activeType:   { type: String, required: true },
   locationName: { type: String, default: '' },
+  lat:           { type: Number,  default: 0 },
   showSim:       { type: Boolean, default: false },
   showFireworks: { type: Boolean, default: false },
   tileConfig:    { type: Array, default: null },
@@ -177,10 +198,7 @@ const windArrowSvg = computed(() => {
     </g>
   </svg>`
 })
-const tempUnit   = computed(() => props.unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C')
-
-const windUnit   = computed(() => ({ kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' })[props.unitPrefs.wind] ?? 'km/h')
-const precipUnit = computed(() => props.unitPrefs.precipitation === 'inch' ? 'in' : 'mm')
+const tempUnit = computed(() => DATA_TYPES.temperature.getUnit(props.unitPrefs))
 
 const uvLabel = computed(() => {
   const uv = props.data.uv_index
@@ -192,76 +210,24 @@ const uvLabel = computed(() => {
   return ' Extreme'
 })
 
-const allTiles = computed(() => ({
-  rain: {
-    type:  'rain',
-    icon:  '🌧️',
-    label: 'Rain',
-    color: '#3b82f6',
-    value: `${fmt(props.data.precipitation, 2)} ${precipUnit.value}${props.data.precipitation_probability != null ? ' · ' + props.data.precipitation_probability + '%' : ''}`,
-  },
-  wind: {
-    type:     'wind',
-    icon:     '💨',
-    iconHtml: windArrowSvg.value,
-    label:    'Wind',
-    color:    '#06b6d4',
-    value:    `${fmt(props.data.wind_speed_10m, 1)} ${windUnit.value}`,
-  },
-  feelsLike: {
-    type:  'feelsLike',
-    icon:  '🤔',
-    label: 'Feels Like',
-    color: '#a855f7',
-    value: `${fmt(props.data.apparent_temperature, 1)}${tempUnit.value}`,
-  },
-  humidity: {
-    type:  'humidity',
-    icon:  '💧',
-    label: 'Humidity',
-    color: '#14b8a6',
-    value: `${fmt(props.data.relative_humidity_2m, 0)}%`,
-  },
-  uv: {
-    type:  'uv',
-    icon:  '☀️',
-    label: 'UV Index',
-    color: '#eab308',
-    value: `${fmt(props.data.uv_index, 1)}${uvLabel.value}`,
-  },
-  cloudCover: {
-    type:  'cloudCover',
-    icon:  '☁️',
-    label: 'Cloud Cover',
-    color: '#94a3b8',
-    value: `${fmt(props.data.cloud_cover, 0)}%`,
-  },
-  pressure: {
-    type:  'pressure',
-    icon:  '↕️',
-    label: 'Pressure',
-    color: '#818cf8',
-    value: (() => {
-      const p = props.unitPrefs.pressure
-      const v = p === 'inhg' ? props.data.surface_pressure * 0.02953
-              : p === 'mmhg' ? props.data.surface_pressure * 0.75006
-              : props.data.surface_pressure
-      const dec = p === 'inhg' ? 2 : p === 'mmhg' ? 1 : 0
-      const unit = p === 'inhg' ? 'inHg' : p === 'mmhg' ? 'mmHg' : 'hPa'
-      return `${fmt(v, dec)} ${unit}`
-    })(),
-  },
-  visibility: {
-    type:  'visibility',
-    icon:  '👁️',
-    label: 'Visibility',
-    color: '#22d3ee',
-    value: (() => {
-      const mi = props.unitPrefs.visibility === 'mi'
-      return `${fmt(mi ? props.data.visibility / 1609.344 : props.data.visibility / 1000, 1)} ${mi ? 'mi' : 'km'}`
-    })(),
-  },
-}))
+const allTiles = computed(() => {
+  const d = props.data
+  const u = props.unitPrefs
+  function tile(typeId, value, extra = {}) {
+    const cfg = DATA_TYPES[typeId]
+    return { type: cfg.id, icon: cfg.icon, label: cfg.label, color: cfg.color, value, ...extra }
+  }
+  return {
+    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`),
+    wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { iconHtml: windArrowSvg.value }),
+    feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`),
+    humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`),
+    uv:         tile('uv',         `${fmt(d.uv_index, 1)}${uvLabel.value}`),
+    cloudCover: tile('cloudCover', `${fmt(d.cloud_cover, 0)}%`),
+    pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`),
+    visibility: tile('visibility', `${fmt(DATA_TYPES.visibility.scale(d.visibility, u), DATA_TYPES.visibility.decimals)} ${DATA_TYPES.visibility.getUnit(u)}`),
+  }
+})
 
 const detailItems = computed(() => {
   if (!props.tileConfig) return Object.values(allTiles.value)
@@ -462,7 +428,7 @@ function fmt(v, decimals) {
 .sim-title {
   font-size: 0.65rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 1.00);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -526,7 +492,7 @@ function fmt(v, decimals) {
 }
 
 .sim-toggle {
-  font-size: 0.72rem;
+  font-size: 0.92rem;
   color: rgba(255,255,255,0.7);
   background: rgba(8, 14, 30, 0.70);
   border: 1px solid rgba(255,255,255,0.2);
@@ -540,6 +506,14 @@ function fmt(v, decimals) {
 .sim-toggle:hover {
   background: rgba(30, 50, 90, 0.85);
   border-color: rgba(255,255,255,0.4);
+}
+.sim-toggle.sim-active {
+  border-color: rgba(255, 210, 80, 0.9);
+  animation: sim-pulse 2s ease-in-out infinite;
+}
+@keyframes sim-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 210, 80, 0.25); border-color: rgba(255, 210, 80, 0.5); }
+  50%       { box-shadow: 0 0 8px 3px rgba(255, 210, 80, 0.55); border-color: rgba(255, 210, 80, 1.0); }
 }
 
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
@@ -575,9 +549,21 @@ function fmt(v, decimals) {
   .detail-value { font-size: 0.78rem; }
 }
 
-@media (min-width: 640px) and (max-width: 1199px) {
+@media (min-width: 640px) and (max-width: 1499px) {
   .cond-content {
     padding-bottom: 36px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 999px) {
+  .cond-content {
+    padding-top: calc(var(--nav-h) + 10px);
+  }
+}
+
+@media (max-width: 999px) {
+  .conditions {
+    min-height: 350px;
   }
 }
 

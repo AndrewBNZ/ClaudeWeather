@@ -20,8 +20,11 @@
 
       <!-- Loading -->
       <div v-else-if="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Fetching weather…</p>
+        <div class="loading-icon">🌤️</div>
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="loading-label">Fetching weather</p>
       </div>
 
       <!-- Error -->
@@ -41,6 +44,7 @@
               :unit-prefs="unitPrefs"
               :active-type="activeDataType"
               :location-name="locationName"
+              :lat="location?.lat ?? 0"
               :show-sim="showSim"
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
@@ -208,6 +212,10 @@
           <div class="modal-header">
             <span class="panel-title">Weather Details</span>
             <button class="panel-close" @click="dataTypesModalOpen = false">✕</button>
+          </div>
+          <div class="modal-bulk-actions">
+            <button class="modal-bulk-btn" @click="setAllTiles(true)">All on</button>
+            <button class="modal-bulk-btn" @click="setAllTiles(false)">All off</button>
           </div>
           <p class="modal-hint">Drag to reorder · tap to show/hide</p>
           <div class="tile-list">
@@ -612,6 +620,11 @@ function toggleTile(i) {
   tileConfig.value = arr
 }
 
+function setAllTiles(enabled) {
+  tileConfig.value = tileConfig.value.map(t => ({ ...t, enabled }))
+  if (!enabled) activeDataType.value = 'temperature'
+}
+
 function onTileDragStart(e, i) { tileDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
 function onTileDragOver(e, i)  { e.preventDefault(); tileDragOver.value = i }
 function onTileDragEnd()       { tileDragIndex.value = null; tileDragOver.value = null }
@@ -741,8 +754,8 @@ if (!isGeoActive.value) {
 }
 
 .locations-btn {
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   backdrop-filter: blur(8px);
   border-radius: 9999px;
   width: 42px;
@@ -771,8 +784,8 @@ if (!isGeoActive.value) {
 }
 
 .settings-btn {
-  background: rgba(255, 255, 255, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   backdrop-filter: blur(8px);
   border-radius: 9999px;
   width: 42px;
@@ -815,7 +828,7 @@ if (!isGeoActive.value) {
   gap: 14px;
 }
 
-@media (max-width: 799px) {
+@media (max-width: 999px) {
   .header {
     position: fixed;
     left: 0;
@@ -840,6 +853,7 @@ if (!isGeoActive.value) {
     padding-left: 10px;
     padding-right: 10px;
     gap: 10px;
+    max-width: none;
   }
   .weather-layout,
   .layout-right {
@@ -912,7 +926,7 @@ if (!isGeoActive.value) {
   }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1500px) {
   .main {
     max-width: none;
     padding: 16px 20px;
@@ -996,9 +1010,53 @@ if (!isGeoActive.value) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   padding: 80px 20px;
   color: var(--text-muted);
+  animation: fade-in 0.4s ease;
+}
+
+.loading-icon {
+  font-size: 3.2rem;
+  animation: loading-float 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(56, 189, 248, 0.25));
+}
+
+.loading-dots {
+  display: flex;
+  gap: 7px;
+}
+.loading-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.35;
+  animation: loading-bounce 1.3s ease-in-out infinite;
+}
+.loading-dots span:nth-child(2) { animation-delay: 0.18s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+.loading-label {
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+@keyframes loading-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes loading-bounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: 0.35; }
+  40%           { transform: translateY(-7px); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .error-card {
@@ -1269,6 +1327,28 @@ if (!isGeoActive.value) {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 12px;
+}
+
+.modal-bulk-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 8px;
+}
+
+.modal-bulk-btn {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--btn-border);
+  background: var(--btn-bg);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-bulk-btn:hover {
+  background: var(--btn-hover);
+  color: var(--text);
 }
 
 .modal-hint {

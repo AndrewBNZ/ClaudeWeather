@@ -21,10 +21,11 @@ Tooltip.positioners.linePoint = function(items) {
   if (!line) return false
   return { x: line.element.x, y: line.element.y }
 }
-import { DATA_TYPES, getDailyAvgFromHourly } from '../utils/dataTypes.js'
+import { DATA_TYPES, getDailyAvgFromHourly, getUnitLabel } from '../utils/dataTypes.js'
+import { drawWindArrow } from '../utils/chartHelpers.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
-const APP_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+const APP_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
 const props = defineProps({
   daily:       { type: Object, required: true },
@@ -64,11 +65,7 @@ function handleCanvasClick(e) {
 }
 
 const config = computed(() => DATA_TYPES[props.activeType])
-const unitLabel = computed(() => {
-  const cfg = DATA_TYPES[props.activeType]
-  if (cfg.id === 'humidity' || cfg.id === 'cloudCover') return ''
-  return cfg.getUnit(props.unitPrefs)
-})
+const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
 
 function dayLabel(isoDate) {
   const d = new Date(isoDate + 'T12:00:00')
@@ -95,7 +92,7 @@ function buildChart() {
   const cfg      = DATA_TYPES[props.activeType]
   const unit     = cfg.getUnit(props.unitPrefs)
   const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
-  const isMobile = window.innerWidth <= 800
+  const isMobile = window.innerWidth <= 1000
   const isLight  = props.theme === 'light'
   const labels   = props.daily.time.map(dayLabel)
 
@@ -201,7 +198,7 @@ function buildChart() {
       const hi  = Math.max(...allVals)
       const pad = (hi - lo) * 0.20
       sharedYMin = Math.floor(lo - pad)
-      sharedYMax = Math.ceil(hi + pad)
+      sharedYMax = Math.ceil(hi + pad * (isMobile ? 2 : 1))
     }
   }
 
@@ -265,39 +262,8 @@ function buildChart() {
         const dir = windDirs?.[i]
         if (dir == null) return
         const { x, y } = bar.getProps(['x', 'y'], true)
-        const angle = (dir + 180) * (Math.PI / 180)
 
-        // Wind direction arrow circle
-        ctx.save()
-        ctx.translate(x, y - 30)
-
-        ctx.beginPath()
-        ctx.arc(0, 0, 11, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
-        ctx.fill()
-        ctx.strokeStyle = cfg.color + 'aa'
-        ctx.lineWidth = 1
-        ctx.stroke()
-
-        ctx.rotate(angle)
-        ctx.strokeStyle = cfg.color
-        ctx.fillStyle   = cfg.color
-        ctx.lineWidth   = 1.5
-        ctx.lineCap     = 'round'
-
-        ctx.beginPath()
-        ctx.moveTo(0, 6)
-        ctx.lineTo(0, -2)
-        ctx.stroke()
-
-        ctx.beginPath()
-        ctx.moveTo(0, -7)
-        ctx.lineTo(-3.5, -1)
-        ctx.lineTo(3.5, -1)
-        ctx.closePath()
-        ctx.fill()
-
-        ctx.restore()
+        drawWindArrow(ctx, x, y - 30, dir, cfg.color)
 
         // Wind speed number just above bar
         const val = windVals?.[i]
@@ -440,7 +406,7 @@ function buildChart() {
         },
         y: {
           ...(sharedYMin != null ? { min: sharedYMin, max: sharedYMax } : {}),
-          ...(isWind || isHumidity || isUV || isRain || isCloudCover || isPressure || isVisibility ? { grace: '20%' } : {}),
+          ...(isWind || isHumidity || isUV || isRain || isCloudCover || isPressure || isVisibility ? { grace: isMobile ? '55%' : '20%' } : {}),
           grid:  { display: false },
           ticks: { display: false, color: '#64748b', callback: (v) => `${v}${unit}` },
           border: { display: false },
@@ -461,12 +427,10 @@ function buildChart() {
 }
 
 function scheduleBuild() { requestAnimationFrame(() => requestAnimationFrame(buildChart)) }
-watch(() => props.activeType,  scheduleBuild)
-watch(() => props.unitPrefs,   scheduleBuild)
-watch(() => props.daily,       scheduleBuild)
-watch(() => props.hourly,      scheduleBuild)
-watch(() => props.selectedDay, scheduleBuild)
-watch(() => props.theme,       scheduleBuild)
+watch(
+  [() => props.activeType, () => props.unitPrefs, () => props.daily, () => props.hourly, () => props.selectedDay, () => props.theme],
+  scheduleBuild
+)
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
   requestAnimationFrame(() => requestAnimationFrame(buildChart))
@@ -525,7 +489,7 @@ onBeforeUnmount(() => {
 
 /* Chart.js manages canvas dimensions; don't constrain with CSS */
 
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
   .chart-card {
     padding: 8px 10px 8px;
   }
@@ -569,7 +533,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 800px) and (hover: hover) and (pointer: fine) {
+@media (max-width: 1000px) and (hover: hover) and (pointer: fine) {
   .chart-wrap {
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.25) transparent;

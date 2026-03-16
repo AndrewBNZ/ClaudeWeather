@@ -6,6 +6,11 @@
       <div v-for="s in stars" :key="s.id" class="star" :style="s.style" />
     </template>
 
+    <!-- Aurora borealis (night, high latitude, low cloud) -->
+    <template v-if="showAurora">
+      <div v-for="n in 4" :key="n" class="aurora-band" :style="auroraBandStyle(n)" />
+    </template>
+
     <!-- Sun -->
     <div v-if="showSun" class="sun" />
 
@@ -41,6 +46,16 @@
     <!-- Clouds -->
     <div v-for="(cl, i) in activeClouds" :key="i" class="cloud" :style="cl.style" />
 
+    <!-- Rainbow (rain, daytime — rendered above clouds) -->
+    <svg v-if="showRainbow" class="rainbow" viewBox="-20 0 140 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M -8,100 A 58,58 0 0,1 108,100" fill="none" stroke="rgba(255,50,50,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+      <path d="M -5,100 A 55,55 0 0,1 105,100" fill="none" stroke="rgba(255,140,0,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+      <path d="M -2,100 A 52,52 0 0,1 102,100" fill="none" stroke="rgba(255,220,0,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+      <path d="M  1,100 A 49,49 0 0,1  99,100" fill="none" stroke="rgba(0,200,60,0.55)"   stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+      <path d="M  4,100 A 46,46 0 0,1  96,100" fill="none" stroke="rgba(0,100,255,0.50)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+      <path d="M  7,100 A 43,43 0 0,1  93,100" fill="none" stroke="rgba(130,0,220,0.45)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+    </svg>
+
     <!-- Rain drops -->
     <template v-if="isRain || isStorm">
       <div v-for="n in 32" :key="n" class="drop" :style="dropStyle(n)" />
@@ -49,6 +64,15 @@
     <!-- Snowflakes -->
     <template v-if="isSnow">
       <div v-for="n in 22" :key="n" class="flake" :style="flakeStyle(n)" />
+    </template>
+
+    <!-- Birds (clear/partly, daytime) -->
+    <template v-if="showBirds">
+      <div v-for="n in 6" :key="n" class="bird" :style="birdStyle(n)">
+        <svg viewBox="0 0 20 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,6 Q5,1 10,6 Q15,1 20,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
     </template>
 
     <!-- Landscape SVG -->
@@ -60,6 +84,11 @@
       <!-- Near hills -->
       <path d="M0,90 C50,70 130,76 210,72 C290,68 345,74 400,66 L400,90Z"
             :fill="hillNearColor" />
+      <!-- Snow on hill ridges -->
+      <template v-if="group === 'snow'">
+        <path d="M0,86 C80,42 170,56 260,49 C320,44 365,54 400,36 L400,40 C365,58 320,48 260,53 C170,60 80,46 0,90 Z" fill="rgba(255,255,255,0.45)" />
+        <path d="M0,87 C50,67 130,73 210,69 C290,65 345,71 400,63 L400,66 C345,74 290,68 210,72 C130,76 50,70 0,90 Z" fill="rgba(255,255,255,0.60)" />
+      </template>
       <!-- Tree A — large (cx=80) -->
       <rect x="77" y="69" width="6" height="13" :fill="trunkColor" />
       <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleA">
@@ -68,6 +97,7 @@
         <polygon points="80,18 58,50 102,50"  :fill="foliage[0]" />
         <polygon points="80,18 58,50 80,50"  :fill="foliage[2]" />
         <polygon points="80,31 51,61 80,61"  :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="80,18 70,32 90,32" fill="rgba(255,255,255,0.82)" />
       </g>
       <!-- Tree B — medium (cx=180, 68% scale) -->
       <rect x="177" y="72" width="5" height="10" :fill="trunkColor" />
@@ -77,6 +107,7 @@
         <polygon points="180,39 165,60 195,60" :fill="foliage[0]" />
         <polygon points="180,39 165,60 180,60" :fill="foliage[2]" />
         <polygon points="180,47 160,68 180,68" :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="180,39 174,48 186,48" fill="rgba(255,255,255,0.82)" />
       </g>
       <!-- Tree C — small (cx=265, 50% scale) -->
       <rect x="262" y="74" width="5" height="8" :fill="trunkColor" />
@@ -86,10 +117,16 @@
         <polygon points="265,50 253,66 277,66" :fill="foliage[0]" />
         <polygon points="265,50 253,66 265,66" :fill="foliage[2]" />
         <polygon points="265,57 250,72 265,72" :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="265,50 260,57 270,57" fill="rgba(255,255,255,0.82)" />
       </g>
       <!-- Ground strip -->
       <rect x="0" y="82" width="400" height="8" :fill="groundColor" />
     </svg>
+
+    <!-- Fog wisps -->
+    <template v-if="isFog">
+      <div v-for="n in 6" :key="n" class="fog-wisp" :style="fogStyle(n)" />
+    </template>
 
     <!-- Flying leaves -->
     <template v-if="showLeaves">
@@ -111,13 +148,18 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 const props = defineProps({
   weatherCode:          { type: Number,  default: 0 },
   windSpeed:            { type: Number,  default: 0 },
+  cloudCover:           { type: Number,  default: null },
   sunrise:              { type: String,  default: null },
   sunset:               { type: String,  default: null },
   previewTod:           { type: String,  default: null },
   previewWeather:       { type: String,  default: null },
   previewWind:          { type: Number,  default: null },
+  lat:                  { type: Number,  default: 0 },
   showFireworks:        { type: Boolean, default: false },
   shootingStarTrigger:  { type: Number,  default: 0 },
+  forceBirds:           { type: Boolean, default: false },
+  forceAurora:          { type: Boolean, default: false },
+  forceFog:             { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['grass-color'])
@@ -132,7 +174,7 @@ const timeOfDay = computed(() => {
   if (props.sunrise && props.sunset) {
     const riseMs = new Date(props.sunrise).getTime()
     const setMs  = new Date(props.sunset).getTime()
-    const transitionMs = 45 * 60 * 1000 // 45-min transition window
+    const transitionMs = 25 * 60 * 1000 // 25-min transition window
     if (now < riseMs - transitionMs)                   return 'night'
     if (now < riseMs + transitionMs)                   return 'sunrise'
     if (now < setMs  - transitionMs)                   return 'day'
@@ -164,6 +206,64 @@ const group = computed(() => {
 const isRain  = computed(() => group.value === 'rain')
 const isSnow  = computed(() => group.value === 'snow')
 const isStorm = computed(() => group.value === 'storm')
+
+// ── Rainbow ────────────────────────────────────────────────────────────────
+const showRainbow = computed(() => isRain.value && isDay.value)
+
+// ── Fog ────────────────────────────────────────────────────────────────────
+const isFog = computed(() => {
+  if (props.forceFog) return true
+  if (props.previewWeather) return false
+  const c = props.weatherCode ?? 0
+  return c === 45 || c === 48
+})
+function fogStyle(n) {
+  return {
+    bottom:            `${10 + (n % 4) * 9}%`,
+    width:             `${55 + (n % 3) * 22}%`,
+    height:            `${22 + (n % 3) * 14}px`,
+    animationDuration: `${18 + (n % 4) * 7}s`,
+    animationDelay:    `${-((n * 4.1) % 16)}s`,
+    opacity:           0.35 + (n % 3) * 0.12,
+  }
+}
+
+// ── Aurora borealis ────────────────────────────────────────────────────────
+const showAurora = computed(() =>
+  props.forceAurora ||
+  (timeOfDay.value === 'night' && cloudCount.value < 3 && (props.lat > 55 || props.lat < -55))
+)
+const AURORA_COLORS = [
+  'rgba(57,255,120,0.22)',
+  'rgba(80,200,255,0.18)',
+  'rgba(180,100,255,0.20)',
+  'rgba(57,255,180,0.18)',
+]
+function auroraBandStyle(n) {
+  return {
+    left:              `${(n * 24 + 3) % 65}%`,
+    width:             `${38 + (n % 3) * 18}%`,
+    top:               `${4 + (n % 3) * 7}%`,
+    background:        `linear-gradient(to bottom, transparent, ${AURORA_COLORS[n % 4]}, transparent)`,
+    animationDuration: `${6 + (n % 4) * 2}s`,
+    animationDelay:    `${-((n * 1.9) % 6)}s`,
+  }
+}
+
+// ── Birds ──────────────────────────────────────────────────────────────────
+const showBirds = computed(() =>
+  props.forceBirds ||
+  (isDay.value && (group.value === 'clear' || group.value === 'partly') && cloudCount.value < 4)
+)
+function birdStyle(n) {
+  return {
+    top:               `${6 + (n * 11) % 38}%`,
+    width:             `${12 + (n % 3) * 4}px`,
+    color:             'rgba(20,20,20,0.5)',
+    animationDuration: `${14 + (n % 5) * 4}s`,
+    animationDelay:    `${-((n * 3.1) % 14)}s`,
+  }
+}
 
 // ── Lightning bolt cloud-tracking ───────────────────────────────────────────
 const sceneEl       = ref(null)
@@ -236,10 +336,11 @@ function startFireworks() {
 
   function launchRocket() {
     rockets.push({
-      x:       (15 + Math.random() * 70) / 100,
+      x:       0.45 + Math.random() * 0.40,
       y:       0.95,
-      targetY: 0.06 + Math.random() * 0.28,
-      speed:   0.007 + Math.random() * 0.004,
+      targetY: 0.10 + Math.random() * 0.10,
+      speed:   0.010 + Math.random() * 0.004,
+      vx:      (Math.random() - 0.5) * 0.004,
       color:   FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)],
       trail:   [],
     })
@@ -249,7 +350,7 @@ function startFireworks() {
     const n = 28 + Math.floor(Math.random() * 14)
     for (let i = 0; i < n; i++) {
       const angle = (i / n) * Math.PI * 2
-      const speed = 0.002 + Math.random() * 0.003
+      const speed = 0.0014 + Math.random() * 0.002
       sparks.push({
         x: r.x, y: r.targetY,
         vx: Math.cos(angle) * speed,
@@ -280,6 +381,7 @@ function startFireworks() {
     for (let i = rockets.length - 1; i >= 0; i--) {
       const r = rockets[i]
       r.y -= r.speed * (dt / 16)
+      r.x += r.vx * (dt / 16)
       r.trail.push({ x: r.x, y: r.y })
       if (r.trail.length > 10) r.trail.shift()
       if (r.y <= r.targetY) { explode(r); rockets.splice(i, 1); continue }
@@ -344,7 +446,11 @@ function fireStar() {
 let autoStarTimer = null
 function scheduleNextStar() {
   const delay = 25000 + Math.random() * 45000  // 25–70 seconds
-  autoStarTimer = setTimeout(() => { fireStar(); scheduleNextStar() }, delay)
+  autoStarTimer = setTimeout(() => {
+    if (!shootingStarsEnabled.value) return
+    fireStar()
+    scheduleNextStar()
+  }, delay)
 }
 
 watch(shootingStarsEnabled, enabled => {
@@ -365,9 +471,21 @@ watch(isStorm, val => {
 }, { immediate: true })
 onBeforeUnmount(() => { clearInterval(boltTimer); clearTimeout(autoStarTimer); stopFireworks() })
 
-const cloudCount = computed(() =>
-  ({ clear: 0, partly: 3, cloudy: 5, rain: 5, snow: 4, storm: 6 })[group.value] ?? 0
-)
+function coverToCount(pct) {
+  if (pct <=  8) return 0
+  if (pct <= 20) return 1
+  if (pct <= 40) return 2
+  if (pct <= 55) return 3
+  if (pct <= 70) return 4
+  if (pct <= 87) return 5
+  return 6
+}
+
+const cloudCount = computed(() => {
+  // Use actual cloud cover % when available and no weather preview is overriding
+  if (props.cloudCover != null && !props.previewWeather) return coverToCount(props.cloudCover)
+  return ({ clear: 0, partly: 3, cloudy: 5, rain: 5, snow: 4, storm: 6 })[group.value] ?? 0
+})
 
 // ── Sky gradient ───────────────────────────────────────────────────────────
 const SKY = {
@@ -377,7 +495,7 @@ const SKY = {
     cloudy: ['#455A64', '#546E7A', '#607D8B'],  // Blue Grey 700→600→500
     rain:   ['#455A64', '#303F9F', '#3949AB'],  // Blue Grey 700, Indigo 700→600
     snow:   ['#3949AB', '#5C6BC0', '#607D8B'],  // Indigo 600→400, Blue Grey 500
-    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
+    storm:  ['#37474F', '#455A64', '#303F9F'],  // Blue Grey 800→700, Indigo 700
   },
   sunrise: {
     clear:  ['#7B1FA2', '#D81B60', '#FF9800'],  // Purple 700, Pink 600, Orange 500
@@ -385,7 +503,7 @@ const SKY = {
     cloudy: ['#607D8B', '#90A4AE', '#B0BEC5'],  // Blue Grey 500→300→200
     rain:   ['#455A64', '#546E7A', '#78909C'],  // Blue Grey 700→600→400
     snow:   ['#90CAF9', '#BBDEFB', '#E1F5FE'],  // Blue 200→100, Light Blue 50
-    storm:  ['#616161', '#455A64', '#512DA8'],  // Grey 700, Blue Grey 700, Deep Purple 700
+    storm:  ['#37474F', '#455A64', '#512DA8'],  // Blue Grey 800→700, Deep Purple 700
   },
   day: {
     clear:  ['#1E88E5', '#64B5F6', '#B3E5FC'],  // Blue 600→300, Light Blue 100
@@ -393,7 +511,7 @@ const SKY = {
     cloudy: ['#78909C', '#B0BEC5', '#CFD8DC'],  // Blue Grey 400→200→100
     rain:   ['#455A64', '#607D8B', '#78909C'],  // Blue Grey 700→500→400
     snow:   ['#64B5F6', '#BBDEFB', '#E1F5FE'],  // Blue 300→100, Light Blue 50
-    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
+    storm:  ['#37474F', '#455A64', '#303F9F'],  // Blue Grey 800→700, Indigo 700
   },
   sunset: {
     clear:  ['#7B1FA2', '#C2185B', '#FF5722'],  // Purple 700, Pink 700, Deep Orange 500
@@ -401,7 +519,7 @@ const SKY = {
     cloudy: ['#546E7A', '#78909C', '#90A4AE'],  // Blue Grey 600→400→300
     rain:   ['#455A64', '#546E7A', '#303F9F'],  // Blue Grey 700→600, Indigo 700
     snow:   ['#42A5F5', '#BBDEFB', '#E1F5FE'],  // Blue 400→100, Light Blue 50
-    storm:  ['#616161', '#455A64', '#303F9F'],  // Grey 700, Blue Grey 700, Indigo 700
+    storm:  ['#37474F', '#455A64', '#303F9F'],  // Blue Grey 800→700, Indigo 700
   },
 }
 
@@ -440,8 +558,9 @@ const moonPhasePath = computed(() => {
   const tx = Math.cos(2 * Math.PI * p) * R  // signed terminator x-radius
   const atx = Math.abs(tx)
 
-  const s1 = p < 0.5 ? 1 : 0   // outer arc: clockwise (right) for waxing, CCW (left) for waning
-  const s2 = tx < 0  ? 1 : 0   // terminator: convex (gibbous) when tx negative, concave (crescent) when positive
+  const litOnRight = (p < 0.5) !== (props.lat < 0)     // waxing=right in N. Hemisphere; flipped in S. Hemisphere
+  const s1 = litOnRight ? 1 : 0                        // outer arc: clockwise (right side) when lit is on right
+  const s2 = (litOnRight === (tx < 0)) ? 1 : 0         // terminator sweep depends on lit side + gibbous/crescent
 
   return `M ${cx},${cy - R} A ${R},${R} 0 0,${s1} ${cx},${cy + R} A ${atx},${R} 0 0,${s2} ${cx},${cy - R} Z`
 })
@@ -519,8 +638,8 @@ function dropStyle(n) {
     height:            `${14 + (n % 4) * 5}px`,
     opacity:            isStorm.value ? 0.75 : 0.5,
     animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
-    animationDuration: `${(0.70 + (n % 5) * 0.1).toFixed(2)}s`,
-    '--rain-angle':    `${(rainAngle.value + angleVariation).toFixed(1)}deg`,
+    animationDuration: `${(1.00 + (n % 5) * 0.1).toFixed(2)}s`,
+    '--rain-angle':    `${-(rainAngle.value + angleVariation).toFixed(1)}deg`,
     '--rain-drift':    `${rainDrift.value.toFixed(0)}px`,
   }
 }
@@ -538,7 +657,7 @@ function flakeStyle(n) {
     width:             `${4 + (n % 3) * 2}px`,
     height:            `${4 + (n % 3) * 2}px`,
     animationDelay:    `${((n * 0.23) % 2).toFixed(2)}s`,
-    animationDuration: `${(1.4 + (n % 5) * 0.4).toFixed(2)}s`,
+    animationDuration: `${(2.2 + (n % 5) * 0.4).toFixed(2)}s`,
     '--snow-drift':    `${(snowDrift.value + driftVariation).toFixed(0)}px`,
   }
 }
@@ -582,12 +701,12 @@ watch(groundColor, val => emit('grass-color', val), { immediate: true })
 const foliage = computed(() => {
   const tod = timeOfDay.value
   const g   = group.value
-  if (tod === 'night')               return ['#3949AB', '#303F9F', '#512DA8']  // Indigo 600, 700, Deep Purple 700
-  if (tod === 'sunrise')             return ['#689F38', '#388E3C', '#7CB342']  // Light Green 700, Green 700, Light Green 600
-  if (tod === 'sunset')              return ['#7B1FA2', '#512DA8', '#8E24AA']  // Purple 700, Deep Purple 700, Purple 600
+  if (tod === 'night')               return ['#1A237E', '#311B92', '#283593']  // Indigo 900, Deep Purple 900, Indigo 800
+  if (tod === 'sunrise')             return ['#3E4A1A', '#2E3A10', '#4A5520']  // dark backlit silhouette
+  if (tod === 'sunset')              return ['#4A148C', '#311B92', '#6A1B9A']  // Purple 900, Deep Purple 900, Purple 800
   if (g === 'snow')                  return ['#E1F5FE', '#BBDEFB', '#E3F2FD']  // Light Blue 50, Blue 100, Blue 50
   if (g === 'rain' || g === 'storm') return ['#2E7D32', '#1B5E20', '#388E3C']  // Green 800, 900, 700
-  return ['#66BB6A', '#43A047', '#A5D6A7']                                     // Green 400, 600, 200
+  return ['#388E3C', '#2E7D32', '#66BB6A']                                     // Green 700, 800, 400
 })
 
 const trunkColor = computed(() => {
@@ -847,7 +966,62 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   100% { transform: translateX(370px) translateY(0)                    rotate(470deg); opacity: 0; }
 }
 
-@media (max-width: 799px) {
+/* ── Rainbow ─────────────────────────────────────────────────────────────── */
+.rainbow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  animation: rainbow-shimmer 5s ease-in-out infinite alternate;
+}
+@keyframes rainbow-shimmer {
+  from { opacity: 0.72; }
+  to   { opacity: 1; }
+}
+
+/* ── Aurora borealis ─────────────────────────────────────────────────────── */
+.aurora-band {
+  position: absolute;
+  height: 30%;
+  border-radius: 50%;
+  animation: aurora-wave ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes aurora-wave {
+  0%   { transform: scaleX(1)    scaleY(1)    skewX(0deg);   opacity: 0.45; }
+  50%  { transform: scaleX(1.12) scaleY(0.88) skewX(-10deg); opacity: 0.80; }
+  100% { transform: scaleX(0.95) scaleY(1.08) skewX(6deg);   opacity: 0.55; }
+}
+
+/* ── Birds ───────────────────────────────────────────────────────────────── */
+.bird {
+  position: absolute;
+  left: -30px;
+  animation: bird-fly linear infinite;
+  pointer-events: none;
+}
+.bird svg { display: block; width: 100%; height: auto; }
+@keyframes bird-fly {
+  from { transform: translateX(0); }
+  to   { transform: translateX(1200px); }
+}
+
+/* ── Fog wisps ───────────────────────────────────────────────────────────── */
+.fog-wisp {
+  position: absolute;
+  left: -60%;
+  background: radial-gradient(ellipse at center, rgba(200,215,225,0.55), transparent 70%);
+  border-radius: 50%;
+  animation: fog-drift linear infinite;
+  pointer-events: none;
+}
+@keyframes fog-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(250vw); }
+}
+
+@media (max-width: 999px) {
   .sun  { top: calc(var(--nav-h) + 12px); }
   .moon { top: calc(var(--nav-h) + 12px); }
 }

@@ -64,10 +64,11 @@ Tooltip.positioners.linePoint = function(items) {
   if (!line) return false
   return { x: line.element.x, y: line.element.y }
 }
-import { DATA_TYPES } from '../utils/dataTypes.js'
+import { DATA_TYPES, getUnitLabel } from '../utils/dataTypes.js'
+import { drawWindArrow } from '../utils/chartHelpers.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
-const APP_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
+const APP_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
 const props = defineProps({
   hourly:     { type: Object, required: true },
@@ -87,15 +88,25 @@ const dropdownOpen  = ref(false)
 const dropdownStyle = ref({})
 let   chartInstance = null
 
+function updateDropdownPos() {
+  if (!selectBtnRef.value) return
+  const r = selectBtnRef.value.getBoundingClientRect()
+  dropdownStyle.value = {
+    position: 'fixed',
+    top: `${r.bottom + 6}px`,
+    right: `${document.documentElement.clientWidth - r.right}px`,
+    zIndex: 9999,
+  }
+}
+
 function toggleDropdown() {
-  if (!dropdownOpen.value && selectBtnRef.value) {
-    const r = selectBtnRef.value.getBoundingClientRect()
-    dropdownStyle.value = {
-      position: 'fixed',
-      top: `${r.bottom + 6}px`,
-      right: `${window.innerWidth - r.right}px`,
-      zIndex: 9999,
-    }
+  if (!dropdownOpen.value) {
+    updateDropdownPos()
+    window.addEventListener('scroll', updateDropdownPos, true)
+    window.addEventListener('resize', updateDropdownPos)
+  } else {
+    window.removeEventListener('scroll', updateDropdownPos, true)
+    window.removeEventListener('resize', updateDropdownPos)
   }
   dropdownOpen.value = !dropdownOpen.value
 }
@@ -103,11 +114,15 @@ function toggleDropdown() {
 function selectDay(i) {
   emit('select-day', i)
   dropdownOpen.value = false
+  window.removeEventListener('scroll', updateDropdownPos, true)
+  window.removeEventListener('resize', updateDropdownPos)
 }
 
 function onDocClick(e) {
   if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
     dropdownOpen.value = false
+    window.removeEventListener('scroll', updateDropdownPos, true)
+    window.removeEventListener('resize', updateDropdownPos)
   }
 }
 
@@ -121,11 +136,7 @@ function scrollToCurrentHour(currentHour) {
 }
 
 const config = computed(() => DATA_TYPES[props.activeType])
-const unitLabel = computed(() => {
-  const cfg = DATA_TYPES[props.activeType]
-  if (cfg.id === 'humidity' || cfg.id === 'cloudCover') return ''
-  return cfg.getUnit(props.unitPrefs)
-})
+const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
 
 const dayOptions = computed(() => {
   const opts = []
@@ -201,45 +212,10 @@ function makeWindArrowPlugin(directions, values, color, currentHour) {
         const dir = directions[i]
         if (dir == null) return
         const { x, y } = point.getProps(['x', 'y'], true)
-        const angle = (dir + 180) * (Math.PI / 180)
         const isCurrent = i === currentHour
 
-        ctx.save()
-        ctx.translate(x, y)
-
-        // Background circle for contrast
         const radius = isCurrent ? 13 : 11
-        ctx.beginPath()
-        ctx.arc(0, 0, radius, 0, Math.PI * 2)
-        ctx.fillStyle = isCurrent ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.80)'
-        ctx.fill()
-        ctx.strokeStyle = isCurrent ? color : color + '99'
-        ctx.lineWidth = isCurrent ? 1.5 : 1
-        ctx.stroke()
-
-        ctx.rotate(angle)
-
-        const arrowColor = isCurrent ? '#ffffff' : color
-        ctx.strokeStyle = arrowColor
-        ctx.fillStyle   = arrowColor
-        ctx.lineWidth   = isCurrent ? 2 : 1.5
-        ctx.lineCap     = 'round'
-
-        // Shaft
-        ctx.beginPath()
-        ctx.moveTo(0, 7)
-        ctx.lineTo(0, -3)
-        ctx.stroke()
-
-        // Arrowhead
-        ctx.beginPath()
-        ctx.moveTo(0, -8)
-        ctx.lineTo(-4, -2)
-        ctx.lineTo(4, -2)
-        ctx.closePath()
-        ctx.fill()
-
-        ctx.restore()
+        drawWindArrow(ctx, x, y, dir, color, { isCurrent })
 
         // Speed number below the arrow circle (no rotation)
         const v = values[i]
@@ -353,12 +329,12 @@ function buildChart() {
   const cfg      = DATA_TYPES[props.activeType]
   const unit     = cfg.getUnit(props.unitPrefs)
   const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
-  const isMobile = window.innerWidth <= 800
+  const isMobile = window.innerWidth <= 1000
 
   const now = new Date()
   const start = props.dayIndex * 24
-  const labels = props.hourly.time.slice(start, start + 24).map(hourLabel)
-  let values = props.hourly[cfg.hourlyKey].slice(start, start + 24)
+  const labels = props.hourly.time.slice(start, start + 25).map(hourLabel)
+  let values = props.hourly[cfg.hourlyKey].slice(start, start + 25)
   if (cfg.scale) values = values.map(v => v != null ? cfg.scale(v, props.unitPrefs) : null)
   // Only highlight current hour when viewing today
   const currentHour = props.dayIndex === 0 ? now.getHours() : -1
@@ -381,9 +357,9 @@ function buildChart() {
     }
   }
 
-  const windDirs   = isWind ? (props.hourly.wind_direction_10m ?? []).slice(start, start + 24) : null
-  const probValues = isRain ? (props.hourly.precipitation_probability ?? []).slice(start, start + 24) : null
-  const wxCodes    = (props.hourly.weather_code ?? []).slice(start, start + 24)
+  const windDirs   = isWind ? (props.hourly.wind_direction_10m ?? []).slice(start, start + 25) : null
+  const probValues = isRain ? (props.hourly.precipitation_probability ?? []).slice(start, start + 25) : null
+  const wxCodes    = (props.hourly.weather_code ?? []).slice(start, start + 25)
 
   // All non-rain charts: hide default dots (custom plugin draws icon + number instead)
   const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
@@ -459,7 +435,7 @@ function buildChart() {
           x: {
             position: 'top',
             grid:  { color: props.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.04)' },
-            ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: 12, font: { family: APP_FONT } },
+            ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: false, font: { family: APP_FONT } },
             border: { color: 'rgba(255,255,255,0.06)' },
           },
           y: {
@@ -541,7 +517,7 @@ function buildChart() {
         x: {
           position: 'top',
           grid:  { color: props.theme === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.04)' },
-          ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+          ticks: { color: '#64748b', padding: 0, maxRotation: 0, autoSkip: false, font: { family: APP_FONT } },
           border: { color: 'rgba(255,255,255,0.06)' },
         },
         y: {
@@ -562,22 +538,23 @@ function buildChart() {
 async function buildAndScroll() {
   buildChart()
   await nextTick()
-  const currentHour = props.dayIndex === 0 ? new Date().getHours() : -1
+  const currentHour = props.dayIndex === 0 ? new Date().getHours() : 6
   scrollToCurrentHour(currentHour)
 }
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
-watch(() => props.activeType, scheduleAndScroll)
-watch(() => props.unitPrefs,      scheduleAndScroll)
-watch(() => props.theme,      scheduleAndScroll)
-watch(() => props.hourly,     scheduleAndScroll)
-watch(() => props.dayIndex,   scheduleAndScroll)
+watch(
+  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex],
+  scheduleAndScroll
+)
 onMounted(() => {
   document.addEventListener('click', onDocClick, true)
   requestAnimationFrame(() => requestAnimationFrame(buildAndScroll))
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick, true)
+  window.removeEventListener('scroll', updateDropdownPos, true)
+  window.removeEventListener('resize', updateDropdownPos)
   chartInstance?.destroy()
 })
 </script>
@@ -648,7 +625,7 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, var(--type-color, #38bdf8) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
   border-radius: 8px;
-  padding: 3px 8px;
+  padding: 6px 10px;
   min-width: 125px;
   justify-content: center;
   cursor: pointer;
@@ -673,7 +650,7 @@ onBeforeUnmount(() => {
 
 .day-dropdown {
   position: fixed;
-  min-width: 140px;
+  min-width: 125px;
   background: var(--panel-bg);
   border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
   border-radius: 10px;
@@ -690,7 +667,7 @@ onBeforeUnmount(() => {
   font-weight: 500;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
   color: var(--text-muted);
   background: transparent;
   border: none;
@@ -741,7 +718,15 @@ onBeforeUnmount(() => {
   height: 100%;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
+  .day-dropdown {
+    max-height: 232px; /* ~7 items visible */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 1000px) {
   .chart-card {
     padding: 8px 10px 8px;
   }
@@ -760,7 +745,7 @@ onBeforeUnmount(() => {
     display: none;
   }
   .chart-scroll-inner {
-    min-width: 900px;
+    min-width: 1200px;
   }
 }
 
@@ -781,11 +766,11 @@ onBeforeUnmount(() => {
     display: none;
   }
   .chart-scroll-inner {
-    min-width: 900px;
+    min-width: 1200px;
   }
 }
 
-@media (max-width: 800px) and (hover: hover) and (pointer: fine) {
+@media (max-width: 1000px) and (hover: hover) and (pointer: fine) {
   .chart-wrap {
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
@@ -807,7 +792,7 @@ onBeforeUnmount(() => {
 }
 
 .day-step-btn {
-  width: 26px;
+  width: 32px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -817,7 +802,7 @@ onBeforeUnmount(() => {
   border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
-  padding: 0;
+  padding: 6px 0;
 }
 .day-step-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--type-color, #38bdf8) 18%, transparent);
