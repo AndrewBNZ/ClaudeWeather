@@ -3,9 +3,12 @@
 
     <!-- Scene header: location name + nav buttons overlaid on the scene -->
     <div class="scene-header">
-      <span class="scene-location">{{ locationName || 'ClaudeWeather' }}</span>
+      <div class="scene-location-group">
+        <span class="scene-location">{{ locationName || 'ClaudeWeather' }}</span>
+        <span class="scene-datetime">{{ localDateTime }}</span>
+      </div>
       <div class="scene-btns">
-        <button class="scene-btn" @click="emit('open-locations')" title="Saved locations">☰</button>
+        <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">☰</button>
         <button class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">⚙️</button>
       </div>
     </div>
@@ -128,7 +131,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import WeatherScene from './WeatherScene.vue'
@@ -170,6 +173,26 @@ function resetSim() {
   simBirds.value = false; simAurora.value = false; simFog.value = false
 }
 
+// ── Live local clock ───────────────────────────────────────────────────────
+const clockNow = ref(Date.now())
+let clockTimer = null
+onMounted(() => { clockTimer = setInterval(() => { clockNow.value = Date.now() }, 1000) })
+
+const localDateTime = computed(() => {
+  const ms = clockNow.value + (props.utcOffset ?? 0) * 1000
+  const d = new Date(ms)
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const day    = days[d.getUTCDay()]
+  const month  = months[d.getUTCMonth()]
+  const date   = d.getUTCDate()
+  const h      = d.getUTCHours()
+  const m      = String(d.getUTCMinutes()).padStart(2, '0')
+  const h12    = h % 12 || 12
+  const ampm   = h < 12 ? 'am' : 'pm'
+  return `${day}, ${month} ${date} · ${h12}:${m} ${ampm}`
+})
+
 const fireworksPreview = ref(false)
 let fwPreviewTimer = null
 function triggerFireworksPreview() {
@@ -178,7 +201,7 @@ function triggerFireworksPreview() {
   fwPreviewTimer = setTimeout(() => { fireworksPreview.value = false }, 5000)
 }
 
-onBeforeUnmount(() => clearTimeout(fwPreviewTimer))
+onBeforeUnmount(() => { clearTimeout(fwPreviewTimer); clearInterval(clockTimer) })
 
 const shootingStarTrigger = ref(0)
 function triggerShootingStar() { shootingStarTrigger.value++ }
@@ -283,12 +306,21 @@ function fmt(v, decimals) {
   right: 0;
   z-index: 2;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 12px 14px;
   pointer-events: none;
 }
 .scene-header > * { pointer-events: all; }
+
+.scene-location-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  margin-right: 10px;
+}
 
 .scene-location {
   font-size: 1.35rem;
@@ -299,8 +331,17 @@ function fmt(v, decimals) {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
-  flex: 1;
-  margin-right: 10px;
+}
+
+.scene-datetime {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 }
 
 .scene-btns {
@@ -335,7 +376,7 @@ function fmt(v, decimals) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 66px 18px 16px;
+  padding: 78px 18px 16px;
 }
 
 
@@ -678,7 +719,7 @@ function fmt(v, decimals) {
 
 @media (max-width: 639px) {
   .cond-content {
-    padding: 66px 12px 40px;
+    padding: 78px 12px 40px;
     gap: 8px;
   }
   .cond-body {

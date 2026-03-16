@@ -1,53 +1,49 @@
 <template>
+  <!-- Transparent clickaway -->
   <Transition name="fade">
-    <div v-if="isOpen" class="overlay" @click.self="emit('close')">
-      <Transition name="slide">
-        <div v-if="isOpen" class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">Locations</h2>
-            <button class="close-btn" @click="emit('close')">✕</button>
-          </div>
+    <div v-if="isOpen" class="clickaway" @click="emit('close')" />
+  </Transition>
 
-          <div class="search-wrap">
-            <LocationSearch
-              ref="searchRef"
-              :location-name="''"
-              @location-selected="onLocationSelected"
-              @searching="emit('searching', $event)"
-            />
-          </div>
+  <!-- Dropdown card -->
+  <Transition name="drop">
+    <div v-if="isOpen" class="dropdown" :style="dropdownStyle">
+      <div class="search-section">
+        <LocationSearch
+          ref="searchRef"
+          :location-name="''"
+          @location-selected="onLocationSelected"
+          @searching="emit('searching', $event)"
+        />
+      </div>
 
-          <ul class="location-list">
-            <!-- Permanent "Current Location" entry -->
-            <li class="location-item current-loc-item" :class="{ active: isGeoActive }">
-              <button class="loc-name" @click="geoLocate" :disabled="geoLoading">
-                <span class="loc-icon">
-                  <span v-if="geoLoading" class="geo-spinner"></span>
-                  <span v-else>📍</span>
-                </span>
-                <span class="loc-name-inner">
-                  <span class="loc-name-text">Current Location</span>
-                  <span v-if="isGeoActive && geoLocationName" class="loc-geo-sub">{{ geoLocationName }}</span>
-                </span>
-              </button>
-            </li>
+      <ul class="location-list">
+        <!-- Permanent "Current Location" entry -->
+        <li class="location-item current-loc-item" :class="{ active: isGeoActive }">
+          <button class="loc-name" @click="geoLocate" :disabled="geoLoading">
+            <span class="loc-icon">
+              <span v-if="geoLoading" class="geo-spinner"></span>
+              <span v-else>📍</span>
+            </span>
+            <span class="loc-name-inner">
+              <span class="loc-name-text">Current Location</span>
+              <span v-if="isGeoActive && geoLocationName" class="loc-geo-sub">{{ geoLocationName }}</span>
+            </span>
+          </button>
+        </li>
 
-            <!-- Saved locations -->
-            <li
-              v-for="loc in locations"
-              :key="`${loc.lat},${loc.lon}`"
-              class="location-item"
-              :class="{ active: !isGeoActive && isActive(loc) }"
-            >
-              <button class="loc-name" @click="emit('select', loc)">
-                <span class="loc-name-text">{{ loc.name }}</span>
-              </button>
-              <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
-            </li>
-
-          </ul>
-        </div>
-      </Transition>
+        <!-- Saved locations -->
+        <li
+          v-for="loc in locations"
+          :key="`${loc.lat},${loc.lon}`"
+          class="location-item"
+          :class="{ active: !isGeoActive && isActive(loc) }"
+        >
+          <button class="loc-name" @click="emit('select', loc)">
+            <span class="loc-name-text">{{ loc.name }}</span>
+          </button>
+          <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
+        </li>
+      </ul>
     </div>
   </Transition>
 </template>
@@ -57,6 +53,7 @@ import { ref, watch } from 'vue'
 import LocationSearch from './LocationSearch.vue'
 
 const searchRef = ref(null)
+const dropdownStyle = ref({})
 
 const props = defineProps({
   locations:       { type: Array,   required: true },
@@ -69,7 +66,27 @@ const props = defineProps({
 const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate', 'searching'])
 
 watch(() => props.isOpen, (open) => {
-  if (open && !props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
+  if (open) {
+    const btn = document.querySelector('[data-locations-btn]')
+    if (btn) {
+      const rect = btn.getBoundingClientRect()
+      const isMobile = window.innerWidth <= 520
+      if (isMobile) {
+        dropdownStyle.value = {
+          top:   `${rect.bottom + 6}px`,
+          left:  '8px',
+          right: '8px',
+        }
+      } else {
+        dropdownStyle.value = {
+          top:   `${rect.bottom + 6}px`,
+          right: `${window.innerWidth - rect.right}px`,
+          width: '300px',
+        }
+      }
+    }
+    if (!props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
+  }
 })
 
 const geoLoading = ref(false)
@@ -106,60 +123,26 @@ function geoLocate() {
 </script>
 
 <style scoped>
-.overlay {
+.clickaway {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
   z-index: 200;
-  backdrop-filter: blur(2px);
 }
 
-.panel {
+.dropdown {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 340px;
-  height: 100vh;
+  z-index: 201;
   background: var(--panel-bg);
-  border-left: 1px solid var(--panel-border);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  z-index: 201;
+  overflow: visible;
 }
 
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 20px 14px;
-  border-bottom: 1px solid var(--panel-divider);
-  flex-shrink: 0;
-}
-
-.panel-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
-}
-.close-btn:hover {
-  color: var(--text);
-  background: var(--btn-bg);
-}
-
-.search-wrap {
-  padding: 6px 8px;
+.search-section {
+  padding: 8px;
   border-bottom: 1px solid var(--panel-divider);
   flex-shrink: 0;
 }
@@ -167,8 +150,9 @@ function geoLocate() {
 .location-list {
   list-style: none;
   overflow-y: auto;
-  flex: 1;
-  padding: 8px 0;
+  max-height: min(calc(100dvh - 160px), 360px);
+  padding: 6px 0;
+  border-radius: 0 0 12px 12px;
 }
 
 .location-item {
@@ -191,7 +175,7 @@ function geoLocate() {
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 7px 14px;
   background: none;
   border: none;
   font-family: inherit;
@@ -217,7 +201,7 @@ function geoLocate() {
   min-width: 0;
 }
 .current-loc-item .loc-name-text {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -228,7 +212,7 @@ function geoLocate() {
   font-weight: 600;
 }
 .loc-geo-sub {
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
@@ -253,11 +237,11 @@ function geoLocate() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px;
+  padding: 10px 14px;
   background: none;
   border: none;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-family: inherit;
   text-align: left;
   cursor: pointer;
@@ -280,17 +264,22 @@ function geoLocate() {
   color: var(--text-faint);
   font-size: 0.75rem;
   cursor: pointer;
-  padding: 14px 14px;
+  padding: 10px 12px;
   transition: color 0.15s;
   flex-shrink: 0;
 }
 .loc-delete:hover { color: #f87171; }
 
-
 /* Transitions */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
 
-.slide-enter-active, .slide-leave-active { transition: transform 0.25s ease; }
-.slide-enter-from, .slide-leave-to       { transform: translateX(100%); }
+.drop-enter-active, .drop-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform-origin: top right;
+}
+.drop-enter-from, .drop-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-6px);
+}
 </style>

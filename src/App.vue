@@ -2,7 +2,7 @@
   <div class="app-shell">
     <header v-if="!weatherData" class="header">
       <div class="header-right">
-        <button class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
+        <button data-locations-btn class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
         <button class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">⚙️</button>
       </div>
     </header>
