@@ -46,9 +46,12 @@
         </Teleport>
       </div>
     </div>
-    <div class="chart-wrap" ref="chartWrapRef" :style="{ '--type-color': config.color }">
-      <div class="chart-scroll-inner">
-        <canvas ref="canvasRef"></canvas>
+    <div class="chart-area">
+      <div v-if="noRainData" class="chart-empty-msg">No rain forecast for this day</div>
+      <div class="chart-wrap" ref="chartWrapRef" :style="{ '--type-color': config.color }">
+        <div class="chart-scroll-inner">
+          <canvas ref="canvasRef"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -139,6 +142,14 @@ function scrollToCurrentHour(currentHour) {
 
 const config = computed(() => DATA_TYPES[props.activeType])
 const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
+
+const noRainData = computed(() => {
+  if (props.activeType !== 'rain' || !props.hourly) return false
+  const start = props.dayIndex * 24
+  const amounts = (props.hourly.precipitation ?? []).slice(start, start + 25)
+  const probs   = (props.hourly.precipitation_probability ?? []).slice(start, start + 25)
+  return amounts.every(v => !v) && Math.max(...probs.filter(v => v != null), 0) < 20
+})
 
 const dayOptions = computed(() => {
   const opts = []
@@ -602,14 +613,17 @@ watch(
   [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex],
   scheduleAndScroll
 )
+function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   document.addEventListener('click', onDocClick, true)
+  window.addEventListener('resize', onWindowResize)
   requestAnimationFrame(() => requestAnimationFrame(buildAndScroll))
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick, true)
   window.removeEventListener('scroll', updateDropdownPos, true)
   window.removeEventListener('resize', updateDropdownPos)
+  window.removeEventListener('resize', onWindowResize)
   chartInstance?.destroy()
 })
 </script>
@@ -863,6 +877,22 @@ onBeforeUnmount(() => {
 .day-step-btn:disabled {
   opacity: 0.25;
   cursor: default;
+}
+
+.chart-area {
+  position: relative;
+}
+
+.chart-empty-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Chart.js manages canvas dimensions; don't constrain with CSS */

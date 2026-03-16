@@ -494,7 +494,7 @@ function fmt(v, decimals) {
 .detail-icon { font-size: 20px; flex-shrink: 0; }
 
 .detail-label {
-  font-size: 0.78rem;
+  font-size: 0.83rem;
   color: rgba(255, 255, 255, 0.72);
   letter-spacing: 0.01em;
   font-weight: 500;
@@ -696,7 +696,7 @@ function fmt(v, decimals) {
     gap: 7px;
   }
   .detail-icon { font-size: 17px; }
-  .detail-label { font-size: 0.72rem; }
+  .detail-label { font-size: 0.76rem; }
   .detail-value { font-size: 0.78rem; }
 }
 
@@ -744,7 +744,7 @@ function fmt(v, decimals) {
     gap: 7px;
   }
   .detail-icon { font-size: 17px; }
-  .detail-label { font-size: 0.72rem; }
+  .detail-label { font-size: 0.76rem; }
   .detail-value { font-size: 0.78rem; }
 }
 </style>

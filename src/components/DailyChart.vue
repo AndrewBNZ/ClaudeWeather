@@ -186,7 +186,20 @@ function buildChart() {
   const isVisibility = cfg.id === 'visibility'
   const gustMax = isWind ? (props.daily.wind_gusts_10m_max ?? []) : null
   const windDirs = isWind ? (props.daily.wind_direction_10m_dominant ?? []) : null
-  const wxCodes = props.daily.weather_code ?? []
+
+  // Derive the representative condition from hourly data (most frequent code 7am–9pm)
+  // rather than using the API's "most severe" daily code, which can surface brief fog etc.
+  function dominantDaytimeCode(dayIndex) {
+    const hourlyWx = props.hourly?.weather_code
+    if (!hourlyWx) return props.daily.weather_code?.[dayIndex] ?? 0
+    const start = dayIndex * 24
+    const daytime = hourlyWx.slice(start + 7, start + 21).filter(v => v != null)
+    if (!daytime.length) return props.daily.weather_code?.[dayIndex] ?? 0
+    const freq = {}
+    for (const c of daytime) freq[c] = (freq[c] ?? 0) + 1
+    return Number(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0])
+  }
+  const wxCodes = (props.daily.time ?? []).map((_, i) => dominantDaytimeCode(i))
 
   // Shared Y scale for temp + feelsLike so both charts use the same range
   let sharedYMin, sharedYMax
@@ -435,12 +448,15 @@ watch(
   [() => props.activeType, () => props.unitPrefs, () => props.daily, () => props.hourly, () => props.selectedDay, () => props.theme],
   scheduleBuild
 )
+function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
+  window.addEventListener('resize', onWindowResize)
   requestAnimationFrame(() => requestAnimationFrame(buildChart))
 })
 onBeforeUnmount(() => {
   canvasRef.value?.removeEventListener('click', handleCanvasClick)
+  window.removeEventListener('resize', onWindowResize)
   chartInstance?.destroy()
 })
 </script>

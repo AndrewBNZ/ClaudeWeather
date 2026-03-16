@@ -917,9 +917,11 @@ if (!isGeoActive.value) {
     display: flex;
     flex-direction: column;
   }
-  .layout-chart .chart-and-nav {
+  .layout-chart .chart-area {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   .layout-chart .chart-wrap {
     flex: 1;
@@ -980,10 +982,12 @@ if (!isGeoActive.value) {
     flex-direction: column;
   }
 
-  /* HourlyChart's nav+chart row must also stretch */
-  .layout-chart .chart-and-nav {
+  /* HourlyChart's chart-area must stretch to pass height down to chart-wrap */
+  .layout-chart .chart-area {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Chart canvas area fills remaining card height instead of fixed px */
