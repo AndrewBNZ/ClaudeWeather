@@ -93,6 +93,7 @@ function buildChart() {
   const unit     = cfg.getUnit(props.unitPrefs)
   const decimals = cfg.getDecimals ? cfg.getDecimals(props.unitPrefs) : cfg.decimals
   const isMobile = window.innerWidth <= 1000
+  const isLandscapeMode = window.innerWidth > window.innerHeight && window.innerWidth <= 1366 && window.innerHeight <= 900
   const isLight  = props.theme === 'light'
   const labels   = props.daily.time.map(dayLabel)
 
@@ -198,7 +199,7 @@ function buildChart() {
       const hi  = Math.max(...allVals)
       const pad = (hi - lo) * 0.20
       sharedYMin = Math.floor(lo - pad)
-      sharedYMax = Math.ceil(hi + pad * (isMobile ? 2 : 1))
+      sharedYMax = Math.ceil(hi + pad * (isMobile ? 2 : isLandscapeMode ? 3.5 : 1))
     }
   }
 
@@ -396,7 +397,7 @@ function buildChart() {
           },
         },
       },
-      layout: { padding: { top: isMobile ? 4 : 8, left: 4, right: 4 } },
+      layout: { padding: { top: isMobile ? 4 : isLandscapeMode ? 28 : 8, left: 4, right: 4 } },
       scales: {
         x: {
           position: 'top',
@@ -406,7 +407,7 @@ function buildChart() {
         },
         y: {
           ...(sharedYMin != null ? { min: sharedYMin, max: sharedYMax } : {}),
-          ...(isWind || isHumidity || isUV || isRain || isCloudCover || isPressure || isVisibility ? { grace: isMobile ? '55%' : '20%' } : {}),
+          ...(isWind || isHumidity || isUV || isRain || isCloudCover || isPressure || isVisibility ? { grace: isMobile ? '55%' : isLandscapeMode ? '55%' : '20%' } : {}),
           grid:  { display: false },
           ticks: { display: false, color: '#64748b', callback: (v) => `${v}${unit}` },
           border: { display: false },

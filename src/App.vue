@@ -842,11 +842,11 @@ if (!isGeoActive.value) {
   .weather-layout {
     flex-direction: row;
     align-items: stretch;
-    height: 100vh;
+    height: 100dvh;
     gap: 0;
   }
   .layout-left {
-    width: 40%;
+    width: 35%;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
