@@ -81,6 +81,7 @@ const props = defineProps({
   dayIndex:   { type: Number, default: 0 },
   theme:      { type: String, default: 'dark' },
   utcOffset:  { type: Number, default: 0 },
+  timeFormat: { type: String, default: '12h' },
 })
 
 const emit = defineEmits(['select-day', 'open-units-modal'])
@@ -341,16 +342,16 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
       const xMin = scales.x.getPixelForValue(0)
       const xMax = scales.x.getPixelForValue(24)
 
-      for (const [hour, emoji, lightColor, darkColor] of [
-        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)'],
-        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)'],
+      for (const [hour, emoji, lightColor, darkColor, yNudge] of [
+        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)', 0],
+        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)', -10],
       ]) {
         if (hour == null || hour < 0 || hour > 24) continue
         const x = xMin + (hour / 24) * (xMax - xMin)
 
         ctx.save()
         ctx.beginPath()
-        ctx.moveTo(x, chartArea.top + 24)
+        ctx.moveTo(x, chartArea.top + 24 + yNudge)
         ctx.lineTo(x, chartArea.bottom)
         ctx.strokeStyle = props.theme === 'light' ? lightColor : darkColor
         ctx.lineWidth = 1.5
@@ -360,7 +361,7 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
         ctx.font = `16px ${APP_FONT}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        ctx.fillText(emoji, x, chartArea.top + 2)
+        ctx.fillText(emoji, x, chartArea.top + 2 + yNudge)
         ctx.restore()
       }
     },
@@ -369,6 +370,7 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
 
 function hourLabel(isoStr) {
   const h = parseInt(isoStr.slice(11, 13))
+  if (props.timeFormat === '24h') return String(h).padStart(2, '0')
   if (h === 0)  return '12am'
   if (h < 12)  return `${h}am`
   if (h === 12) return '12pm'
@@ -610,7 +612,7 @@ async function buildAndScroll() {
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
 watch(
-  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex],
+  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat],
   scheduleAndScroll
 )
 function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }

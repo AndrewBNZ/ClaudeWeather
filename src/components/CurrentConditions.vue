@@ -188,9 +188,10 @@ const localDateTime = computed(() => {
   const date   = d.getUTCDate()
   const h      = d.getUTCHours()
   const m      = String(d.getUTCMinutes()).padStart(2, '0')
-  const h12    = h % 12 || 12
-  const ampm   = h < 12 ? 'am' : 'pm'
-  return `${day}, ${month} ${date} · ${h12}:${m} ${ampm}`
+  const timeStr = props.timeFormat === '24h'
+    ? `${String(h).padStart(2, '0')}:${m}`
+    : `${h % 12 || 12}:${m} ${h < 12 ? 'am' : 'pm'}`
+  return `${day}, ${month} ${date} · ${timeStr}`
 })
 
 const fireworksPreview = ref(false)
@@ -220,6 +221,7 @@ const props = defineProps({
   updatedAt:    { type: String, default: '' },
   countdown:    { type: String, default: '' },
   loading:      { type: Boolean, default: false },
+  timeFormat:   { type: String, default: '12h' },
 })
 
 const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh'])

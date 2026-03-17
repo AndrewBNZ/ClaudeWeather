@@ -46,16 +46,6 @@
     <!-- Clouds -->
     <div v-for="(cl, i) in activeClouds" :key="i" class="cloud" :style="cl.style" />
 
-    <!-- Rainbow (rain, daytime — rendered above clouds) -->
-    <svg v-if="showRainbow" class="rainbow" viewBox="-20 0 140 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M -8,100 A 58,58 0 0,1 108,100" fill="none" stroke="rgba(255,50,50,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-      <path d="M -5,100 A 55,55 0 0,1 105,100" fill="none" stroke="rgba(255,140,0,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-      <path d="M -2,100 A 52,52 0 0,1 102,100" fill="none" stroke="rgba(255,220,0,0.55)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-      <path d="M  1,100 A 49,49 0 0,1  99,100" fill="none" stroke="rgba(0,200,60,0.55)"   stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-      <path d="M  4,100 A 46,46 0 0,1  96,100" fill="none" stroke="rgba(0,100,255,0.50)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-      <path d="M  7,100 A 43,43 0 0,1  93,100" fill="none" stroke="rgba(130,0,220,0.45)"  stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
-    </svg>
-
     <!-- Rain drops -->
     <template v-if="isRain || isStorm">
       <div v-for="n in 32" :key="n" class="drop" :style="dropStyle(n)" />
@@ -212,8 +202,6 @@ const isRain  = computed(() => group.value === 'rain')
 const isSnow  = computed(() => group.value === 'snow')
 const isStorm = computed(() => group.value === 'storm')
 
-// ── Rainbow ────────────────────────────────────────────────────────────────
-const showRainbow = computed(() => isRain.value && isDay.value)
 
 // ── Fog ────────────────────────────────────────────────────────────────────
 const isFog = computed(() => {
@@ -972,19 +960,6 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
   100% { transform: translateX(370px) translateY(0)                    rotate(470deg); opacity: 0; }
 }
 
-/* ── Rainbow ─────────────────────────────────────────────────────────────── */
-.rainbow {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  animation: rainbow-shimmer 5s ease-in-out infinite alternate;
-}
-@keyframes rainbow-shimmer {
-  from { opacity: 0.72; }
-  to   { opacity: 1; }
-}
 
 /* ── Aurora borealis ─────────────────────────────────────────────────────── */
 .aurora-band {

@@ -43,6 +43,7 @@
               :location-name="locationName"
               :lat="location?.lat ?? 0"
               :utc-offset="weatherData.utc_offset_seconds ?? 0"
+              :time-format="timeFormat"
               :show-sim="showSim"
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
@@ -67,6 +68,7 @@
                   :day-index="selectedDay"
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
+                  :time-format="timeFormat"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -108,6 +110,7 @@
                   :day-index="selectedDay"
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
+                  :time-format="timeFormat"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -160,6 +163,16 @@
               <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
             </div>
             <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Time format</div>
+              <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
+            </div>
+            <div class="unit-pill">
+              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
+              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
+            </div>
           </div>
           <div class="setting-row">
             <div>
@@ -302,6 +315,7 @@ const LEGACY_UNITS_KEY = 'claudeweather-units'
 const SIM_KEY         = 'claudeweather-sim'
 const TILES_KEY       = 'claudeweather-tiles'
 const CHART_ORDER_KEY = 'claudeweather-chartorder'
+const TIME_FORMAT_KEY = 'claudeweather-timeformat'
 const LEGACY_KEY      = 'claudeweather-location'
 const THEME_KEY       = 'claudeweather-theme'
 
@@ -424,6 +438,7 @@ const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
+const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
 const isGeoActive    = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location       = ref(null)   // { lat, lon }
 const unitPrefs      = ref(loadUnitPrefs())
@@ -432,7 +447,11 @@ const selectedDay    = ref(0)      // 0 = today, 1–6 = forecast days
 const weatherData    = ref(null)
 const loading        = ref(false)
 const error          = ref(null)
-const updatedAt      = ref('')
+const updatedAt      = computed(() =>
+  fetchedAt.value
+    ? fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: timeFormat.value === '12h' })
+    : ''
+)
 const grassColor     = ref('#43A047')
 const locationName   = ref('')
 const fetchedAt      = ref(null)   // Date of last successful fetch
@@ -530,6 +549,9 @@ function addToSaved(lat, lon, name) {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 function clearGeoActive() {
+  if (isGeoActive.value && location.value) {
+    clearWeatherCache(location.value.lat, location.value.lon)
+  }
   isGeoActive.value = false
   try { localStorage.removeItem(GEO_ACTIVE_KEY) } catch {}
 }
@@ -605,7 +627,6 @@ async function loadWeather(silent = false, forceRefresh = false) {
       locationName.value = data.timezone ?? locationName.value
     }
     fetchedAt.value = new Date(timestamp)
-    updatedAt.value = fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   } catch (e) {
     error.value = e.message ?? 'Failed to load weather data.'
   } finally {
@@ -623,6 +644,7 @@ watch(unitPrefs, (newVal, oldVal) => {
 }, { deep: true })
 watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
 watch(dailyFirst, (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
+watch(timeFormat, (v) => localStorage.setItem(TIME_FORMAT_KEY, v))
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 watch(autoIsDark, () => { if (theme.value === 'auto') applyTheme('auto') })
 watch(theme,      (v) => {
@@ -1428,6 +1450,11 @@ if (!isGeoActive.value) {
 .setting-row--col .unit-pill-opt {
   flex: 1;
   text-align: center;
+}
+
+.unit-pill-opt--sm {
+  padding: 4px 10px;
+  font-size: 0.8rem;
 }
 
 .unit-pill-opt {
