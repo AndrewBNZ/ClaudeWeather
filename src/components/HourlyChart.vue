@@ -333,7 +333,7 @@ function parseSunHour(isoStr) {
 }
 
 // Draws sunrise/sunset vertical markers with emoji icons on the chart.
-function makeSunriseSunsetPlugin(sunriseHour, sunsetHour, isMobile) {
+function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   return {
     id: 'sunriseSunset',
     afterDatasetsDraw(chart) {
@@ -342,17 +342,16 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour, isMobile) {
       const xMin = scales.x.getPixelForValue(0)
       const xMax = scales.x.getPixelForValue(24)
 
-      for (const [hour, emoji, lightColor, darkColor, yNudge, mobileYNudge] of [
-        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)', 0,    0],
-        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)', -10,  -7],
+      for (const [hour, emoji, lightColor, darkColor] of [
+        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)'],
+        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)'],
       ]) {
         if (hour == null || hour < 0 || hour > 24) continue
         const x = xMin + (hour / 24) * (xMax - xMin)
-        const nudge = isMobile ? mobileYNudge : yNudge
 
         ctx.save()
         ctx.beginPath()
-        ctx.moveTo(x, chartArea.top + 24 + nudge)
+        ctx.moveTo(x, chartArea.top + 24)
         ctx.lineTo(x, chartArea.bottom)
         ctx.strokeStyle = props.theme === 'light' ? lightColor : darkColor
         ctx.lineWidth = 1.5
@@ -362,7 +361,7 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour, isMobile) {
         ctx.font = `16px ${APP_FONT}`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'top'
-        ctx.fillText(emoji, x, chartArea.top + 2 + nudge)
+        ctx.fillText(emoji, x, chartArea.top + 2)
         ctx.restore()
       }
     },
@@ -430,7 +429,7 @@ function buildChart() {
   const labelSuffix = (cfg.id === 'humidity' || cfg.id === 'cloudCover') ? '%' : ''
   const sunriseHour = parseSunHour(props.daily?.sunrise?.[props.dayIndex])
   const sunsetHour  = parseSunHour(props.daily?.sunset?.[props.dayIndex])
-  const sunPlugin   = makeSunriseSunsetPlugin(sunriseHour, sunsetHour, isMobile)
+  const sunPlugin   = makeSunriseSunsetPlugin(sunriseHour, sunsetHour)
 
   const extraPlugins = [
     makePastShadingPlugin(currentHour, props.dayIndex),
