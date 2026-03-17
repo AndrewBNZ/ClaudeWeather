@@ -247,7 +247,7 @@ function buildChart() {
         // High temp at top of bar
         if (dataPoint[1] != null) {
           ctx.save()
-          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
+          ctx.font = `${i === props.selectedDay ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
@@ -258,7 +258,7 @@ function buildChart() {
         // Low temp at bottom of bar
         if (dataPoint[0] != null) {
           ctx.save()
-          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
+          ctx.font = `${i === props.selectedDay ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
           ctx.fillStyle = props.theme === 'light' ? '#64748b' : '#94a3b8'
@@ -287,7 +287,7 @@ function buildChart() {
         const val = windVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
+          ctx.font = `${i === props.selectedDay ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
@@ -328,7 +328,7 @@ function buildChart() {
         const val = barDisplayVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
+          ctx.font = `${i === props.selectedDay ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
@@ -362,7 +362,7 @@ function buildChart() {
         const val = precipVals?.[i]
         if (val != null) {
           ctx.save()
-          ctx.font = `${i === sel ? 'bold ' : ''}13px ${APP_FONT}`
+          ctx.font = `${i === props.selectedDay ? 'bold ' : ''}13px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
@@ -446,9 +446,29 @@ function buildChart() {
 
 function scheduleBuild() { requestAnimationFrame(() => requestAnimationFrame(buildChart)) }
 watch(
-  [() => props.activeType, () => props.unitPrefs, () => props.daily, () => props.hourly, () => props.selectedDay, () => props.theme],
+  [() => props.activeType, () => props.unitPrefs, () => props.daily, () => props.hourly, () => props.theme],
   scheduleBuild
 )
+watch(() => props.selectedDay, () => {
+  if (!chartInstance) return
+  const cfg      = DATA_TYPES[props.activeType]
+  const dayCount = props.daily.time.length
+  const sel      = props.selectedDay
+  function barBg(baseAlpha, dimAlpha) {
+    return Array.from({ length: dayCount }, (_, i) => cfg.color + (i === sel ? baseAlpha : dimAlpha))
+  }
+  if (cfg.floatingBar && cfg.dailyMinKey) {
+    chartInstance.data.datasets[0].backgroundColor = barBg('ee', '44')
+    chartInstance.data.datasets[0].borderColor      = barBg('ff', '66')
+  } else if (cfg.id === 'rain') {
+    chartInstance.data.datasets[0].backgroundColor = barBg('ee', '44')
+    chartInstance.data.datasets[0].borderColor      = barBg('ff', '66')
+  } else {
+    chartInstance.data.datasets[0].backgroundColor = barBg('dd', '44')
+    chartInstance.data.datasets[0].borderColor      = barBg('ff', '66')
+  }
+  chartInstance.update('none')
+})
 function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
