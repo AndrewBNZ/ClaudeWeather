@@ -72,9 +72,14 @@ watch(() => props.isOpen, (open) => {
       const rect = btn.getBoundingClientRect()
       const card = document.querySelector('.conditions')
       const cardRect = card?.getBoundingClientRect()
-      dropdownStyle.value = cardRect
-        ? { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
-        : { top: `${rect.bottom + 6}px`, left: '8px', right: '8px' }
+      if (cardRect) {
+        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
+      } else {
+        const panelWidth = 320
+        const rightEdge = Math.min(rect.right, window.innerWidth - 8)
+        const leftEdge = Math.max(rightEdge - panelWidth, 8)
+        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px` }
+      }
     }
     if (!props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
   }

@@ -8,7 +8,7 @@
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
         </button>
-        <button data-settings-btn class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">
+        <button data-settings-btn class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Preferences">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
@@ -199,19 +199,19 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Reset</div>
-              <div class="setting-hint">Clear all settings and restart tutorial</div>
-            </div>
-            <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset →</button>
-          </div>
-          <div class="setting-row">
-            <div>
               <div class="setting-label">Weather Simulator</div>
               <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
             <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
               <span class="toggle-thumb" />
             </button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Reset</div>
+              <div class="setting-hint">Delete all preferences and locations</div>
+            </div>
+            <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
           </div>
         </div>
       </div>
@@ -278,6 +278,23 @@
                 <span class="toggle-thumb" />
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Reset confirmation modal -->
+    <transition name="modal-fade">
+      <div v-if="resetConfirmOpen" class="modal-overlay" @click.self="resetConfirmOpen = false">
+        <div class="modal-dialog modal-dialog--confirm">
+          <div class="modal-header">
+            <span class="panel-title">Reset everything?</span>
+            <button class="panel-close" @click="resetConfirmOpen = false">✕</button>
+          </div>
+          <p class="reset-confirm-body">Your preferences and saved locations will be deleted and the app will restart.</p>
+          <div class="reset-confirm-actions">
+            <button class="setting-action-btn" @click="resetConfirmOpen = false">Cancel</button>
+            <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset</button>
           </div>
         </div>
       </div>
@@ -449,8 +466,9 @@ const tutSearching          = ref(false)
 const tutPendingLocation    = ref(false)
 const settingsOpen          = ref(false)
 const settingsDropdownStyle = ref({})
-const dataTypesModalOpen = ref(false)
-const unitsModalOpen     = ref(false)
+const dataTypesModalOpen  = ref(false)
+const unitsModalOpen      = ref(false)
+const resetConfirmOpen    = ref(false)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
@@ -532,9 +550,14 @@ watch(settingsOpen, (open) => {
       const rect = btn.getBoundingClientRect()
       const card = document.querySelector('.conditions')
       const cardRect = card?.getBoundingClientRect()
-      settingsDropdownStyle.value = cardRect
-        ? { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
-        : { top: `${rect.bottom + 6}px`, left: '8px', right: '8px' }
+      if (cardRect) {
+        settingsDropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
+      } else {
+        const panelWidth = 320
+        const rightEdge = Math.min(rect.right, window.innerWidth - 8)
+        const leftEdge = Math.max(rightEdge - panelWidth, 8)
+        settingsDropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px` }
+      }
     }
   }
 })
@@ -1354,6 +1377,26 @@ if (!isGeoActive.value) {
   width: 460px;
 }
 
+.modal-dialog--confirm {
+  width: 320px;
+}
+
+.reset-confirm-body {
+  padding: 0 20px 16px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.reset-confirm-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 20px;
+  justify-content: flex-end;
+}
+
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1506,6 +1549,16 @@ if (!isGeoActive.value) {
 .setting-action-btn--danger:hover {
   background: rgba(248, 113, 113, 0.12);
   color: #f87171;
+}
+
+.reset-confirm-actions .setting-action-btn--danger {
+  background: #ee0033;
+  color: #fff;
+  border-color: transparent;
+}
+.reset-confirm-actions .setting-action-btn--danger:hover {
+  background: #cc0029;
+  color: #fff;
 }
 
 .modal-fade-enter-active, .modal-fade-leave-active {
