@@ -337,7 +337,74 @@ function parseSunHour(isoStr) {
   return h + m / 60
 }
 
-// Draws sunrise/sunset vertical markers with emoji icons on the chart.
+// Draws a sun-rising-above-horizon icon, styled like the tile SVG icons.
+// Works in a virtual 20×20 coordinate space scaled to `size`.
+function drawSunriseIcon(ctx, cx, cy, size, color) {
+  ctx.save()
+  ctx.translate(cx - size / 2, cy - size / 2)
+  ctx.scale(size / 20, size / 20)
+  ctx.strokeStyle = color
+  ctx.fillStyle   = color
+  ctx.lineWidth   = 1.5
+  ctx.lineCap     = 'round'
+  // Filled semicircle body — center (10,13), r=6
+  ctx.beginPath()
+  ctx.arc(10, 13, 6, Math.PI, 0)
+  ctx.closePath()
+  ctx.fill()
+  // Horizon line segments (gaps where the sun sits)
+  ctx.beginPath()
+  ctx.moveTo(1.5,  13); ctx.lineTo(3.8,  13)
+  ctx.moveTo(16.2, 13); ctx.lineTo(18.5, 13)
+  ctx.stroke()
+  // 5 rays fanning upward
+  ctx.beginPath()
+  ctx.moveTo(10,   6.2); ctx.lineTo(10,   4.5)    // straight up
+  ctx.moveTo(13.4, 7.1); ctx.lineTo(14.25, 5.6)   // 30° right
+  ctx.moveTo(6.6,  7.1); ctx.lineTo(5.75,  5.6)   // 30° left
+  ctx.moveTo(15.9, 9.6); ctx.lineTo(17.4,  8.75)  // 60° right
+  ctx.moveTo(4.1,  9.6); ctx.lineTo(2.6,   8.75)  // 60° left
+  ctx.stroke()
+  ctx.restore()
+}
+
+// Crescent moon: drawn once to an OffscreenCanvas (destination-out compositing),
+// then cached by size+color so it's only rasterised once.
+const _moonImgCache = new Map()
+
+function drawMoonIcon(ctx, cx, cy, size, color) {
+  const key = `${size}|${color}`
+  let ofc = _moonImgCache.get(key)
+  if (!ofc) {
+    ofc = new OffscreenCanvas(size, size)
+    const ofx = ofc.getContext('2d')
+    const lc = size / 2
+    const r  = size * 0.42          // outer circle radius
+    const od = r * 0.35             // cutout center offset (rightward)
+    const cr = r * 0.75             // cutout circle radius
+    // Fill outer circle
+    ofx.fillStyle = color
+    ofx.beginPath()
+    ofx.arc(lc, lc, r, 0, Math.PI * 2)
+    ofx.fill()
+    // Punch out an offset circle → perfect crescent
+    ofx.globalCompositeOperation = 'destination-out'
+    ofx.fillStyle = '#000'
+    ofx.beginPath()
+    ofx.arc(lc + od, lc, cr, 0, Math.PI * 2)
+    ofx.fill()
+    _moonImgCache.set(key, ofc)
+  }
+  // Tilt ~23° clockwise for a classic moon orientation
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate(0.4)
+  ctx.scale(-1, 1)
+  ctx.drawImage(ofc, -size / 2, -size / 2)
+  ctx.restore()
+}
+
+// Draws sunrise/sunset vertical markers with custom canvas icons on the chart.
 function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   return {
     id: 'sunriseSunset',
@@ -346,28 +413,35 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
       const { ctx, chartArea, scales } = chart
       const xMin = scales.x.getPixelForValue(0)
       const xMax = scales.x.getPixelForValue(24)
+      const isLight = props.theme === 'light'
 
-      for (const [hour, emoji, lightColor, darkColor] of [
-        [sunriseHour, '☀️', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)'],
-        [sunsetHour,  '🌙', 'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)'],
+      for (const [hour, type, lightColor, darkColor] of [
+        [sunriseHour, 'sunrise', 'rgba(245,158,11,0.55)',  'rgba(251,191,36,0.45)'],
+        [sunsetHour,  'sunset',  'rgba(99,102,241,0.55)',  'rgba(139,92,246,0.5)'],
       ]) {
         if (hour == null || hour < 0 || hour > 24) continue
         const x = xMin + (hour / 24) * (xMax - xMin)
 
+        // Dashed vertical line
+        const lineStart = type === 'sunrise' ? chartArea.top + 20 : chartArea.top + 24
         ctx.save()
         ctx.beginPath()
-        ctx.moveTo(x, chartArea.top + 24)
+        ctx.moveTo(x, lineStart)
         ctx.lineTo(x, chartArea.bottom)
-        ctx.strokeStyle = props.theme === 'light' ? lightColor : darkColor
+        ctx.strokeStyle = isLight ? lightColor : darkColor
         ctx.lineWidth = 1.5
         ctx.setLineDash([4, 3])
         ctx.stroke()
-
-        ctx.font = `16px ${APP_FONT}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'top'
-        ctx.fillText(emoji, x, chartArea.top + 2)
         ctx.restore()
+
+        // Custom icon centered in the top marker area
+        const iconSize = 18
+        const iconY = type === 'sunrise' ? chartArea.top + 12 : chartArea.top + 13
+        if (type === 'sunrise') {
+          drawSunriseIcon(ctx, x, iconY, iconSize, isLight ? '#eab308' : '#fbbf24')
+        } else {
+          drawMoonIcon(ctx, x, iconY, iconSize, isLight ? '#7c3aed' : '#a78bfa')
+        }
       }
     },
   }
