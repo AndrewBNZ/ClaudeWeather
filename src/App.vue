@@ -2,8 +2,22 @@
   <div class="app-shell">
     <header v-if="!weatherData" class="header">
       <div class="header-right">
-        <button data-locations-btn class="locations-btn" @click="panelOpen = true" title="Saved locations">☰</button>
-        <button data-settings-btn class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">⚙️</button>
+        <button data-locations-btn class="locations-btn" @click="panelOpen = true" title="Saved locations">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </button>
+        <button data-settings-btn class="settings-btn" data-tut="settings" @click="settingsOpen = true" title="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="10" cy="6" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -853,16 +867,14 @@ if (!isGeoActive.value) {
     overflow: hidden;
   }
   .main {
-    padding-top: 0;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-bottom: 0;
+    padding: 0;
     gap: 10px;
     max-width: none;
     overflow: hidden;
   }
   .layout-right {
     gap: 10px;
+    padding: 0 10px;
   }
   .weather-layout {
     display: block;
@@ -875,8 +887,6 @@ if (!isGeoActive.value) {
   .layout-left {
     position: sticky;
     top: 0;
-    margin-left: -10px;
-    margin-right: -10px;
   }
   .layout-left::after {
     content: '';

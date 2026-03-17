@@ -2,10 +2,10 @@
   <div class="chart-card card" data-chart="hourly">
     <div class="chart-header">
       <div class="chart-title-group">
-        <h3 class="chart-title">Hourly</h3>
+        <h3 class="chart-title">Hourly</h3><span class="chart-title-date">{{ dayOptions[dayIndex] }}</span>
         <span class="chart-subtitle">{{ config.icon }} {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
       </div>
-      <div class="day-nav" :style="{ '--type-color': config.color }">
+      <div class="day-nav">
         <div class="day-btn-group" ref="dropdownRef">
           <button
             class="day-step-btn"
@@ -93,6 +93,10 @@ const selectBtnRef  = ref(null)
 const dropdownOpen  = ref(false)
 const dropdownStyle = ref({})
 let   chartInstance = null
+
+const navBtnBg     = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.05)'   : 'rgba(255,255,255,0.12)')
+const navBtnBorder = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.1)'    : 'rgba(255,255,255,0.2)')
+const navBtnColor  = computed(() => props.theme === 'light' ? '#64748b'             : 'color-mix(in srgb, var(--text-muted) 25%, var(--text))')
 
 function updateDropdownPos() {
   if (!selectBtnRef.value) return
@@ -692,9 +696,9 @@ onBeforeUnmount(() => {
   font-size: 0.85rem;
   font-weight: 600;
   font-family: inherit;
-  color: var(--type-color, #38bdf8);
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
+  color: v-bind(navBtnColor);
+  background: v-bind(navBtnBg);
+  border: 1px solid v-bind(navBtnBorder);
   border-radius: 8px;
   padding: 6px 10px;
   min-width: 125px;
@@ -705,8 +709,8 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 .day-select-btn:hover {
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 15%, transparent);
-  border-color: color-mix(in srgb, var(--type-color, #38bdf8) 45%, transparent);
+  background: var(--btn-hover);
+  border-color: v-bind(navBtnBorder);
 }
 
 .day-select-arrow {
@@ -723,7 +727,7 @@ onBeforeUnmount(() => {
   position: fixed;
   min-width: 125px;
   background: var(--panel-bg);
-  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
+  border: 1px solid var(--panel-border);
   border-radius: 10px;
   padding: 4px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -753,12 +757,14 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 .day-dropdown-item:hover {
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 12%, transparent);
+  background: var(--btn-hover);
+  border-color: v-bind(navBtnBorder);
   color: var(--text);
 }
 .day-dropdown-item.active {
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 18%, transparent);
-  color: var(--type-color, #38bdf8);
+  background: var(--btn-hover);
+  border-color: v-bind(navBtnBorder);
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -794,6 +800,27 @@ onBeforeUnmount(() => {
     max-height: 232px; /* ~7 items visible */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .day-dropdown::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.chart-title-date {
+  display: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: v-bind(navBtnColor);
+  margin-left: auto;
+}
+
+@media (max-width: 400px) {
+  .day-select-btn {
+    display: none;
+  }
+  .chart-title-date {
+    display: inline;
   }
 }
 
@@ -865,16 +892,16 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--type-color, #38bdf8);
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--type-color, #38bdf8) 25%, transparent);
+  color: v-bind(navBtnColor);
+  background: v-bind(navBtnBg);
+  border: 1px solid v-bind(navBtnBorder);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   padding: 6px 0;
 }
 .day-step-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--type-color, #38bdf8) 18%, transparent);
-  border-color: color-mix(in srgb, var(--type-color, #38bdf8) 50%, transparent);
+  background: var(--btn-hover);
+  border-color: v-bind(navBtnBorder);
 }
 .day-step-btn:disabled {
   opacity: 0.25;

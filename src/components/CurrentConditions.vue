@@ -8,8 +8,22 @@
         <span class="scene-datetime">{{ localDateTime }}</span>
       </div>
       <div class="scene-btns">
-        <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">☰</button>
-        <button data-settings-btn class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">⚙️</button>
+        <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </button>
+        <button data-settings-btn class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Settings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="10" cy="6" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
       </div>
     </div>
 
