@@ -48,17 +48,17 @@
 
     <!-- Rain drops -->
     <template v-if="isRain || isStorm">
-      <div v-for="n in 32" :key="n" class="drop" :style="dropStyle(n)" />
+      <div v-for="(s, i) in drops" :key="i" class="drop" :style="s" />
     </template>
 
     <!-- Snowflakes -->
     <template v-if="isSnow">
-      <div v-for="n in 22" :key="n" class="flake" :style="flakeStyle(n)" />
+      <div v-for="(s, i) in flakes" :key="i" class="flake" :style="s" />
     </template>
 
     <!-- Birds (clear/partly, daytime) -->
     <template v-if="showBirds">
-      <div v-for="n in 6" :key="n" class="bird" :style="birdStyle(n)">
+      <div v-for="(s, i) in birds" :key="i" class="bird" :style="s">
         <svg viewBox="0 0 20 8" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0,6 Q5,1 10,6 Q15,1 20,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -115,12 +115,12 @@
 
     <!-- Fog wisps -->
     <template v-if="isFog">
-      <div v-for="n in 6" :key="n" class="fog-wisp" :style="fogStyle(n)" />
+      <div v-for="(s, i) in fogWisps" :key="i" class="fog-wisp" :style="s" />
     </template>
 
     <!-- Flying leaves -->
     <template v-if="showLeaves">
-      <div v-for="n in leafCount" :key="n" class="leaf" :style="leafStyle(n)" />
+      <div v-for="(s, i) in leaves" :key="i" class="leaf" :style="s" />
     </template>
 
     <!-- Scrim: darkens bottom for text readability -->
@@ -133,7 +133,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   weatherCode:          { type: Number,  default: 0 },
@@ -158,12 +158,18 @@ const emit = defineEmits(['grass-color'])
 // ── Derived preview values ─────────────────────────────────────────────────
 const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
 
+// ── Reactive clock for time-of-day transitions ─────────────────────────────
+const clockNow = ref(Date.now())
+let _clockTimer = null
+onMounted(()       => { _clockTimer = setInterval(() => { clockNow.value = Date.now() }, 60_000) })
+onBeforeUnmount(() => clearInterval(_clockTimer))
+
 // ── Time of day ────────────────────────────────────────────────────────────
 const timeOfDay = computed(() => {
   if (props.previewTod) return props.previewTod
-  // Shift Date.now() into the location's timezone so we compare apples-to-apples
+  // Shift clockNow into the location's timezone so we compare apples-to-apples
   // with the bare ISO strings Open-Meteo returns (which are in local time, no tz suffix).
-  const locationNowMs = Date.now() + props.utcOffset * 1000
+  const locationNowMs = clockNow.value + props.utcOffset * 1000
   if (props.sunrise && props.sunset) {
     // Append 'Z' so the browser parses the local-time strings as UTC,
     // matching the shifted locationNowMs value.
@@ -176,7 +182,7 @@ const timeOfDay = computed(() => {
     if (locationNowMs < setMs  + transitionMs) return 'sunset'
     return 'night'
   }
-  // Fallback to clock hours at the location
+  // Fallback: use clock hours at the location
   const h = new Date(locationNowMs).getUTCHours()
   if (h >= 5  && h < 8)  return 'sunrise'
   if (h >= 8  && h < 18) return 'day'
@@ -210,7 +216,8 @@ const isFog = computed(() => {
   const c = props.weatherCode ?? 0
   return c === 45 || c === 48
 })
-function fogStyle(n) {
+const fogWisps = Array.from({ length: 6 }, (_, i) => {
+  const n = i + 1
   return {
     bottom:            `${10 + (n % 4) * 9}%`,
     width:             `${55 + (n % 3) * 22}%`,
@@ -219,7 +226,7 @@ function fogStyle(n) {
     animationDelay:    `${-((n * 4.1) % 16)}s`,
     opacity:           0.35 + (n % 3) * 0.12,
   }
-}
+})
 
 // ── Aurora borealis ────────────────────────────────────────────────────────
 const showAurora = computed(() =>
@@ -248,15 +255,17 @@ const showBirds = computed(() =>
   props.forceBirds ||
   (isDay.value && (group.value === 'clear' || group.value === 'partly') && cloudCount.value < 4)
 )
-function birdStyle(n) {
+const birds = Array.from({ length: 6 }, (_, i) => {
+  const n = i + 1
   return {
     top:               `${6 + (n * 11) % 38}%`,
     width:             `${12 + (n % 3) * 4}px`,
     color:             'rgba(20,20,20,0.5)',
     animationDuration: `${14 + (n % 5) * 4}s`,
     animationDelay:    `${-((n * 3.1) % 14)}s`,
+    '--bird-dy':       `${-(5 + (n % 5) * 3)}px`,
   }
-}
+})
 
 // ── Lightning bolt cloud-tracking ───────────────────────────────────────────
 const sceneEl       = ref(null)
@@ -600,7 +609,8 @@ const activeClouds = computed(() =>
     { top: '20%', w:  90, h: 32, delay: -6   },
     { top: '8%',  w: 130, h: 42, delay: -34  },
   ]
-  .map((cfg, i) => ({
+  .slice(0, cloudCount.value)
+  .map(cfg => ({
     style: {
       top:               cfg.top,
       width:             `${cfg.w}px`,
@@ -608,8 +618,6 @@ const activeClouds = computed(() =>
       '--cloud-color':   cloudColor.value,
       animationDuration: `${driftDur.value}s`,
       animationDelay:    `${cfg.delay}s`,
-      opacity:           i < cloudCount.value ? 1 : 0,
-      transition:        'opacity 2s ease',
     },
   }))
 )
@@ -625,18 +633,21 @@ const rainDrift = computed(() => {
   return Math.min(200, s * 2.5) // px rightward drift over full fall
 })
 
-function dropStyle(n) {
-  const angleVariation = ((n % 5) - 2) * 1.5 // ±3 deg per-drop variation
-  return {
-    left:              `${(n * 29 + 7) % 100}%`,
-    height:            `${14 + (n % 4) * 5}px`,
-    opacity:            isStorm.value ? 0.75 : 0.5,
-    animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
-    animationDuration: `${(1.00 + (n % 5) * 0.1).toFixed(2)}s`,
-    '--rain-angle':    `${-(rainAngle.value + angleVariation).toFixed(1)}deg`,
-    '--rain-drift':    `${rainDrift.value.toFixed(0)}px`,
-  }
-}
+const drops = computed(() =>
+  Array.from({ length: 32 }, (_, i) => {
+    const n = i + 1
+    const angleVariation = ((n % 5) - 2) * 1.5
+    return {
+      left:              `${(n * 29 + 7) % 100}%`,
+      height:            `${14 + (n % 4) * 5}px`,
+      opacity:            isStorm.value ? 0.75 : 0.5,
+      animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
+      animationDuration: `${(1.00 + (n % 5) * 0.1).toFixed(2)}s`,
+      '--rain-angle':    `${-(rainAngle.value + angleVariation).toFixed(1)}deg`,
+      '--rain-drift':    `${rainDrift.value.toFixed(0)}px`,
+    }
+  })
+)
 
 // ── Snow ───────────────────────────────────────────────────────────────────
 const snowDrift = computed(() => {
@@ -644,17 +655,20 @@ const snowDrift = computed(() => {
   return Math.min(120, 10 + s * 2.8)
 })
 
-function flakeStyle(n) {
-  const driftVariation = (n % 5) * 6 // spread per-flake
-  return {
-    left:              `${(n * 37 + 11) % 95}%`,
-    width:             `${4 + (n % 3) * 2}px`,
-    height:            `${4 + (n % 3) * 2}px`,
-    animationDelay:    `${((n * 0.23) % 2).toFixed(2)}s`,
-    animationDuration: `${(2.2 + (n % 5) * 0.4).toFixed(2)}s`,
-    '--snow-drift':    `${(snowDrift.value + driftVariation).toFixed(0)}px`,
-  }
-}
+const flakes = computed(() =>
+  Array.from({ length: 22 }, (_, i) => {
+    const n = i + 1
+    const driftVariation = (n % 5) * 6
+    return {
+      left:              `${(n * 37 + 11) % 95}%`,
+      width:             `${4 + (n % 3) * 2}px`,
+      height:            `${4 + (n % 3) * 2}px`,
+      animationDelay:    `${((n * 0.23) % 2).toFixed(2)}s`,
+      animationDuration: `${(2.2 + (n % 5) * 0.4).toFixed(2)}s`,
+      '--snow-drift':    `${(snowDrift.value + driftVariation).toFixed(0)}px`,
+    }
+  })
+)
 
 // ── Landscape colours ──────────────────────────────────────────────────────
 const hillFarColor = computed(() => {
@@ -719,31 +733,30 @@ const leafColors = computed(() => [
   '#A1887F',  // Brown 300
 ])
 const showLeaves = computed(() => effectiveWind.value >= 15)
-const leafCount  = computed(() => {
-  const s = effectiveWind.value
-  if (s >= 60) return 10
-  if (s >= 35) return 7
-  return 4
-})
 
 // Tree A ≈ 20%, Tree B ≈ 45%, Tree C ≈ 66% of scene width
 const TREE_ORIGINS = [17, 42, 63]
-function leafStyle(n) {
-  const col    = leafColors.value[n % leafColors.value.length]
-  const size   = 5 + (n % 3) * 2
-  const treeX  = TREE_ORIGINS[n % 3] + (n % 4) * 1.2
-  return {
-    width:             `${size}px`,
-    height:            `${(size * 0.6).toFixed(0)}px`,
-    background:        col,
-    bottom:            `${14 + (n * 7 % 16)}%`,
-    left:              `${treeX}%`,
-    borderRadius:      '50% 10% 50% 10%',
-    animationDelay:    `${-((n * 0.71) % 3.5).toFixed(2)}s`,
-    animationDuration: `${(2.0 + (n % 5) * 0.55).toFixed(1)}s`,
-    '--wa':            `${9 + (n % 4) * 5}px`,
-  }
-}
+const leaves = computed(() => {
+  const s = effectiveWind.value
+  const count = s >= 60 ? 10 : s >= 35 ? 7 : 4
+  const cols  = leafColors.value
+  return Array.from({ length: count }, (_, i) => {
+    const n = i + 1
+    const size  = 5 + (n % 3) * 2
+    const treeX = TREE_ORIGINS[n % 3] + (n % 4) * 1.2
+    return {
+      width:             `${size}px`,
+      height:            `${(size * 0.6).toFixed(0)}px`,
+      background:        cols[n % cols.length],
+      bottom:            `${14 + (n * 7 % 16)}%`,
+      left:              `${treeX}%`,
+      borderRadius:      '50% 10% 50% 10%',
+      animationDelay:    `${-((n * 0.71) % 3.5).toFixed(2)}s`,
+      animationDuration: `${(2.0 + (n % 5) * 0.55).toFixed(1)}s`,
+      '--wa':            `${9 + (n % 4) * 5}px`,
+    }
+  })
+})
 
 // ── Tree sway ──────────────────────────────────────────────────────────────
 function swayVars() {
@@ -754,8 +767,8 @@ function swayVars() {
   return { '--sway-from': `${(angle * 0.3).toFixed(1)}deg`, '--sway-angle': `${angle}deg`, '--sway-dur': `${dur}s` }
 }
 const treeStyleA = computed(() => swayVars() ?? {})
-const treeStyleB = computed(() => swayVars() ? { ...swayVars(), animationDelay: '-0.5s' } : {})
-const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: '-1.1s' } : {})
+const treeStyleB = computed(() => { const v = swayVars(); return v ? { ...v, animationDelay: '-0.5s' } : {} })
+const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, animationDelay: '-1.1s' } : {} })
 </script>
 
 <style scoped>
@@ -984,8 +997,11 @@ const treeStyleC = computed(() => swayVars() ? { ...swayVars(), animationDelay: 
 }
 .bird svg { display: block; width: 100%; height: auto; }
 @keyframes bird-fly {
-  from { transform: translateX(0); }
-  to   { transform: translateX(1200px); }
+  0%   { transform: translateX(0)      translateY(0); }
+  25%  { transform: translateX(300px)  translateY(var(--bird-dy, -8px)); }
+  50%  { transform: translateX(600px)  translateY(0); }
+  75%  { transform: translateX(900px)  translateY(var(--bird-dy, -8px)); }
+  100% { transform: translateX(1200px) translateY(0); }
 }
 
 /* ── Fog wisps ───────────────────────────────────────────────────────────── */

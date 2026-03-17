@@ -92,7 +92,7 @@
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
       <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-      <template v-if="countdown && !loading"> · <span class="scene-footer-countdown">{{ countdown }}</span></template>
+      <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt" :stale-ms="staleMs" /></template>
       <button class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
         <span :class="{ spinning: loading }">↻</span>
       </button>
@@ -149,6 +149,7 @@ import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import WeatherScene from './WeatherScene.vue'
+import CountdownTimer from './CountdownTimer.vue'
 
 // ── Sim preview state ──────────────────────────────────────────────────────
 const timeOfDays = [
@@ -233,7 +234,8 @@ const props = defineProps({
   showFireworks: { type: Boolean, default: false },
   tileConfig:    { type: Array, default: null },
   updatedAt:    { type: String, default: '' },
-  countdown:    { type: String, default: '' },
+  fetchedAt:    { type: Number, default: null },
+  staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
   timeFormat:   { type: String, default: '12h' },
 })

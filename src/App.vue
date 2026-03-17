@@ -62,7 +62,8 @@
               :show-fireworks="showFireworks"
               :tile-config="tileConfig"
               :updated-at="updatedAt"
-              :countdown="countdown"
+              :fetched-at="fetchedAt?.getTime() ?? null"
+              :stale-ms="STALE_MS"
               :loading="loading"
               @select="activeDataType = $event"
               @grass-color="grassColor = $event"
@@ -133,7 +134,7 @@
             <div class="data-footer">
               Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
               <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-              <template v-if="countdown && !loading"> · <span class="footer-countdown">{{ countdown }}</span></template>
+              <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt?.getTime() ?? null" :stale-ms="STALE_MS" /></template>
               <button class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
                 <span :class="{ spinning: loading }">↻</span>
               </button>
@@ -313,6 +314,7 @@ import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
+import CountdownTimer    from './components/CountdownTimer.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { reverseGeocode }      from './services/geocoding.js'
 
@@ -719,24 +721,11 @@ function onTileTouchEnd() {
   tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
 }
 
-// ── Countdown to next auto-refresh ────────────────────────────────────────────
-const countdown = ref('')
-function updateCountdown() {
-  if (!fetchedAt.value) { countdown.value = ''; return }
-  const remaining = Math.max(0, fetchedAt.value.getTime() + STALE_MS - Date.now())
-  const totalSecs = Math.ceil(remaining / 1000)
-  const m = Math.floor(totalSecs / 60)
-  const s = totalSecs % 60
-  countdown.value = `${m}:${String(s).padStart(2, '0')}`
-}
-let autoTimer      = null
-let countdownTimer = null
+let autoTimer = null
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 let refreshTimer = null
 onMounted(() => {
-  updateCountdown()
-  countdownTimer = setInterval(updateCountdown, 1000)
   autoTimer = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
   refreshTimer = setInterval(() => {
     if (location.value && isStale()) loadWeather(true, true)
@@ -766,11 +755,9 @@ function onVisibilityChange() {
 document.addEventListener('visibilitychange', onVisibilityChange)
 onUnmounted(() => {
   clearInterval(refreshTimer)
-  clearInterval(countdownTimer)
   clearInterval(autoTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
 })
-watch(fetchedAt, updateCountdown)
 
 // On load: restore last active location (or fall back to first saved).
 // Skip if "Current Location" is active — onMounted will geolocate instead.
