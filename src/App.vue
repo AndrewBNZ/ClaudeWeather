@@ -228,7 +228,7 @@
           </div>
           <div class="units-modal-body">
             <div v-for="group in UNIT_OPTIONS" :key="group.key" class="unit-group">
-              <div class="unit-group-label">{{ group.icon }} {{ group.label }}</div>
+              <div class="unit-group-label"><span class="unit-group-icon" v-html="TILE_ICONS[group.iconKey]"></span>{{ group.label }}</div>
               <div class="unit-group-pills">
                 <button
                   v-for="opt in group.options"
@@ -357,11 +357,11 @@ const THEME_KEY       = 'claudeweather-theme'
 const DEFAULT_UNIT_PREFS = { temperature: 'celsius', wind: 'kmh', precipitation: 'mm', pressure: 'hpa', visibility: 'km' }
 
 const UNIT_OPTIONS = [
-  { key: 'temperature',  label: 'Temperature',  icon: '🌡️', options: [{ value: 'celsius', label: '°C' }, { value: 'fahrenheit', label: '°F' }] },
-  { key: 'wind',         label: 'Wind Speed',   icon: '💨', options: [{ value: 'kmh', label: 'km/h' }, { value: 'mph', label: 'mph' }, { value: 'ms', label: 'm/s' }, { value: 'kn', label: 'knots' }] },
-  { key: 'precipitation',label: 'Precipitation',icon: '🌧️', options: [{ value: 'mm', label: 'mm' }, { value: 'inch', label: 'in' }] },
-  { key: 'pressure',     label: 'Pressure',     icon: '↕️', options: [{ value: 'hpa', label: 'hPa' }, { value: 'inhg', label: 'inHg' }, { value: 'mmhg', label: 'mmHg' }] },
-  { key: 'visibility',   label: 'Visibility',   icon: '👁️', options: [{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }] },
+  { key: 'temperature',  iconKey: 'temperature', label: 'Temperature',  options: [{ value: 'celsius', label: '°C' }, { value: 'fahrenheit', label: '°F' }] },
+  { key: 'wind',         iconKey: 'wind',        label: 'Wind Speed',   options: [{ value: 'kmh', label: 'km/h' }, { value: 'mph', label: 'mph' }, { value: 'ms', label: 'm/s' }, { value: 'kn', label: 'knots' }] },
+  { key: 'precipitation',iconKey: 'rain',        label: 'Precipitation',options: [{ value: 'mm', label: 'mm' }, { value: 'inch', label: 'in' }] },
+  { key: 'pressure',     iconKey: 'pressure',    label: 'Pressure',     options: [{ value: 'hpa', label: 'hPa' }, { value: 'inhg', label: 'inHg' }, { value: 'mmhg', label: 'mmHg' }] },
+  { key: 'visibility',   iconKey: 'visibility',  label: 'Visibility',   options: [{ value: 'km', label: 'km' }, { value: 'mi', label: 'mi' }] },
 ]
 
 function loadUnitPrefs() {
@@ -1468,7 +1468,12 @@ if (!isGeoActive.value) {
   color: var(--text);
   font-weight: 500;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.unit-group-icon { display: flex; align-items: center; flex-shrink: 0; }
+.unit-group-icon svg { width: 18px; height: 18px; }
 
 .unit-group-pills {
   display: flex;

@@ -469,7 +469,7 @@ onBeforeUnmount(() => {
 
 .chart-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -496,6 +496,7 @@ onBeforeUnmount(() => {
 .chart-unit {
   margin-left: 5px;
   font-size: 0.8rem;
+  line-height: 1;
   opacity: 0.6;
   cursor: pointer;
 }
