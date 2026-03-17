@@ -1146,7 +1146,7 @@ if (!isGeoActive.value) {
   gap: 2px;
   font-size: 0.78rem;
   color: var(--text-faint);
-  padding: 8px 0 4px;
+  padding: 8px 0 16px;
 }
 .data-footer a {
   color: var(--text-faint);
