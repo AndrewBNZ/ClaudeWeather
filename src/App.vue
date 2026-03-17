@@ -65,6 +65,7 @@
               :fetched-at="fetchedAt?.getTime() ?? null"
               :stale-ms="STALE_MS"
               :loading="loading"
+              :blurred="panelOpen || settingsOpen"
               @select="activeDataType = $event"
               @grass-color="grassColor = $event"
               @open-locations="panelOpen = true"
@@ -870,6 +871,7 @@ if (!isGeoActive.value) {
   flex-direction: column;
   gap: 14px;
 }
+
 
 @media (max-width: 999px) {
   .app-shell {

@@ -1,5 +1,5 @@
 <template>
-  <div class="conditions card">
+  <div class="conditions card" :class="{ blurred: blurred }">
 
     <!-- Scene header: location name + nav buttons overlaid on the scene -->
     <div class="scene-header">
@@ -238,6 +238,7 @@ const props = defineProps({
   staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
   timeFormat:   { type: String, default: '12h' },
+  blurred:      { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh'])
@@ -316,6 +317,13 @@ function fmt(v, decimals) {
   padding: 0;
 }
 
+.conditions > *:not(.scene-header) {
+  transition: filter 0.25s ease;
+}
+.conditions.blurred > *:not(.scene-header) {
+  filter: blur(4px);
+}
+
 /* ── Scene header (location name + nav buttons) ─────────────────────────── */
 .scene-header {
   position: absolute;
@@ -349,6 +357,13 @@ function fmt(v, decimals) {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .scene-location {
+    font-size: 1.1rem;
+    padding-top: 3px;
+  }
 }
 
 .scene-datetime {
