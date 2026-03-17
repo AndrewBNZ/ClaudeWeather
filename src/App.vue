@@ -174,7 +174,7 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Weather Details</div>
+              <div class="setting-label">Weather details</div>
               <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
             </div>
             <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
@@ -200,7 +200,7 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Weather Simulator</div>
+              <div class="setting-label">Weather simulator</div>
               <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
             <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
