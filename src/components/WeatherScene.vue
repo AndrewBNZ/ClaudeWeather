@@ -1,18 +1,27 @@
 <template>
   <div class="scene" :style="sceneStyle" ref="sceneEl">
 
+    <!-- Sky cross-fade overlays (old sky fades out on time-of-day/weather change) -->
+    <div v-for="o in skyOverlays" :key="o.id" class="sky-overlay" :style="{ background: o.background }" />
+
     <!-- Stars (night, clear/partly) -->
-    <template v-if="showStars">
-      <div v-for="s in stars" :key="s.id" class="star" :style="s.style" />
-    </template>
+    <Transition name="tod-fade">
+      <div v-if="showStars" class="stars-layer">
+        <div v-for="s in stars" :key="s.id" class="star" :style="s.style" />
+      </div>
+    </Transition>
 
     <!-- Aurora borealis (night, high latitude, low cloud) -->
-    <template v-if="showAurora">
-      <div v-for="n in 4" :key="n" class="aurora-band" :style="auroraBandStyle(n)" />
-    </template>
+    <Transition name="tod-fade">
+      <div v-if="showAurora" class="aurora-layer">
+        <div v-for="n in 4" :key="n" class="aurora-band" :style="auroraBandStyle(n)" />
+      </div>
+    </Transition>
 
     <!-- Sun -->
-    <div v-if="showSun" class="sun" />
+    <Transition name="tod-fade">
+      <div v-if="showSun" class="sun" />
+    </Transition>
 
     <!-- Shooting star -->
     <div
@@ -23,11 +32,13 @@
     />
 
     <!-- Moon (phase-accurate SVG) -->
-    <svg v-if="showMoon" class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }">
-      <circle cx="20" cy="20" r="20" fill="#1a237e" />
-      <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
-      <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
-    </svg>
+    <Transition name="tod-fade">
+      <svg v-if="showMoon" class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }">
+        <circle cx="20" cy="20" r="20" fill="#1a237e" />
+        <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
+        <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
+      </svg>
+    </Transition>
 
     <!-- Lightning bolts — rendered before clouds so clouds layer on top -->
     <template v-if="isStorm && boltsVisible">
@@ -57,13 +68,15 @@
     </template>
 
     <!-- Birds (clear/partly, daytime) -->
-    <template v-if="showBirds">
-      <div v-for="(s, i) in birds" :key="i" class="bird" :style="s">
-        <svg viewBox="0 0 20 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0,6 Q5,1 10,6 Q15,1 20,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
+    <Transition name="tod-fade">
+      <div v-if="showBirds" class="birds-layer">
+        <div v-for="(s, i) in birds" :key="i" class="bird" :style="s">
+          <svg viewBox="0 0 20 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,6 Q5,1 10,6 Q15,1 20,6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
       </div>
-    </template>
+    </Transition>
 
     <!-- Landscape SVG -->
     <svg class="landscape" viewBox="0 0 400 90" preserveAspectRatio="none"
@@ -163,6 +176,11 @@ const clockNow = ref(Date.now())
 let _clockTimer = null
 onMounted(()       => { _clockTimer = setInterval(() => { clockNow.value = Date.now() }, 60_000) })
 onBeforeUnmount(() => clearInterval(_clockTimer))
+
+// ── Sky cross-fade overlays (old sky fades out when timeOfDay/group changes) ─
+const skyOverlays    = ref([])
+let   _overlayId     = 0
+const _overlayTimers = []
 
 // ── Time of day ────────────────────────────────────────────────────────────
 const timeOfDay = computed(() => {
@@ -471,7 +489,7 @@ watch(isStorm, val => {
     boltTimer = setInterval(pickBoltPositions, 6000)
   }
 }, { immediate: true })
-onBeforeUnmount(() => { clearInterval(boltTimer); clearTimeout(autoStarTimer); stopFireworks() })
+onBeforeUnmount(() => { clearInterval(boltTimer); clearTimeout(autoStarTimer); stopFireworks(); _overlayTimers.forEach(clearTimeout) })
 
 function coverToCount(pct) {
   if (pct <=  8) return 0
@@ -528,6 +546,15 @@ const SKY = {
 const sceneStyle = computed(() => {
   const colors = SKY[timeOfDay.value]?.[group.value] ?? SKY.day.clear
   return { background: `linear-gradient(to bottom, ${colors[0]}, ${colors[1]} 55%, ${colors[2]})` }
+})
+
+watch([timeOfDay, group], ([, ], [oldTod, oldGrp]) => {
+  if (!oldTod) return
+  const cols = SKY[oldTod]?.[oldGrp] ?? SKY.day.clear
+  const id   = ++_overlayId
+  skyOverlays.value.push({ id, background: `linear-gradient(to bottom, ${cols[0]}, ${cols[1]} 55%, ${cols[2]})` })
+  const t = setTimeout(() => { skyOverlays.value = skyOverlays.value.filter(o => o.id !== id) }, 3600)
+  _overlayTimers.push(t)
 })
 
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
@@ -780,6 +807,33 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   pointer-events: none;
 }
 
+/* ── Sky cross-fade overlay ───────────────────────────────────────────────── */
+.sky-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: sky-fade-out 3.5s ease forwards;
+}
+@keyframes sky-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Time-of-day element fades ────────────────────────────────────────────── */
+.tod-fade-enter-active,
+.tod-fade-leave-active { transition: opacity 2.5s ease; }
+.tod-fade-enter-from,
+.tod-fade-leave-to     { opacity: 0; }
+
+/* ── Layer wrappers for element groups ───────────────────────────────────── */
+.stars-layer,
+.aurora-layer,
+.birds-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 /* ── Stars ────────────────────────────────────────────────────────────────── */
 .star {
   position: absolute;
@@ -923,6 +977,9 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   width: 100%;
   height: 52%;
 }
+.landscape path,
+.landscape polygon,
+.landscape rect { transition: fill 3s ease; }
 
 /* ── Tree sway ────────────────────────────────────────────────────────────── */
 .tree-sway {
