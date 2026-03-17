@@ -116,16 +116,15 @@
                 />
               </div>
             </template>
+            <div class="data-footer">
+              Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+              <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+              <template v-if="countdown && !loading"> · <span class="footer-countdown">{{ countdown }}</span></template>
+              <button class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
+                <span :class="{ spinning: loading }">↻</span>
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div class="data-footer">
-          Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-          <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-          <template v-if="countdown && !loading"> · <span class="footer-countdown">{{ countdown }}</span></template>
-          <button class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
-            <span :class="{ spinning: loading }">↻</span>
-          </button>
         </div>
 
       </template>
@@ -849,19 +848,33 @@ if (!isGeoActive.value) {
 }
 
 @media (max-width: 999px) {
+  .app-shell {
+    height: 100dvh;
+    overflow: hidden;
+  }
   .main {
     padding-top: 0;
     padding-left: 10px;
     padding-right: 10px;
+    padding-bottom: 0;
     gap: 10px;
     max-width: none;
+    overflow: hidden;
   }
-  .weather-layout,
   .layout-right {
     gap: 10px;
   }
+  .weather-layout {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .weather-layout::-webkit-scrollbar { display: none; }
   .layout-left {
-    position: relative;
+    position: sticky;
+    top: 0;
     margin-left: -10px;
     margin-right: -10px;
   }
@@ -876,7 +889,8 @@ if (!isGeoActive.value) {
     pointer-events: none;
   }
   .layout-right {
-    position: relative;
+    position: sticky;
+    top: 72px;
     z-index: 1;
     margin-top: -18px;
   }
