@@ -3,7 +3,7 @@
     <div class="chart-header">
       <div class="chart-title-group">
         <h3 class="chart-title">Hourly</h3><span class="chart-title-date">{{ dayOptions[dayIndex] }}</span>
-        <span class="chart-subtitle">{{ config.icon }} {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
+        <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType] || config.icon"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
       </div>
       <div class="day-nav">
         <div class="day-btn-group" ref="dropdownRef">
@@ -68,6 +68,7 @@ Tooltip.positioners.linePoint = function(items) {
   return { x: line.element.x, y: line.element.y }
 }
 import { DATA_TYPES, getUnitLabel } from '../utils/dataTypes.js'
+import { TILE_ICONS } from '../utils/tileIcons.js'
 import { drawWindArrow } from '../utils/chartHelpers.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
@@ -771,7 +772,12 @@ onBeforeUnmount(() => {
 .chart-subtitle {
   font-size: 1rem;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+.chart-icon { display: flex; align-items: center; flex-shrink: 0; }
+.chart-icon svg { width: 18px; height: 18px; }
 
 .chart-unit {
   margin-left: 5px;

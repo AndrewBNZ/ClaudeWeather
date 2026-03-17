@@ -99,7 +99,7 @@
     </div>
 
     <div class="cond-content">
-    <div class="cond-body" :style="{ visibility: showSim && hasPreview ? 'hidden' : 'visible' }">
+    <div class="cond-body">
       <!-- Main temp block — clicking selects "temperature" -->
       <button
         class="cond-main selectable"
@@ -148,6 +148,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
+import { TILE_ICONS } from '../utils/tileIcons.js'
 import WeatherScene from './WeatherScene.vue'
 import CountdownTimer from './CountdownTimer.vue'
 
@@ -251,16 +252,23 @@ const todayLow     = computed(() => props.daily?.temperature_2m_min?.[0] ?? null
 const todaySunrise = computed(() => props.daily?.sunrise?.[0] ?? null)
 const todaySunset  = computed(() => props.daily?.sunset?.[0] ?? null)
 
+
 const windArrowSvg = computed(() => {
-  const dir = props.data.wind_direction_10m
-  if (dir == null) return null
-  const angle = (dir + 180) % 360
   const c = '#06b6d4'
-  return `<svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="14" cy="14" r="13" fill="rgba(15,23,42,0.85)" stroke="${c}" stroke-width="1.5"/>
-    <g transform="rotate(${angle},14,14)">
-      <line x1="14" y1="20" x2="14" y2="12" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
-      <polygon points="14,7 10.5,13 17.5,13" fill="${c}"/>
+  const dir = props.data.wind_direction_10m
+  if (dir == null) {
+    return `<svg width="23" height="23" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7c2-2 4-2 6 0s4 2 8 0"/>
+      <path d="M3 11c2-2 4-2 6 0s4 2 7 0"/>
+      <path d="M3 15c2-2 4-2 5 0"/>
+    </svg>`
+  }
+  const angle = (dir + 180) % 360
+  return `<svg width="23" height="23" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="10" r="9.5" fill="rgba(15,23,42,0.75)" stroke="${c}" stroke-width="1.5"/>
+    <g transform="rotate(${angle},10,10)">
+      <line x1="10" y1="16" x2="10" y2="10" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
+      <polygon points="10,4 7,10 13,10" fill="${c}"/>
     </g>
   </svg>`
 })
@@ -284,14 +292,14 @@ const allTiles = computed(() => {
     return { type: cfg.id, icon: cfg.icon, label: cfg.label, color: cfg.color, value, ...extra }
   }
   return {
-    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`),
+    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain }),
     wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { iconHtml: windArrowSvg.value }),
-    feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`),
-    humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`),
-    uv:         tile('uv',         `${fmt(d.uv_index, 1)}${uvLabel.value}`),
-    cloudCover: tile('cloudCover', `${fmt(d.cloud_cover, 0)}%`),
-    pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`),
-    visibility: tile('visibility', `${fmt(DATA_TYPES.visibility.scale(d.visibility, u), DATA_TYPES.visibility.decimals)} ${DATA_TYPES.visibility.getUnit(u)}`),
+    feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`,         { iconHtml: TILE_ICONS.feelsLike }),
+    humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`,                         { iconHtml: TILE_ICONS.humidity }),
+    uv:         tile('uv',         `${fmt(d.uv_index, 1)}${uvLabel.value}`,                      { iconHtml: TILE_ICONS.uv }),
+    cloudCover: tile('cloudCover', `${fmt(d.cloud_cover, 0)}%`,                                  { iconHtml: TILE_ICONS.cloudCover }),
+    pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`, { iconHtml: TILE_ICONS.pressure }),
+    visibility: tile('visibility', `${fmt(DATA_TYPES.visibility.scale(d.visibility, u), DATA_TYPES.visibility.decimals)} ${DATA_TYPES.visibility.getUnit(u)}`,       { iconHtml: TILE_ICONS.visibility }),
   }
 })
 
@@ -524,7 +532,8 @@ function fmt(v, decimals) {
   box-sizing: border-box;
 }
 
-.detail-icon { font-size: 20px; flex-shrink: 0; }
+.detail-icon { font-size: 23px; flex-shrink: 0; display: flex; align-items: center; }
+.detail-icon svg { width: 23px; height: 23px; }
 
 .detail-label {
   font-size: 0.83rem;

@@ -274,7 +274,7 @@
               @touchend="onTileTouchEnd"
             >
               <span class="tile-drag-handle">⠿</span>
-              <span class="tile-icon-label">{{ TILE_META[tile.type].icon }} {{ TILE_META[tile.type].label }}</span>
+              <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
               <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
                 <span class="toggle-thumb" />
               </button>
@@ -335,6 +335,7 @@ import TutorialGuide     from './components/TutorialGuide.vue'
 import CountdownTimer    from './components/CountdownTimer.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { reverseGeocode }      from './services/geocoding.js'
+import { TILE_ICONS }          from './utils/tileIcons.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 const TUTORIAL_KEY      = 'claudeweather-tutorial-done'
@@ -1331,7 +1332,12 @@ if (!isGeoActive.value) {
   flex: 1;
   font-size: 0.88rem;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.tile-svg-icon { display: flex; align-items: center; flex-shrink: 0; }
+.tile-svg-icon svg { width: 18px; height: 18px; }
 
 .tile-dragging {
   opacity: 0.35;

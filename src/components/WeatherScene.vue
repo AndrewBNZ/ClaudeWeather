@@ -508,11 +508,11 @@ const SKY = {
     storm:  ['#37474F', '#455A64', '#512DA8'],  // Blue Grey 800→700, Deep Purple 700
   },
   day: {
-    clear:  ['#1E88E5', '#64B5F6', '#B3E5FC'],  // Blue 600→300, Light Blue 100
-    partly: ['#2196F3', '#90CAF9', '#E1F5FE'],  // Blue 500→200, Light Blue 50
-    cloudy: ['#78909C', '#B0BEC5', '#CFD8DC'],  // Blue Grey 400→200→100
+    clear:  ['#1565C0', '#1E88E5', '#64B5F6'],  // Blue 800→600→300
+    partly: ['#1976D2', '#2196F3', '#90CAF9'],  // Blue 700→500→200
+    cloudy: ['#546E7A', '#78909C', '#B0BEC5'],  // Blue Grey 600→400→300
     rain:   ['#455A64', '#607D8B', '#78909C'],  // Blue Grey 700→500→400
-    snow:   ['#64B5F6', '#BBDEFB', '#E1F5FE'],  // Blue 300→100, Light Blue 50
+    snow:   ['#42A5F5', '#90CAF9', '#BBDEFB'],  // Blue 400→200→100
     storm:  ['#37474F', '#455A64', '#303F9F'],  // Blue Grey 800→700, Indigo 700
   },
   sunset: {
