@@ -83,7 +83,7 @@
           <button class="sim-btn" :class="{ active: simFog }"    title="Fog"     @click="simFog    = !simFog">🌫️</button>
         </div>
       </div>
-      <button class="sim-toggle" :class="{ 'sim-active': hasPreview }" title="Show/hide Weather Sim" @click="simExpanded = !simExpanded">
+      <button class="sim-toggle" :class="{ 'sim-active': hasPreview }" title="Weather Simulator" @click="simExpanded = !simExpanded">
         {{ simExpanded ? '▾' : '▴' }}
       </button>
     </div>
@@ -608,6 +608,7 @@ function fmt(v, decimals) {
   letter-spacing: 0.05em;
   width: 46px;
   flex-shrink: 0;
+  margin-right: 4px;
 }
 
 .sim-btn {
