@@ -46,7 +46,7 @@
       </div>
 
       <!-- Main content -->
-      <template v-else-if="weatherData">
+      <Transition v-else-if="weatherData" name="weather-fade" appear>
         <div class="weather-layout">
           <aside class="layout-left" :style="{ '--grass-color': grassColor }">
             <CurrentConditions
@@ -143,7 +143,7 @@
           </div>
         </div>
 
-      </template>
+      </Transition>
     </main>
 
     <!-- Settings dropdown -->
@@ -1071,6 +1071,14 @@ if (!isGeoActive.value) {
 .empty-icon   { font-size: 4rem; margin-bottom: 8px; }
 .empty-title  { font-size: 1.2rem; font-weight: 600; color: var(--text); }
 .empty-sub    { color: var(--text-muted); max-width: 320px; }
+
+.weather-fade-enter-active {
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.weather-fade-enter-from {
+  opacity: 0;
+  transform: translateY(40px) scale(0.95);
+}
 
 .loading-state {
   display: flex;
