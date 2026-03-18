@@ -36,6 +36,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { APP_NAME } from '../config.js'
 
 const MOBILE_BREAKPOINT = 768
 
@@ -43,7 +44,7 @@ const STEPS = [
   {
     target: null,
     icon: '🌤️',
-    title: 'Welcome to ClaudeWeather',
+    title: `Welcome to ${APP_NAME}`,
     desc: 'Checking the weather is basically a hobby at this point — you might as well do it in style. Live animated scenes, hour-by-hour breakdowns, 14 days out. All a tap away.',
   },
   {

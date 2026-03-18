@@ -1,10 +1,46 @@
-const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
-const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes
+/**
+ * Weather service — dispatcher layer
+ *
+ * Manages caching and routes fetch requests to the active API adapter.
+ * All adapters must implement:  fetch(lat, lon, unitPrefs) → canonical schema
+ *
+ * To add a new provider:
+ *   1. Create src/services/adapters/<name>.js exporting { id, label, fetch }
+ *   2. Import and register it in ADAPTERS below
+ *   3. Add the provider option to the settings UI in App.vue
+ */
 
-function cacheKey(lat, lon, unitPrefs) {
+import * as openMeteo from './adapters/openMeteo.js'
+import { APP_STORAGE_PREFIX } from '../config.js'
+
+// ─── Adapter registry ────────────────────────────────────────────────────────
+
+const ADAPTERS = {
+  [openMeteo.id]: openMeteo,
+  // 'weatherapi': weatherApiCom,   ← future adapters registered here
+}
+
+export const WEATHER_PROVIDERS = Object.values(ADAPTERS).map(a => ({ id: a.id, label: a.label }))
+
+const STORAGE_KEY_PROVIDER = `${APP_STORAGE_PREFIX}-weather-provider`
+const DEFAULT_PROVIDER = openMeteo.id
+
+export function getWeatherProvider() {
+  return localStorage.getItem(STORAGE_KEY_PROVIDER) ?? DEFAULT_PROVIDER
+}
+
+export function setWeatherProvider(id) {
+  localStorage.setItem(STORAGE_KEY_PROVIDER, id)
+}
+
+// ─── Cache ────────────────────────────────────────────────────────────────────
+
+const CACHE_TTL_MS = 15 * 60 * 1000
+
+function cacheKey(provider, lat, lon, unitPrefs) {
   const rLat = Math.round(lat * 10000) / 10000
   const rLon = Math.round(lon * 10000) / 10000
-  return `weather_cache_${rLat}_${rLon}_${unitPrefs.temperature}_${unitPrefs.wind}_${unitPrefs.precipitation}`
+  return `weather_cache_${provider}_${rLat}_${rLon}_${unitPrefs.temperature}_${unitPrefs.wind}_${unitPrefs.precipitation}`
 }
 
 function readCache(key) {
@@ -28,80 +64,33 @@ function writeCache(key, data) {
 export function clearWeatherCache(lat, lon) {
   const rLat = Math.round(lat * 10000) / 10000
   const rLon = Math.round(lon * 10000) / 10000
-  const prefix = `weather_cache_${rLat}_${rLon}_`
+  // Clear cache for all providers at this location
+  const prefix = `weather_cache_`
+  const locationFragment = `_${rLat}_${rLon}_`
   try {
     Object.keys(localStorage)
-      .filter(k => k.startsWith(prefix))
+      .filter(k => k.startsWith(prefix) && k.includes(locationFragment))
       .forEach(k => localStorage.removeItem(k))
   } catch {}
 }
 
-// Returns { data, timestamp } where timestamp is when the data was originally fetched.
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Fetch weather for the given coordinates.
+ * Returns { data, timestamp } where data matches the canonical schema.
+ */
 export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false } = {}) {
-  const key = cacheKey(lat, lon, unitPrefs)
+  const provider = getWeatherProvider()
+  const adapter  = ADAPTERS[provider] ?? openMeteo
+  const key      = cacheKey(provider, lat, lon, unitPrefs)
 
   if (!forceRefresh) {
     const cached = readCache(key)
     if (cached) return { data: cached.data, timestamp: cached.timestamp }
   }
 
-  const params = new URLSearchParams({
-    latitude:  lat,
-    longitude: lon,
-    current: [
-      'temperature_2m',
-      'relative_humidity_2m',
-      'apparent_temperature',
-      'precipitation',
-      'weather_code',
-      'wind_speed_10m',
-      'wind_direction_10m',
-      'uv_index',
-      'cloud_cover',
-      'surface_pressure',
-      'visibility',
-    ].join(','),
-    hourly: [
-      'temperature_2m',
-      'relative_humidity_2m',
-      'apparent_temperature',
-      'precipitation',
-      'weather_code',
-      'wind_speed_10m',
-      'wind_direction_10m',
-      'precipitation_probability',
-      'uv_index',
-      'cloud_cover',
-      'surface_pressure',
-      'visibility',
-    ].join(','),
-    daily: [
-      'weather_code',
-      'temperature_2m_max',
-      'temperature_2m_min',
-      'apparent_temperature_max',
-      'apparent_temperature_min',
-      'precipitation_sum',
-      'precipitation_probability_max',
-      'wind_speed_10m_max',
-      'wind_direction_10m_dominant',
-      'wind_gusts_10m_max',
-      'uv_index_max',
-      'sunrise',
-      'sunset',
-    ].join(','),
-    temperature_unit:   unitPrefs.temperature,
-    wind_speed_unit:    unitPrefs.wind,
-    precipitation_unit: unitPrefs.precipitation,
-    timezone:           'auto',
-    forecast_days:      14,
-    models:             'best_match',
-    cell_selection:     'nearest',
-  })
-
-  const res = await fetch(`${BASE_URL}?${params}`)
-  if (!res.ok) throw new Error(`Weather API error: ${res.status}`)
-  const data = await res.json()
+  const data      = await adapter.fetch(lat, lon, unitPrefs)
   const timestamp = writeCache(key, data)
   return { data, timestamp }
 }

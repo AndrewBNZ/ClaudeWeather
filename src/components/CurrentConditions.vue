@@ -4,7 +4,7 @@
     <!-- Scene header: location name + nav buttons overlaid on the scene -->
     <div class="scene-header">
       <div class="scene-location-group">
-        <span class="scene-location">{{ locationName || 'ClaudeWeather' }}</span>
+        <span class="scene-location">{{ locationName || APP_NAME }}</span>
         <div class="scene-datetime-row">
           <span class="scene-datetime">{{ localDateTime }}</span>
         </div>
@@ -160,6 +160,7 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
+import { APP_NAME } from '../config.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import WeatherScene from './WeatherScene.vue'

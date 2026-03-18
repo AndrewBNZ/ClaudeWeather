@@ -344,7 +344,7 @@
           </div>
           <div class="modal-body pws-key-body">
             <div class="pws-key-about">
-              <p>A <strong>Weather Underground API key</strong> lets ClaudeWeather pull live readings from personal weather stations (PWS) — including your own Tempest, Ambient, or other WU-connected station — to replace <strong>current conditions</strong> with real local measurements. The forecast continues to use Open-Meteo.</p>
+              <p>A <strong>Weather Underground API key</strong> lets {{ APP_NAME }} pull live readings from personal weather stations (PWS) — including your own Tempest, Ambient, or other WU-connected station — to replace <strong>current conditions</strong> with real local measurements. The forecast continues to use Open-Meteo.</p>
               <p>A free key is available to <strong>station owners</strong> who are actively uploading data to Weather Underground. Sign in at <strong>wunderground.com</strong>, go to <em>My Profile → Member Settings → API Keys</em>, and generate a new key.</p>
               <p>Once saved, open the <strong>Locations panel</strong> and tap the station icon next to a saved location to pick a PWS for that location.</p>
             </div>
@@ -411,24 +411,26 @@ import { getPwsObservations }              from './services/pwsApi.js'
 import PwsPickerModal                      from './components/PwsPickerModal.vue'
 import { reverseGeocode }      from './services/geocoding.js'
 import { TILE_ICONS }          from './utils/tileIcons.js'
+import { APP_NAME, APP_STORAGE_PREFIX } from './config.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
-const PWS_KEY_STG       = 'claudeweather-pws-key'
-const PWS_ENABLED_STG   = 'claudeweather-pws-enabled'
-const TUTORIAL_KEY      = 'claudeweather-tutorial-done'
-const TUTORIAL_STEP_KEY = 'claudeweather-tutorial-step'
-const LOCATIONS_KEY   = 'claudeweather-locations'
-const ACTIVE_KEY      = 'claudeweather-active'
-const GEO_ACTIVE_KEY  = 'claudeweather-geo-active'
-const DATATYPE_KEY    = 'claudeweather-datatype'
-const UNIT_PREFS_KEY  = 'claudeweather-unitprefs'
-const LEGACY_UNITS_KEY = 'claudeweather-units'
-const SIM_KEY         = 'claudeweather-sim'
-const TILES_KEY       = 'claudeweather-tiles'
-const CHART_ORDER_KEY = 'claudeweather-chartorder'
-const TIME_FORMAT_KEY = 'claudeweather-timeformat'
-const LEGACY_KEY      = 'claudeweather-location'
-const THEME_KEY       = 'claudeweather-theme'
+const P = APP_STORAGE_PREFIX
+const PWS_KEY_STG       = `${P}-pws-key`
+const PWS_ENABLED_STG   = `${P}-pws-enabled`
+const TUTORIAL_KEY      = `${P}-tutorial-done`
+const TUTORIAL_STEP_KEY = `${P}-tutorial-step`
+const LOCATIONS_KEY   = `${P}-locations`
+const ACTIVE_KEY      = `${P}-active`
+const GEO_ACTIVE_KEY  = `${P}-geo-active`
+const DATATYPE_KEY    = `${P}-datatype`
+const UNIT_PREFS_KEY  = `${P}-unitprefs`
+const LEGACY_UNITS_KEY = `${P}-units`
+const SIM_KEY         = `${P}-sim`
+const TILES_KEY       = `${P}-tiles`
+const CHART_ORDER_KEY = `${P}-chartorder`
+const TIME_FORMAT_KEY = `${P}-timeformat`
+const LEGACY_KEY      = `${P}-location`
+const THEME_KEY       = `${P}-theme`
 
 // ── Unit preferences ──────────────────────────────────────────────────────────
 const DEFAULT_UNIT_PREFS = { temperature: 'celsius', wind: 'kmh', precipitation: 'mm', pressure: 'hpa', visibility: 'km' }

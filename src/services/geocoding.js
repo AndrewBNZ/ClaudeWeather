@@ -1,7 +1,9 @@
 // Nominatim (OpenStreetMap) — free, no API key, excellent worldwide coverage.
 // Usage policy requires a User-Agent and max 1 req/sec (our 300ms debounce handles this).
+import { APP_NAME } from '../config.js'
+
 const NOMINATIM = 'https://nominatim.openstreetmap.org'
-const HEADERS   = { 'Accept-Language': 'en', 'User-Agent': 'ClaudeWeather/1.0' }
+const HEADERS   = { 'Accept-Language': 'en', 'User-Agent': `${APP_NAME}/1.0` }
 
 // Normalize a Nominatim result into the shape LocationSearch.vue expects:
 // { id, name, admin1, country, latitude, longitude }
