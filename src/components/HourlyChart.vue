@@ -225,13 +225,14 @@ const crosshairPlugin = {
 // Per-chart plugin that draws rotated arrows for wind direction.
 // Wind direction is meteorological (degrees the wind comes FROM).
 // Arrows point in the direction the wind is blowing TO (FROM + 180°).
-function makeWindArrowPlugin(directions, values, color, currentHour) {
+function makeWindArrowPlugin(directions, values, color, currentHour, skipIndex = -1) {
   return {
     id: 'windArrows',
     afterDatasetsDraw(chart) {
       const { ctx } = chart
       const meta = chart.getDatasetMeta(0)
       meta.data.forEach((point, i) => {
+        if (i === skipIndex) return
         const dir = directions[i]
         if (dir == null) return
         const { x, y } = point.getProps(['x', 'y'], true)
@@ -258,13 +259,14 @@ function makeWindArrowPlugin(directions, values, color, currentHour) {
 }
 
 // Per-chart plugin that draws weather condition emoji + temperature value at each data point.
-function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '') {
+function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '', skipIndex = -1) {
   return {
     id: 'weatherEmoji',
     afterDatasetsDraw(chart) {
       const { ctx } = chart
       const meta = chart.getDatasetMeta(0)
       meta.data.forEach((point, i) => {
+        if (i === skipIndex) return
         const { x, y } = point.getProps(['x', 'y'], true)
         const isCurrent = i === currentHour
         const emojiSize = isCurrent ? 26 : 22
@@ -451,7 +453,7 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   }
 }
 
-function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimals = false) {
+function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimals = false, windDir = null) {
   return {
     id: 'pwsCurrentDot',
     afterDatasetsDraw(chart) {
@@ -462,30 +464,55 @@ function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimal
       if (!point) return
       const x = point.getProps(['x'], true).x
       const y = scales.y.getPixelForValue(pwsValue)
-      const isLight = props.theme === 'light'
-      const r = 5
 
-      // Dot
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fillStyle = '#38bdf8'
-      ctx.fill()
-      ctx.strokeStyle = isLight ? '#ffffff' : '#0f172a'
-      ctx.lineWidth = 2
-      ctx.stroke()
-      ctx.restore()
+      if (windDir != null) {
+        // Wind chart: draw a direction arrow at the PWS speed position
+        drawWindArrow(ctx, x, y, windDir, '#38bdf8', { isCurrent: true })
+        // Speed label below the arrow circle
+        const r = 13
+        const formatted = Number(pwsValue).toFixed(decimals)
+        const label = keepDecimals ? formatted : formatted.replace(/\.0+$/, '')
+        ctx.save()
+        ctx.font = `bold 14px ${APP_FONT}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.lineJoin = 'round'
+        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+        ctx.strokeText(label, x, y + r + 4)
+        ctx.fillStyle = '#38bdf8'
+        ctx.fillText(label, x, y + r + 4)
+        ctx.restore()
+      } else {
+        const isLight = props.theme === 'light'
+        const r = 5
 
-      // Label to the right of the dot
-      const formatted = Number(pwsValue).toFixed(decimals)
-      const label = `${keepDecimals ? formatted : formatted.replace(/\.0+$/, '')}${unit === '%' ? '%' : ''}`
-      ctx.save()
-      ctx.font = `bold 13px ${APP_FONT}`
-      ctx.textAlign = 'left'
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = '#38bdf8'
-      ctx.fillText(label, x + r + 4, y)
-      ctx.restore()
+        // Dot
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = '#38bdf8'
+        ctx.fill()
+        ctx.strokeStyle = isLight ? '#ffffff' : '#0f172a'
+        ctx.lineWidth = 2
+        ctx.stroke()
+        ctx.restore()
+
+        // Label below the dot
+        const formatted = Number(pwsValue).toFixed(decimals)
+        const label = `${keepDecimals ? formatted : formatted.replace(/\.0+$/, '')}${unit === '%' ? '%' : ''}`
+        ctx.save()
+        ctx.font = `bold 13px ${APP_FONT}`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'top'
+        ctx.lineJoin = 'round'
+        ctx.lineWidth = 3
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+        ctx.strokeText(label, x, y + r + 4)
+        ctx.fillStyle = '#38bdf8'
+        ctx.fillText(label, x, y + r + 4)
+        ctx.restore()
+      }
     },
   }
 }
@@ -523,13 +550,13 @@ function buildChart() {
   const dayDateStr  = props.hourly.time[start]?.slice(0, 10)
   const currentHour = dayDateStr === locDateStr ? locHour : -1
 
-  const pwsValue = (props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0 && currentHour >= 0)
-    ? (props.pwsCurrent?.[cfg.hourlyKey] ?? null)
-    : null
-
   const isWind = cfg.id === 'wind'
   const isRain = cfg.id === 'rain'
   const isTemp = cfg.id === 'temperature' || cfg.id === 'feelsLike'
+
+  const pwsActive = props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0 && currentHour >= 0
+  const pwsValue = pwsActive ? (props.pwsCurrent?.[cfg.hourlyKey] ?? null) : null
+  const pwsWindDir = (pwsActive && isWind) ? (props.pwsCurrent?.wind_direction_10m ?? null) : null
 
   // Global min/max across all 14 days with padding so inline labels stay inside the chart area
   let globalYMin, globalYMax
@@ -537,8 +564,9 @@ function buildChart() {
     let allVals = (props.hourly[cfg.hourlyKey] ?? []).filter(v => v != null)
     if (cfg.scale) allVals = allVals.map(v => cfg.scale(v, props.unitPrefs))
     if (allVals.length) {
-      const lo = Math.min(...allVals)
-      const hi = Math.max(...allVals)
+      const valsForRange = pwsValue != null ? [...allVals, pwsValue] : allVals
+      const lo = Math.min(...valsForRange)
+      const hi = Math.max(...valsForRange)
       const pad = Math.max((hi - lo) * 0.18, 2)
       globalYMin = Math.floor(lo - pad)
       globalYMax = Math.ceil(hi + pad)
@@ -548,6 +576,13 @@ function buildChart() {
   const windDirs   = isWind ? (props.hourly.wind_direction_10m ?? []).slice(start, start + 25) : null
   const probValues = isRain ? (props.hourly.precipitation_probability ?? []).slice(start, start + 25) : null
   const wxCodes    = (props.hourly.weather_code ?? []).slice(start, start + 25)
+
+  // Hide forecast icon/label at currentHour when PWS value is close to the forecast value
+  const yRange = (globalYMax != null && globalYMin != null) ? (globalYMax - globalYMin) : null
+  const skipForecastHour = (pwsValue != null && currentHour >= 0 && yRange > 0 &&
+    values[currentHour] != null &&
+    Math.abs(pwsValue - values[currentHour]) < yRange * 0.07)
+    ? currentHour : -1
 
   // All non-rain charts: hide default dots (custom plugin draws icon + number instead)
   const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
@@ -561,10 +596,10 @@ function buildChart() {
     makePastShadingPlugin(currentHour, props.dayIndex),
     crosshairPlugin,
     sunPlugin,
-    ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour)]
-      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix)]
+    ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour, skipForecastHour)]
+      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix, skipForecastHour)]
       : []),
-    makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain),
+    makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain, pwsWindDir),
   ]
 
   // Rain: bar chart for amount + probability line on a second right axis
