@@ -75,6 +75,8 @@
             />
           </aside>
           <div class="layout-right">
+            <Transition name="chart-switch" mode="out-in">
+            <div :key="activeDataType === 'radar' ? 'radar' : 'charts'" class="layout-charts-inner">
             <template v-if="activeDataType === 'radar'">
               <div class="layout-chart">
                 <RadarMap
@@ -143,6 +145,8 @@
                 />
               </div>
             </template>
+            </div>
+            </Transition>
             <div class="data-footer">
               Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
               <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
@@ -887,6 +891,12 @@ if (!isGeoActive.value) {
   gap: 14px;
 }
 
+.layout-charts-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 
 @media (max-width: 999px) {
   .app-shell {
@@ -977,6 +987,12 @@ if (!isGeoActive.value) {
     padding: 8px;
     box-sizing: border-box;
   }
+  .layout-charts-inner {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    gap: 8px;
+  }
   .layout-chart {
     flex: 1;
     min-height: 0;
@@ -1047,6 +1063,13 @@ if (!isGeoActive.value) {
     overflow: hidden;
   }
 
+  /* Inner wrapper inherits the flex-column fill so layout-chart children still stretch */
+  .layout-charts-inner {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   /* Each chart tile gets an equal share of the right column */
   .layout-chart {
     flex: 1;
@@ -1105,6 +1128,15 @@ if (!isGeoActive.value) {
 .empty-icon   { font-size: 4rem; margin-bottom: 8px; }
 .empty-title  { font-size: 1.2rem; font-weight: 600; color: var(--text); }
 .empty-sub    { color: var(--text-muted); max-width: 320px; }
+
+.chart-switch-enter-active,
+.chart-switch-leave-active {
+  transition: opacity 0.18s ease;
+}
+.chart-switch-enter-from,
+.chart-switch-leave-to {
+  opacity: 0;
+}
 
 .weather-fade-enter-active {
   transition: opacity 0.5s ease-out, transform 0.5s ease-out;
