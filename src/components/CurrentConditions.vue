@@ -5,7 +5,9 @@
     <div class="scene-header">
       <div class="scene-location-group">
         <span class="scene-location">{{ locationName || 'ClaudeWeather' }}</span>
-        <span class="scene-datetime">{{ localDateTime }}</span>
+        <div class="scene-datetime-row">
+          <span class="scene-datetime">{{ localDateTime }}</span>
+        </div>
       </div>
       <div class="scene-btns">
         <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">
@@ -99,6 +101,7 @@
     <!-- Scene footer (desktop only) -->
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+      <template v-if="pwsName"> · Current from 📡 {{ pwsName }}</template>
       <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
       <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt" :stale-ms="staleMs" /></template>
       <button class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
@@ -115,6 +118,7 @@
         style="--sel-color: #f97316"
         @click="emit('select', 'temperature')"
       >
+        <span v-if="pwsDataActive" class="tile-pws-dot" :title="`Temperature from ${pwsName}`"></span>
         <div class="weather-icon">{{ info.emoji }}</div>
         <div class="temp-block">
           <div class="temperature">
@@ -138,6 +142,7 @@
           :style="{ '--sel-color': item.color }"
           @click="emit('select', item.type)"
         >
+          <span v-if="pwsDataActive && item.pwsSource" class="tile-pws-dot" :title="`${item.label} from ${pwsName}`"></span>
           <span v-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
           <span v-else class="detail-icon">{{ item.icon }}</span>
           <div>
@@ -248,6 +253,8 @@ const props = defineProps({
   loading:      { type: Boolean, default: false },
   timeFormat:   { type: String, default: '12h' },
   blurred:      { type: Boolean, default: false },
+  pwsName:       { type: String,  default: null },
+  pwsDataActive: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
@@ -300,13 +307,13 @@ const allTiles = computed(() => {
     return { type: cfg.id, icon: cfg.icon, label: cfg.label, color: cfg.color, value, ...extra }
   }
   return {
-    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain }),
-    wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { iconHtml: windArrowSvg.value }),
-    feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`,         { iconHtml: TILE_ICONS.feelsLike }),
-    humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`,                         { iconHtml: TILE_ICONS.humidity }),
+    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain,       pwsSource: true }),
+    wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { iconHtml: windArrowSvg.value,               pwsSource: true }),
+    feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`,         { iconHtml: TILE_ICONS.feelsLike,  pwsSource: true }),
+    humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`,                         { iconHtml: TILE_ICONS.humidity,   pwsSource: true }),
     uv:         tile('uv',         `${fmt(d.uv_index, 1)}${uvLabel.value}`,                      { iconHtml: TILE_ICONS.uv }),
     cloudCover: tile('cloudCover', `${fmt(d.cloud_cover, 0)}%`,                                  { iconHtml: TILE_ICONS.cloudCover }),
-    pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`, { iconHtml: TILE_ICONS.pressure }),
+    pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`, { iconHtml: TILE_ICONS.pressure,   pwsSource: true }),
     visibility: tile('visibility', `${fmt(DATA_TYPES.visibility.scale(d.visibility, u), DATA_TYPES.visibility.decimals)} ${DATA_TYPES.visibility.getUnit(u)}`,       { iconHtml: TILE_ICONS.visibility }),
     radar:      tile('radar',      'Precipitation', { iconHtml: TILE_ICONS.radar }),
   }
@@ -383,6 +390,13 @@ function fmt(v, decimals) {
   }
 }
 
+.scene-datetime-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
 .scene-datetime {
   font-size: 0.78rem;
   font-weight: 500;
@@ -393,6 +407,7 @@ function fmt(v, decimals) {
   text-overflow: ellipsis;
   letter-spacing: 0.01em;
 }
+
 
 .scene-btns {
   display: flex;
@@ -463,6 +478,7 @@ function fmt(v, decimals) {
 
 /* ── Main temp block ────────────────────────────────────────────────────── */
 .cond-main {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -531,6 +547,7 @@ function fmt(v, decimals) {
 }
 
 .detail-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -539,6 +556,23 @@ function fmt(v, decimals) {
   backdrop-filter: blur(6px);
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.tile-pws-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.selectable:hover .tile-pws-dot,
+.selectable.active .tile-pws-dot {
+  opacity: 1;
+  pointer-events: all;
 }
 
 .detail-icon { font-size: 23px; flex-shrink: 0; display: flex; align-items: center; }

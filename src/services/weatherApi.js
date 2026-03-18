@@ -95,6 +95,8 @@ export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false }
     precipitation_unit: unitPrefs.precipitation,
     timezone:           'auto',
     forecast_days:      14,
+    models:             'best_match',
+    cell_selection:     'nearest',
   })
 
   const res = await fetch(`${BASE_URL}?${params}`)

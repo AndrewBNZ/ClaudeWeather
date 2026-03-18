@@ -39,7 +39,24 @@
           :class="{ active: !isGeoActive && isActive(loc) }"
         >
           <button class="loc-name" @click="emit('select', loc)">
-            <span class="loc-name-text">{{ loc.name }}</span>
+            <span class="loc-name-inner">
+              <span class="loc-name-text">{{ loc.name }}</span>
+            </span>
+          </button>
+          <button
+            v-if="pwsApiKey"
+            class="loc-pws-btn"
+            :class="{ 'has-station': !!loc.pwsStation }"
+            :title="loc.pwsStation ? 'Change PWS station' : 'Set PWS station'"
+            @click.stop="emit('open-pws-picker', loc)"
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="7" y1="18" x2="13" y2="18"/>
+              <line x1="10" y1="18" x2="10" y2="11.5"/>
+              <path d="M7 11a4.2 4.2 0 0 1 6 0"/>
+              <path d="M4.5 8.5a7.7 7.7 0 0 1 11 0"/>
+              <circle cx="10" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
           </button>
           <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
         </li>
@@ -61,9 +78,10 @@ const props = defineProps({
   isOpen:          { type: Boolean, required: true },
   isGeoActive:     { type: Boolean, default: false },
   geoLocationName: { type: String,  default: '' },
+  pwsApiKey:       { type: String,  default: '' },
 })
 
-const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate', 'searching'])
+const emit = defineEmits(['select', 'delete', 'close', 'location-selected', 'geo-locate', 'searching', 'open-pws-picker'])
 
 watch(() => props.isOpen, (open) => {
   if (open) {
@@ -243,6 +261,13 @@ function geoLocate() {
   cursor: pointer;
   overflow: hidden;
 }
+
+.loc-name-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
 .loc-name-text {
   white-space: nowrap;
   overflow: hidden;
@@ -254,15 +279,38 @@ function geoLocate() {
   font-weight: 600;
 }
 
+.loc-pws-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px 6px;
+  color: var(--text-faint);
+  opacity: 0.4;
+  transition: color 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.loc-pws-btn:hover {
+  color: #38bdf8;
+  opacity: 0.8;
+}
+.loc-pws-btn.has-station {
+  color: #38bdf8;
+  opacity: 1;
+}
+
 .loc-delete {
   background: none;
   border: none;
   color: var(--text-faint);
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   cursor: pointer;
   padding: 10px 12px;
   transition: color 0.15s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 .loc-delete:hover { color: #f87171; }
 

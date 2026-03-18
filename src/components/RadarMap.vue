@@ -1,14 +1,30 @@
 <template>
-  <div class="radar-card card">
+  <div class="radar-card card" :class="{ 'radar-expanded': isExpanded }">
     <div class="radar-header">
-      <span class="radar-title"><span class="title-icon" v-html="TILE_ICONS.radar"></span> Precipitation Radar</span>
+      <span class="radar-title">Radar</span>
       <span v-if="dataTime" class="radar-subtitle">Updated {{ dataTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: props.timeFormat === '12h' }).toLowerCase() }}</span>
       <div class="radar-controls">
         <button class="zoom-btn" @click="zoomIn" title="Zoom in">+</button>
         <button class="zoom-btn" @click="zoomOut" title="Zoom out">−</button>
+        <button class="zoom-btn expand-btn" @click="toggleExpand" :title="isExpanded ? 'Collapse' : 'Expand'">
+          <svg v-if="!isExpanded" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            <line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>
+          </svg>
+        </button>
       </div>
     </div>
-    <div ref="mapEl" class="radar-map" />
+    <div ref="mapEl" class="radar-map">
+      <transition name="fade">
+        <div v-if="isLoading" class="radar-loading">
+          <div class="radar-spinner"></div>
+        </div>
+      </transition>
+    </div>
     <div class="radar-legend">
       <div class="legend-bar"></div>
       <div class="legend-labels">
@@ -29,10 +45,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { TILE_ICONS } from '../utils/tileIcons.js'
+
 
 const props = defineProps({
   lat:        { type: Number, required: true },
@@ -47,6 +63,8 @@ const REFRESH_MS = 10 * 60 * 1000 // 10 minutes, matching OWM update cadence
 
 const mapEl = ref(null)
 const dataTime = ref(null)
+const isLoading = ref(false)
+const isExpanded = ref(false)
 let map = null
 let tileBase = null
 let tilePrecip = null
@@ -70,6 +88,7 @@ function buildMap() {
     maxZoom: 18,
   }).addTo(map)
 
+  isLoading.value = true
   tilePrecip = L.tileLayer(precipUrl(), {
     maxZoom: 10,
     opacity: 0.7,
@@ -77,6 +96,8 @@ function buildMap() {
     updateWhenZooming: false,
     keepBuffer: 0,
   }).addTo(map)
+  tilePrecip.on('loading', () => { isLoading.value = true })
+  tilePrecip.on('load',    () => { isLoading.value = false })
 
   marker = L.circleMarker([props.lat, props.lng], {
     radius: 7,
@@ -94,11 +115,20 @@ function precipUrl() {
 }
 
 function refreshPrecip() {
+  isLoading.value = true
   tilePrecip?.setUrl(precipUrl())
 }
 
 function zoomIn()  { map?.zoomIn() }
 function zoomOut() { map?.zoomOut() }
+
+async function toggleExpand() {
+  isExpanded.value = !isExpanded.value
+  // Lock/unlock body scroll
+  document.body.style.overflow = isExpanded.value ? 'hidden' : ''
+  await nextTick()
+  map?.invalidateSize()
+}
 
 watch(() => props.theme, (t) => {
   if (!tileBase) return
@@ -118,6 +148,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   clearInterval(refreshTimer)
+  document.body.style.overflow = ''
   map?.remove()
   map = null
 })
@@ -182,8 +213,57 @@ onUnmounted(() => {
   background: var(--btn-hover);
 }
 
+.expand-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.expand-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .radar-map {
   height: 380px;
+  position: relative;
+}
+
+.radar-loading {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1000;
+  background: var(--card-bg, rgba(15,23,42,0.75));
+  border-radius: 6px;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.radar-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: radar-spin 0.7s linear infinite;
+}
+
+@keyframes radar-spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 .radar-map :deep(.leaflet-tile-pane img) {
@@ -230,5 +310,32 @@ onUnmounted(() => {
 .radar-footer a {
   color: inherit;
   text-decoration: underline;
+}
+
+/* ── Mobile only ── */
+@media (max-width: 768px) {
+  .expand-btn {
+    display: flex;
+  }
+
+
+  .radar-expanded {
+    position: fixed !important;
+    inset: 0;
+    z-index: 9999;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    animation: radar-expand 0.2s ease;
+  }
+
+  @keyframes radar-expand {
+    from { opacity: 0.6; transform: scale(0.97); }
+    to   { opacity: 1;   transform: scale(1); }
+  }
+
+  .radar-expanded .radar-map {
+    flex: 1;
+    height: auto;
+  }
 }
 </style>

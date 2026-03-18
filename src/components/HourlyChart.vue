@@ -74,15 +74,19 @@ import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
 const APP_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
+const PWS_CHART_TYPES = new Set(['temperature', 'feelsLike', 'humidity', 'wind', 'pressure', 'rain'])
+
 const props = defineProps({
-  hourly:     { type: Object, required: true },
-  daily:      { type: Object, default: null },
-  activeType: { type: String, required: true },
-  unitPrefs:  { type: Object, required: true },
-  dayIndex:   { type: Number, default: 0 },
-  theme:      { type: String, default: 'dark' },
-  utcOffset:  { type: Number, default: 0 },
-  timeFormat: { type: String, default: '12h' },
+  hourly:        { type: Object,  required: true },
+  daily:         { type: Object,  default: null },
+  activeType:    { type: String,  required: true },
+  unitPrefs:     { type: Object,  required: true },
+  dayIndex:      { type: Number,  default: 0 },
+  theme:         { type: String,  default: 'dark' },
+  utcOffset:     { type: Number,  default: 0 },
+  timeFormat:    { type: String,  default: '12h' },
+  pwsCurrent:    { type: Object,  default: null },
+  pwsDataActive: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select-day', 'open-units-modal'])
@@ -447,6 +451,45 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   }
 }
 
+function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimals = false) {
+  return {
+    id: 'pwsCurrentDot',
+    afterDatasetsDraw(chart) {
+      if (pwsValue == null || currentHour < 0) return
+      const { ctx, scales } = chart
+      const meta = chart.getDatasetMeta(0)
+      const point = meta.data[currentHour]
+      if (!point) return
+      const x = point.getProps(['x'], true).x
+      const y = scales.y.getPixelForValue(pwsValue)
+      const isLight = props.theme === 'light'
+      const r = 5
+
+      // Dot
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle = '#38bdf8'
+      ctx.fill()
+      ctx.strokeStyle = isLight ? '#ffffff' : '#0f172a'
+      ctx.lineWidth = 2
+      ctx.stroke()
+      ctx.restore()
+
+      // Label to the right of the dot
+      const formatted = Number(pwsValue).toFixed(decimals)
+      const label = `${keepDecimals ? formatted : formatted.replace(/\.0+$/, '')}${unit === '%' ? '%' : ''}`
+      ctx.save()
+      ctx.font = `bold 13px ${APP_FONT}`
+      ctx.textAlign = 'left'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#38bdf8'
+      ctx.fillText(label, x + r + 4, y)
+      ctx.restore()
+    },
+  }
+}
+
 function hourLabel(isoStr) {
   const h = parseInt(isoStr.slice(11, 13))
   if (props.timeFormat === '24h') return String(h).padStart(2, '0')
@@ -479,6 +522,10 @@ function buildChart() {
   // Only highlight current hour when viewing the location's current date
   const dayDateStr  = props.hourly.time[start]?.slice(0, 10)
   const currentHour = dayDateStr === locDateStr ? locHour : -1
+
+  const pwsValue = (props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0 && currentHour >= 0)
+    ? (props.pwsCurrent?.[cfg.hourlyKey] ?? null)
+    : null
 
   const isWind = cfg.id === 'wind'
   const isRain = cfg.id === 'rain'
@@ -517,6 +564,7 @@ function buildChart() {
     ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour)]
       : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix)]
       : []),
+    makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain),
   ]
 
   // Rain: bar chart for amount + probability line on a second right axis
@@ -552,7 +600,7 @@ function buildChart() {
           },
         ],
       },
-      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour)],
+      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour), makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain)],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -691,7 +739,7 @@ async function buildAndScroll() {
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
 watch(
-  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat],
+  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat, () => props.pwsCurrent, () => props.pwsDataActive],
   scheduleAndScroll
 )
 function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }

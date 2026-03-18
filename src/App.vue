@@ -50,7 +50,9 @@
         <div class="weather-layout">
           <aside class="layout-left" :style="{ '--grass-color': grassColor }">
             <CurrentConditions
-              :data="weatherData.current"
+              :data="mergedCurrent"
+              :pws-name="activePwsStation?.name ?? null"
+              :pws-data-active="!!pwsData"
               :daily="weatherData.daily"
               :unit-prefs="unitPrefs"
               :active-type="activeDataType"
@@ -98,6 +100,8 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :pws-current="mergedCurrent"
+                  :pws-data-active="!!pwsData"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -140,6 +144,8 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :pws-current="mergedCurrent"
+                  :pws-data-active="!!pwsData"
                   @select-day="selectedDay = $event"
                   @open-units-modal="unitsModalOpen = true"
                 />
@@ -215,6 +221,18 @@
           </div>
           <div class="setting-row">
             <div>
+              <div class="setting-label">Weather Underground PWS</div>
+              <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Your API key is saved on this device' : 'Set your API key to get started') : 'PWS data temporarily hidden' }}</div>
+            </div>
+            <div class="setting-row-controls">
+              <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Change →' : 'Set key →' }}</button>
+              <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Weather simulator</div>
               <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
@@ -268,8 +286,8 @@
             <button class="panel-close" @click="dataTypesModalOpen = false">✕</button>
           </div>
           <div class="modal-bulk-actions">
-            <button class="modal-bulk-btn" @click="setAllTiles(true)">All on</button>
-            <button class="modal-bulk-btn" @click="setAllTiles(false)">All off</button>
+            <button class="modal-bulk-btn" @click="setAllTiles(true)">All On</button>
+            <button class="modal-bulk-btn" @click="setAllTiles(false)">All Off</button>
           </div>
           <p class="modal-hint">Drag to reorder · tap to show/hide</p>
           <div class="tile-list">
@@ -316,18 +334,57 @@
       </div>
     </transition>
 
+    <!-- PWS API key modal -->
+    <transition name="modal-fade">
+      <div v-if="pwsKeyModalOpen" class="modal-overlay" @click.self="pwsKeyModalOpen = false">
+        <div class="modal-dialog modal-dialog--wide">
+          <div class="modal-header">
+            <span class="panel-title">Weather Underground PWS</span>
+            <button class="panel-close" @click="pwsKeyModalOpen = false">✕</button>
+          </div>
+          <div class="modal-body pws-key-body">
+            <div class="pws-key-about">
+              <p>A <strong>Weather Underground API key</strong> lets ClaudeWeather pull live readings from personal weather stations (PWS) — including your own Tempest, Ambient, or other WU-connected station — to replace <strong>current conditions</strong> with real local measurements. The forecast continues to use Open-Meteo.</p>
+              <p>A free key is available to <strong>station owners</strong> who are actively uploading data to Weather Underground. Sign in at <strong>wunderground.com</strong>, go to <em>My Profile → Member Settings → API Keys</em>, and generate a new key.</p>
+              <p>Once saved, open the <strong>Locations panel</strong> and tap the station icon next to a saved location to pick a PWS for that location.</p>
+            </div>
+            <input v-model="pwsKeyInput" class="pws-key-input" type="text" placeholder="Paste your WU API key" spellcheck="false" autocomplete="off" @keyup.enter="savePwsKey" />
+            <div class="pws-key-hint">Stored on this device only.</div>
+            <div class="pws-key-actions">
+              <button v-if="pwsApiKey" class="setting-action-btn setting-action-btn--danger" @click="clearPwsKey">Remove</button>
+              <button class="setting-action-btn" @click="savePwsKey" :disabled="!pwsKeyInput.trim()">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- PWS station picker modal -->
+    <transition name="modal-fade">
+      <PwsPickerModal
+        v-if="pwsPickerLoc"
+        :loc="pwsPickerLoc"
+        :api-key="pwsApiKey"
+        :current-station="pwsPickerLoc.pwsStation ?? null"
+        @select="onSetPws(pwsPickerLoc, $event); pwsPickerLoc = null"
+        @close="pwsPickerLoc = null"
+      />
+    </transition>
+
     <LocationsPanel
       :locations="savedLocations"
       :active-location="location"
       :is-open="panelOpen"
       :is-geo-active="isGeoActive"
       :geo-location-name="isGeoActive ? locationName : ''"
+      :pws-api-key="pwsEnabled ? pwsApiKey : ''"
       @select="onPanelSelect"
       @delete="onPanelDelete"
       @close="panelOpen = false; tutSearching = false"
       @location-selected="onLocationSelected"
       @geo-locate="onGeoLocate"
       @searching="tutSearching = $event"
+      @open-pws-picker="pwsPickerLoc = $event"
     />
 
     <TutorialGuide
@@ -350,10 +407,14 @@ import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import CountdownTimer    from './components/CountdownTimer.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
+import { getPwsObservations }              from './services/pwsApi.js'
+import PwsPickerModal                      from './components/PwsPickerModal.vue'
 import { reverseGeocode }      from './services/geocoding.js'
 import { TILE_ICONS }          from './utils/tileIcons.js'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
+const PWS_KEY_STG       = 'claudeweather-pws-key'
+const PWS_ENABLED_STG   = 'claudeweather-pws-enabled'
 const TUTORIAL_KEY      = 'claudeweather-tutorial-done'
 const TUTORIAL_STEP_KEY = 'claudeweather-tutorial-step'
 const LOCATIONS_KEY   = 'claudeweather-locations'
@@ -489,6 +550,12 @@ const settingsDropdownStyle = ref({})
 const dataTypesModalOpen  = ref(false)
 const unitsModalOpen      = ref(false)
 const resetConfirmOpen    = ref(false)
+const pwsKeyModalOpen     = ref(false)
+const pwsKeyInput         = ref('')
+const pwsPickerLoc        = ref(null)
+const pwsApiKey           = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
+const pwsEnabled          = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
+const pwsData             = ref(null)
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
@@ -505,6 +572,81 @@ const updatedAt      = computed(() =>
     ? fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: timeFormat.value === '12h' }).toLowerCase()
     : ''
 )
+const activePwsStation = computed(() => {
+  if (!location.value) return null
+  const loc = savedLocations.value.find(l => l.lat === location.value.lat && l.lon === location.value.lon)
+  return loc?.pwsStation ?? null
+})
+
+function convertPwsFields(obs, prefs) {
+  const m = obs.metric
+  if (!m) return {}
+  const result = {}
+  const toTemp = c => prefs.temperature === 'fahrenheit' ? c * 9 / 5 + 32 : c
+  if (m.temp != null) result.temperature_2m = toTemp(m.temp)
+  if (m.temp != null) {
+    if (m.temp >= 27 && m.heatIndex != null) result.apparent_temperature = toTemp(m.heatIndex)
+    else if (m.temp <= 10 && m.windChill != null) result.apparent_temperature = toTemp(m.windChill)
+  }
+  if (obs.humidity != null) result.relative_humidity_2m = obs.humidity
+  if (m.windSpeed != null) {
+    const c = { kmh: 1, mph: 0.621371, ms: 0.277778, kn: 0.539957 }
+    result.wind_speed_10m = m.windSpeed * (c[prefs.wind] ?? 1)
+  }
+  if (obs.winddir != null) result.wind_direction_10m = obs.winddir
+  if (m.precipRate != null)
+    result.precipitation = prefs.precipitation === 'inch' ? m.precipRate * 0.0393701 : m.precipRate
+  if (m.pressure != null) {
+    const c = { hpa: 1, inhg: 0.02953, mmhg: 0.75006 }
+    result.surface_pressure = m.pressure * (c[prefs.pressure] ?? 1)
+  }
+  return result
+}
+
+const mergedCurrent = computed(() => {
+  if (!weatherData.value) return null
+  if (!pwsData.value) return weatherData.value.current
+  return { ...weatherData.value.current, ...convertPwsFields(pwsData.value, unitPrefs.value) }
+})
+
+async function loadPwsData() {
+  if (!pwsEnabled.value || !activePwsStation.value || !pwsApiKey.value) { pwsData.value = null; return }
+  try {
+    pwsData.value = await getPwsObservations(activePwsStation.value.id, pwsApiKey.value)
+  } catch {
+    pwsData.value = null
+  }
+}
+
+function openPwsKeyModal() {
+  pwsKeyInput.value = pwsApiKey.value
+  pwsKeyModalOpen.value = true
+}
+function savePwsKey() {
+  pwsApiKey.value = pwsKeyInput.value.trim()
+  try { localStorage.setItem(PWS_KEY_STG, pwsApiKey.value) } catch {}
+  pwsKeyModalOpen.value = false
+}
+function clearPwsKey() {
+  pwsApiKey.value = ''
+  try { localStorage.removeItem(PWS_KEY_STG) } catch {}
+  pwsKeyModalOpen.value = false
+}
+function onSetPws(loc, station) {
+  savedLocations.value = savedLocations.value.map(l => {
+    if (l.lat !== loc.lat || l.lon !== loc.lon) return l
+    const updated = { ...l }
+    if (station) updated.pwsStation = station
+    else delete updated.pwsStation
+    return updated
+  })
+  persistLocations(savedLocations.value)
+  if (location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
+    if (station) loadPwsData()
+    else pwsData.value = null
+  }
+}
+
 const grassColor     = ref('#43A047')
 const locationName   = ref('')
 const fetchedAt      = ref(null)   // Date of last successful fetch
@@ -685,6 +827,7 @@ async function loadWeather(silent = false, forceRefresh = false) {
       locationName.value = data.timezone ?? locationName.value
     }
     fetchedAt.value = new Date(timestamp)
+    loadPwsData()
   } catch (e) {
     error.value = e.message ?? 'Failed to load weather data.'
   } finally {
@@ -701,6 +844,11 @@ watch(unitPrefs, (newVal, oldVal) => {
   if (location.value && apiChanged) loadWeather()
 }, { deep: true })
 watch(showSim,    (v) => localStorage.setItem(SIM_KEY, String(v)))
+watch(pwsEnabled, (v) => {
+  localStorage.setItem(PWS_ENABLED_STG, String(v))
+  if (!v) pwsData.value = null
+  else loadPwsData()
+})
 watch(dailyFirst, (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
 watch(timeFormat, (v) => localStorage.setItem(TIME_FORMAT_KEY, v))
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
@@ -791,7 +939,6 @@ onMounted(() => {
 })
 function onVisibilityChange() {
   if (document.visibilityState === 'visible') {
-    updateCountdown()
     checkAndRefresh()
   }
 }
@@ -1332,6 +1479,13 @@ if (!isGeoActive.value) {
   gap: 10px;
 }
 
+.setting-row-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .setting-label {
   font-size: 0.9rem;
   color: var(--text);
@@ -1429,6 +1583,55 @@ if (!isGeoActive.value) {
 .settings-drop-enter-from, .settings-drop-leave-to {
   opacity: 0;
   transform: scale(0.95) translateY(-6px);
+}
+
+/* ── PWS key modal ───────────────────────────────────────────────────────── */
+.modal-body {
+  padding: 0 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pws-key-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--btn-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  font-family: monospace;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.pws-key-input:focus { border-color: #38bdf8; }
+
+.pws-key-about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pws-key-about p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.pws-key-about strong { color: inherit; font-weight: 600; }
+.pws-key-about em { font-style: normal; color: inherit; }
+
+.pws-key-hint {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+
+.pws-key-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* ── Data Types modal ────────────────────────────────────────────────────── */
