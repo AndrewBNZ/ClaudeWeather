@@ -120,6 +120,14 @@ export const DATA_TYPES = {
     floatingBar: false,
     scale: (v, p) => p.visibility === 'mi' ? v / 1609.344 : v / 1000,
   },
+  radar: {
+    id: 'radar',
+    label: 'Radar',
+    icon: '🛰️',
+    isMap: true,
+    color: '#10b981',
+    getUnit: () => '',
+  },
 }
 
 export const DATA_TYPE_LIST = Object.values(DATA_TYPES)

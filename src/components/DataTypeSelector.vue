@@ -10,7 +10,7 @@
     >
       <span class="btn-icon">{{ dt.icon }}</span>
       <span class="btn-label">{{ dt.label }}</span>
-      <span v-if="activeType === dt.id" class="btn-unit">{{ dt.getUnit(units) }}</span>
+      <span v-if="activeType === dt.id && dt.getUnit(units)" class="btn-unit">{{ dt.getUnit(units) }}</span>
     </button>
   </div>
 </template>

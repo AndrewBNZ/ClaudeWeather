@@ -46,8 +46,15 @@
       :force-fog="simFog"
     />
 
-    <!-- Sim controls -->
-    <div v-if="showSim" class="sim-bar">
+    <!-- Bottom-right action buttons -->
+    <div class="bottom-bar">
+      <button class="bottom-btn" title="Customise weather details" @click="emit('open-data-types')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+      <div v-if="showSim" class="sim-bar">
       <div v-if="simExpanded" class="sim-panel">
         <div class="sim-header">
           <div class="sim-title">Weather Simulator</div>
@@ -83,9 +90,10 @@
           <button class="sim-btn" :class="{ active: simFog }"    title="Fog"     @click="simFog    = !simFog">🌫️</button>
         </div>
       </div>
-      <button class="sim-toggle" :class="{ 'sim-active': hasPreview }" title="Weather Simulator" @click="simExpanded = !simExpanded">
+      <button class="sim-toggle" :class="{ 'sim-active': hasPreview, 'sim-open': simExpanded }" title="Weather Simulator" @click="simExpanded = !simExpanded">
         {{ simExpanded ? '▾' : '▴' }}
       </button>
+    </div>
     </div>
 
     <!-- Scene footer (desktop only) -->
@@ -242,7 +250,7 @@ const props = defineProps({
   blurred:      { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh'])
+const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
@@ -300,6 +308,7 @@ const allTiles = computed(() => {
     cloudCover: tile('cloudCover', `${fmt(d.cloud_cover, 0)}%`,                                  { iconHtml: TILE_ICONS.cloudCover }),
     pressure:   tile('pressure',   `${fmt(DATA_TYPES.pressure.scale(d.surface_pressure, u), DATA_TYPES.pressure.getDecimals(u))} ${DATA_TYPES.pressure.getUnit(u)}`, { iconHtml: TILE_ICONS.pressure }),
     visibility: tile('visibility', `${fmt(DATA_TYPES.visibility.scale(d.visibility, u), DATA_TYPES.visibility.decimals)} ${DATA_TYPES.visibility.getUnit(u)}`,       { iconHtml: TILE_ICONS.visibility }),
+    radar:      tile('radar',      'Precipitation', { iconHtml: TILE_ICONS.radar }),
   }
 })
 
@@ -552,20 +561,50 @@ function fmt(v, decimals) {
   text-overflow: ellipsis;
 }
 
-/* ── Sim controls ───────────────────────────────────────────────────────── */
-.sim-bar {
+/* ── Bottom-right action bar ────────────────────────────────────────────── */
+.bottom-bar {
   position: absolute;
   bottom: 28px;
   right: 10px;
   z-index: 3;
   display: flex;
-  flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
+  pointer-events: all;
+}
+
+.bottom-btn {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.bottom-btn:hover {
+  background: rgba(8, 14, 30, 0.75);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Sim controls ───────────────────────────────────────────────────────── */
+.sim-bar {
+  position: relative;
   pointer-events: all;
 }
 
 .sim-panel {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -575,6 +614,7 @@ function fmt(v, decimals) {
   border-radius: 10px;
   padding: 7px 8px;
   backdrop-filter: blur(8px);
+  white-space: nowrap;
 }
 
 .sim-header {
@@ -656,17 +696,23 @@ function fmt(v, decimals) {
 .sim-toggle {
   font-size: 0.92rem;
   color: rgba(255,255,255,0.7);
-  background: rgba(8, 14, 30, 0.70);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255,255,255,0.15);
   border-radius: 6px;
-  padding: 2px 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   backdrop-filter: blur(6px);
   transition: background 0.15s, border-color 0.15s;
-  line-height: 1.6;
+  line-height: 1;
 }
-.sim-toggle:hover {
-  background: rgba(30, 50, 90, 0.85);
+.sim-toggle:hover,
+.sim-toggle.sim-open {
+  background: rgba(8, 14, 30, 0.75);
   border-color: rgba(255,255,255,0.4);
 }
 .sim-toggle.sim-active {
@@ -756,7 +802,7 @@ function fmt(v, decimals) {
 
 @media (max-width: 999px) {
   .conditions {
-    min-height: 325px;
+    min-height: 410px;
   }
 }
 

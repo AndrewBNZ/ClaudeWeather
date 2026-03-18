@@ -70,11 +70,22 @@
               @grass-color="grassColor = $event"
               @open-locations="panelOpen = true"
               @open-settings="settingsOpen = true"
+              @open-data-types="dataTypesModalOpen = true"
               @refresh="loadWeather(false, true)"
             />
           </aside>
           <div class="layout-right">
-            <template v-if="!dailyFirst">
+            <template v-if="activeDataType === 'radar'">
+              <div class="layout-chart">
+                <RadarMap
+                  :lat="location.lat"
+                  :lng="location.lon"
+                  :theme="resolvedTheme"
+                  :time-format="timeFormat"
+                />
+              </div>
+            </template>
+            <template v-else-if="!dailyFirst">
               <div class="layout-chart">
                 <HourlyChart
                   :hourly="weatherData.hourly"
@@ -330,6 +341,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CurrentConditions from './components/CurrentConditions.vue'
 import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
+import RadarMap          from './components/RadarMap.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import CountdownTimer    from './components/CountdownTimer.vue'
@@ -385,6 +397,7 @@ const TILE_META = {
   cloudCover:  { icon: '☁️', label: 'Cloud Cover' },
   pressure:    { icon: '↕️', label: 'Pressure' },
   visibility:  { icon: '👁️', label: 'Visibility' },
+  radar:       { icon: '🛰️', label: 'Radar' },
 }
 const DEFAULT_TILES = [
   { type: 'rain',        enabled: true },
@@ -395,6 +408,7 @@ const DEFAULT_TILES = [
   { type: 'cloudCover',  enabled: true },
   { type: 'pressure',    enabled: true },
   { type: 'visibility',  enabled: true },
+  { type: 'radar',       enabled: true },
 ]
 function loadTileConfig() {
   try {
@@ -484,7 +498,7 @@ const loading        = ref(false)
 const error          = ref(null)
 const updatedAt      = computed(() =>
   fetchedAt.value
-    ? fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: timeFormat.value === '12h' })
+    ? fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: timeFormat.value === '12h' }).toLowerCase()
     : ''
 )
 const grassColor     = ref('#43A047')
@@ -987,6 +1001,15 @@ if (!isGeoActive.value) {
     min-height: 80px;
     height: auto !important;
   }
+  .layout-chart .radar-card {
+    flex: 1;
+    min-height: 0;
+  }
+  .layout-chart .radar-map {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
 }
 
 @media (min-width: 1500px) {
@@ -1054,6 +1077,17 @@ if (!isGeoActive.value) {
     flex: 1;
     min-height: 140px;
     height: auto !important;
+  }
+
+  /* Radar card fills the tile; map grows to fill card */
+  .layout-chart .radar-card {
+    flex: 1;
+    min-height: 0;
+  }
+  .layout-chart .radar-map {
+    flex: 1;
+    min-height: 0;
+    height: auto;
   }
 
 }

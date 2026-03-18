@@ -46,4 +46,11 @@ export const TILE_ICONS = {
     <path d="M2 10s3.5-6 8-6 8 6 8 6-3.5 6-8 6-8-6-8-6z"/>
     <circle cx="10" cy="10" r="2.5"/>
   </svg>`,
+  radar: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.5 14 A2.5 2.5 0 0 1 12.5 14"/>
+    <path d="M5 14 A5 5 0 0 1 15 14"/>
+    <path d="M2.5 14 A7.5 7.5 0 0 1 17.5 14"/>
+    <line x1="10" y1="14" x2="5" y2="9"/>
+    <circle cx="10" cy="14" r="1" fill="#10b981" stroke="none"/>
+  </svg>`,
 }
