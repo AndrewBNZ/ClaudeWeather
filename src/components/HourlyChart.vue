@@ -847,10 +847,10 @@ onBeforeUnmount(() => {
   font-size: 1rem;
   color: var(--text-muted);
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
 }
-.chart-icon { display: flex; align-items: center; flex-shrink: 0; }
+.chart-icon { display: flex; align-items: center; flex-shrink: 0; align-self: center; }
 .chart-icon svg { width: 18px; height: 18px; }
 
 .chart-unit {
