@@ -10,13 +10,13 @@
         </div>
       </div>
       <div class="scene-btns">
-        <button data-locations-btn class="scene-btn" @click="emit('open-locations')" title="Saved locations">
+        <button data-locations-btn class="scene-btn" :class="{ active: locationsOpen }" @click="emit('open-locations')" title="Saved locations">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
         </button>
-        <button data-settings-btn class="scene-btn" data-tut="settings" @click="emit('open-settings')" title="Preferences">
+        <button data-settings-btn class="scene-btn" data-tut="settings" :class="{ active: settingsOpen }" @click="emit('open-settings')" title="Preferences">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
@@ -252,9 +252,11 @@ const props = defineProps({
   staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
   timeFormat:   { type: String, default: '12h' },
-  blurred:      { type: Boolean, default: false },
+  blurred:       { type: Boolean, default: false },
   pwsName:       { type: String,  default: null },
   pwsDataActive: { type: Boolean, default: false },
+  locationsOpen: { type: Boolean, default: false },
+  settingsOpen:  { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
@@ -434,6 +436,12 @@ function fmt(v, decimals) {
   transition: background 0.2s;
 }
 .scene-btn:hover { background: rgba(0, 0, 0, 0.5); }
+.scene-btn.active {
+  background: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.8);
+  color: #38bdf8;
+}
+.scene-btn.active:hover { background: rgba(56, 189, 248, 0.45); }
 
 .cond-content {
   position: relative;
