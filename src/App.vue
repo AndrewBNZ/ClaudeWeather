@@ -180,7 +180,7 @@
           <button :class="['settings-tab', { active: settingsTab === 'data' }]"    @click="settingsTab = 'data'">Data</button>
         </div>
         <div class="settings-body">
-          <template v-if="settingsTab === 'display'">
+          <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': settingsTab !== 'display' }">
             <div class="setting-row setting-row--col">
               <div>
                 <div class="setting-label">Theme</div>
@@ -221,8 +221,8 @@
                 <span class="toggle-thumb" />
               </button>
             </div>
-          </template>
-          <template v-else>
+          </div>
+          <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': settingsTab !== 'data' }">
             <div class="setting-row">
               <div>
                 <div class="setting-label">Weather details</div>
@@ -256,7 +256,7 @@
               </div>
               <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
             </div>
-          </template>
+          </div>
         </div>
       </div>
     </Transition>
@@ -354,9 +354,8 @@
           </div>
           <div class="modal-body pws-key-body">
             <div class="pws-key-about">
-              <p>A <strong>Weather Underground API key</strong> lets {{ APP_NAME }} pull live readings from personal weather stations (PWS) — including your own Tempest, Ambient, or other WU-connected station — to replace <strong>current conditions</strong> with real local measurements. The forecast continues to use Open-Meteo.</p>
-              <p>A free key is available to <strong>station owners</strong> who are actively uploading data to Weather Underground. Sign in at <strong>wunderground.com</strong>, go to <em>My Profile → Member Settings → API Keys</em>, and generate a new key.</p>
-              <p>Once saved, open the <strong>Locations panel</strong> and tap the station icon next to a saved location to pick a PWS for that location.</p>
+              <p>Connects {{ APP_NAME }} to Weather Underground personal weather stations (PWS), replacing current conditions with real local readings. Stations are set per location in the Locations panel.</p>
+              <p>Free for station owners actively uploading to WU. Sign in at <strong>wunderground.com</strong> → <em>My Profile → Member Settings → API Keys</em>.</p>
             </div>
             <input v-model="pwsKeyInput" class="pws-key-input" type="text" placeholder="Paste your WU API key" spellcheck="false" autocomplete="off" @keyup.enter="savePwsKey" />
             <div class="pws-key-hint">Stored on this device only.</div>
@@ -1517,11 +1516,21 @@ if (!isGeoActive.value) {
 .panel-close:hover { color: var(--text); }
 
 .settings-body {
+  display: grid;
+}
+
+.settings-tab-pane {
+  grid-area: 1 / 1;
   padding: 8px 0;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   max-height: calc(100dvh - 80px);
+}
+
+.settings-tab-pane--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .setting-row {
