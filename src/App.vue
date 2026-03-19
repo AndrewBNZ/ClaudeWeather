@@ -175,80 +175,88 @@
     </Transition>
     <Transition name="settings-drop">
       <div v-if="settingsOpen" class="settings-dropdown" :style="settingsDropdownStyle">
+        <div class="settings-tabs">
+          <button :class="['settings-tab', { active: settingsTab === 'display' }]" @click="settingsTab = 'display'">Display</button>
+          <button :class="['settings-tab', { active: settingsTab === 'data' }]"    @click="settingsTab = 'data'">Data</button>
+        </div>
         <div class="settings-body">
-          <div class="setting-row setting-row--col">
-            <div>
-              <div class="setting-label">Theme</div>
-              <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
+          <template v-if="settingsTab === 'display'">
+            <div class="setting-row setting-row--col">
+              <div>
+                <div class="setting-label">Theme</div>
+                <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
+              </div>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
+                <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
+                <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
+                <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+              </div>
             </div>
-            <div class="unit-pill">
-              <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
-              <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
-              <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
-              <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Time format</div>
+                <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
+              </div>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
+              </div>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Units</div>
-              <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
-            </div>
-            <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather details</div>
-              <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
-            </div>
-            <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Time format</div>
-              <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
-            </div>
-            <div class="unit-pill">
-              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
-              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Swap chart positions</div>
-              <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
-            </div>
-            <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather Underground PWS</div>
-              <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Your API key is saved on this device' : 'Set your API key to get started') : 'PWS data temporarily hidden' }}</div>
-            </div>
-            <div class="setting-row-controls">
-              <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Change →' : 'Set key →' }}</button>
-              <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Swap chart positions</div>
+                <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
                 <span class="toggle-thumb" />
               </button>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather simulator</div>
-              <div class="setting-hint">Preview weather effects on the scene</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather details</div>
+                <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
+              </div>
+              <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
             </div>
-            <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Reset</div>
-              <div class="setting-hint">Delete all preferences and locations</div>
+          </template>
+          <template v-else>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Units</div>
+                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+              </div>
+              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
             </div>
-            <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
-          </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather Underground PWS</div>
+                <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Your API key is saved on this device' : 'Set your API key to get started') : 'PWS data temporarily hidden' }}</div>
+              </div>
+              <div class="setting-row-controls">
+                <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Change →' : 'Set key →' }}</button>
+                <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
+                  <span class="toggle-thumb" />
+                </button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather simulator</div>
+                <div class="setting-hint">Preview weather effects on the scene</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Reset</div>
+                <div class="setting-hint">Delete all preferences and locations</div>
+              </div>
+              <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
+            </div>
+          </template>
         </div>
       </div>
     </Transition>
@@ -550,6 +558,7 @@ const panelOpen             = ref(false)
 const tutSearching          = ref(false)
 const tutPendingLocation    = ref(false)
 const settingsOpen          = ref(false)
+const settingsTab           = ref('display')
 const settingsDropdownStyle = ref({})
 const dataTypesModalOpen  = ref(false)
 const unitsModalOpen      = ref(false)
@@ -1450,6 +1459,45 @@ if (!isGeoActive.value) {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+}
+
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.settings-tab {
+  flex: 1;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.settings-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.settings-tab.active {
+  color: var(--text);
+}
+
+.settings-tab.active::after {
+  opacity: 1;
 }
 
 .panel-title {
