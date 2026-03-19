@@ -10,6 +10,7 @@
       <div class="settings-tabs">
         <button :class="['settings-tab', { active: tab === 'display' }]" @click="tab = 'display'">Display</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"    @click="tab = 'data'">Data</button>
+        <button :class="['settings-tab', { active: tab === 'backup' }]"  @click="tab = 'backup'">Backup</button>
       </div>
       <div class="settings-body">
         <!-- Display tab -->
@@ -92,9 +93,37 @@
             <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
           </div>
         </div>
+
+        <!-- Backup tab -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'backup' }">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Export settings</div>
+              <div class="setting-hint">Share your setup to another device</div>
+            </div>
+            <button class="setting-action-btn" @click="qrBackupOpen = true">Generate QR →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Import settings</div>
+              <div class="setting-hint">Scan or upload a QR code</div>
+            </div>
+            <button class="setting-action-btn" @click="qrRestoreOpen = true">Restore →</button>
+          </div>
+        </div>
       </div>
     </div>
   </Transition>
+
+  <!-- QR Backup modal -->
+  <transition name="modal-fade">
+    <QrBackupModal v-if="qrBackupOpen" @close="qrBackupOpen = false" />
+  </transition>
+
+  <!-- QR Restore modal -->
+  <transition name="modal-fade">
+    <QrRestoreModal v-if="qrRestoreOpen" @close="qrRestoreOpen = false" />
+  </transition>
 
   <!-- Units modal -->
   <transition name="modal-fade">
@@ -209,6 +238,8 @@ import { ref, watch } from 'vue'
 import { useSettings, UNIT_OPTIONS, TILE_META } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { APP_NAME } from '../config.js'
+import QrBackupModal  from './QrBackupModal.vue'
+import QrRestoreModal from './QrRestoreModal.vue'
 
 const props = defineProps({ isOpen: Boolean })
 defineEmits(['close'])
@@ -227,6 +258,8 @@ const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
 const pwsKeyModalOpen    = ref(false)
+const qrBackupOpen       = ref(false)
+const qrRestoreOpen      = ref(false)
 const pwsKeyInput        = ref('')
 const tileDragIndex      = ref(null)
 const tileDragOver       = ref(null)
