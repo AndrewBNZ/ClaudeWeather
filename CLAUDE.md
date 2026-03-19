@@ -10,7 +10,7 @@ Issues are tracked on the [GitHub Project board](https://github.com/users/Andrew
 |---------|--------|
 | `/next` | Check the board, pick up the next Ready issue |
 | `/next #N` | Pick up a specific issue by number |
-| `/rework #N` | Send issue #N back to In Progress |
+| `/rework #N <feedback>` | Send issue #N back to In Progress and rework based on feedback |
 | `/done #N` | Merge branch to main, move to Done, close issue #N |
 
 ### Issue Workflow
