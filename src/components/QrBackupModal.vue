@@ -41,11 +41,10 @@ const hasPwsKey = !!localStorage.getItem(`${APP_STORAGE_PREFIX}-pws-key`)
 onMounted(async () => {
   try {
     const encoded = encodeSettings()
-    const ecLevel = encoded.length > 900 ? 'L' : 'M'
     await QRCode.toCanvas(canvasRef.value, encoded, {
-      width: 260,
+      width: 300,
       margin: 2,
-      errorCorrectionLevel: ecLevel,
+      errorCorrectionLevel: 'L',
       color: { dark: '#000000', light: '#ffffff' },
     })
   } catch (e) {

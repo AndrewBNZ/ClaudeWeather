@@ -28,10 +28,7 @@
         <!-- Camera preview -->
         <div v-if="cameraActive" class="qr-camera-wrap">
           <video ref="videoRef" autoplay playsinline muted class="qr-video" />
-          <div class="qr-scan-overlay">
-            <div class="qr-scan-frame" />
-          </div>
-          <p class="qr-camera-hint">Align the QR code within the frame</p>
+          <p class="qr-camera-hint">Point your camera at the QR code</p>
           <button class="setting-action-btn qr-stop-btn" @click="stopCamera">Cancel camera</button>
         </div>
 
@@ -226,7 +223,6 @@ onUnmounted(() => stopCamera())
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  position: relative;
 }
 
 .qr-video {
@@ -238,25 +234,6 @@ onUnmounted(() => stopCamera())
   object-fit: cover;
 }
 
-.qr-scan-overlay {
-  position: absolute;
-  top: 0; left: 50%;
-  transform: translateX(-50%);
-  width: min(300px, 100%);
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.qr-scan-frame {
-  width: 55%;
-  aspect-ratio: 1;
-  border: 2px solid rgba(56, 189, 248, 0.7);
-  border-radius: 10px;
-  box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
-}
 
 .qr-camera-hint { font-size: 0.78rem; color: var(--text-faint); margin: 0; }
 .qr-stop-btn    { margin-top: 2px; }
