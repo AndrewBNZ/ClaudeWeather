@@ -466,7 +466,7 @@ function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimal
       const y = scales.y.getPixelForValue(pwsValue)
 
       const isLight = props.theme === 'light'
-      const labelStroke = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.85)'
+      const labelStroke = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)'
 
       if (windDir != null) {
         // Wind chart: draw a direction arrow at the PWS speed position
