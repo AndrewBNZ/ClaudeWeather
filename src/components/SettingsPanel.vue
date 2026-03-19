@@ -241,17 +241,19 @@ watch(() => props.isOpen, (open) => {
   const rect    = btn.getBoundingClientRect()
   const card    = document.querySelector('.conditions')
   const cardRect = card?.getBoundingClientRect()
+  const maxHeight = `${window.innerHeight - rect.bottom - 14}px`
   if (cardRect) {
     dropdownStyle.value = {
       top:   `${rect.bottom + 6}px`,
       left:  `${cardRect.left + 8}px`,
       right: `${window.innerWidth - cardRect.right + 8}px`,
+      maxHeight,
     }
   } else {
     const panelWidth = 320
     const rightEdge  = Math.min(rect.right, window.innerWidth - 8)
     const leftEdge   = Math.max(rightEdge - panelWidth, 8)
-    dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px` }
+    dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px`, maxHeight }
   }
 })
 
@@ -306,6 +308,8 @@ function onTileTouchEnd() {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .settings-tabs {
@@ -344,6 +348,8 @@ function onTileTouchEnd() {
 
 .settings-body {
   display: grid;
+  flex: 1;
+  min-height: 0;
 }
 
 .settings-tab-pane {
@@ -352,7 +358,7 @@ function onTileTouchEnd() {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  max-height: calc(100dvh - 80px);
+  max-height: 100%;
 }
 
 .settings-tab-pane--hidden {

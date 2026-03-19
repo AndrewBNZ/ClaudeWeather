@@ -5,7 +5,7 @@
       <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType] || config.icon"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
     </div>
     <div class="chart-wrap" ref="wrapRef">
-      <div class="chart-scroll-inner" style="cursor: pointer">
+      <div class="chart-scroll-inner" ref="scrollInnerRef" style="cursor: pointer">
         <canvas ref="canvasRef"></canvas>
       </div>
     </div>
@@ -40,10 +40,11 @@ const props = defineProps({
 
 const emit = defineEmits(['day-selected', 'open-units-modal'])
 
-const canvasRef     = ref(null)
-const wrapRef       = ref(null)
-let   chartInstance = null
-let   ro            = null
+const canvasRef       = ref(null)
+const wrapRef         = ref(null)
+const scrollInnerRef  = ref(null)
+let   chartInstance   = null
+let   ro              = null
 
 function handleCanvasClick(e) {
   if (!chartInstance) return
@@ -88,8 +89,9 @@ function getDailyValues(cfg) {
 }
 
 function sizeChart() {
-  if (!chartInstance || !wrapRef.value) return
-  const { clientWidth: w, clientHeight: h } = wrapRef.value
+  if (!chartInstance || !wrapRef.value || !scrollInnerRef.value) return
+  const w = scrollInnerRef.value.clientWidth
+  const h = wrapRef.value.clientHeight
   if (w && h) chartInstance.resize(w, h)
 }
 

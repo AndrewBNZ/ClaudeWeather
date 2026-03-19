@@ -699,18 +699,29 @@ if (!isGeoActive.value) {
 
 /* ── Mobile/tablet landscape: side-by-side with scrollable charts ──────── */
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
+  html, body, #app {
+    height: 100dvh;
+    overflow: hidden;
+  }
   .main {
     padding: 0;
     gap: 0;
     max-width: none;
+    overflow: hidden;
   }
   .weather-layout {
+    display: flex;
     flex-direction: row;
     align-items: stretch;
     height: 100dvh;
     gap: 0;
+    overflow: hidden;
+  }
+  .layout-left::after {
+    display: none;
   }
   .layout-left {
+    position: static;
     width: 35%;
     flex-shrink: 0;
     display: flex;
@@ -724,6 +735,7 @@ if (!isGeoActive.value) {
     border: none;
   }
   .layout-right {
+    position: static;
     flex: 1;
     min-width: 0;
     min-height: 0;
@@ -732,6 +744,8 @@ if (!isGeoActive.value) {
     flex-direction: column;
     gap: 8px;
     padding: 8px;
+    margin-top: 0;
+    z-index: auto;
     box-sizing: border-box;
   }
   .layout-charts-inner {

@@ -801,8 +801,46 @@ function fmt(v, decimals) {
 
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .cond-content {
-    padding: 72px 12px 40px;
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 72px 12px 0;
     gap: 8px;
+  }
+  .cond-content::-webkit-scrollbar { display: none; }
+  /* Spacer as a flex item — more reliable than padding-bottom in WebKit */
+  .cond-content::after {
+    content: '';
+    display: block;
+    min-height: 66px;
+    flex-shrink: 0;
+  }
+  .conditions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    background: linear-gradient(to bottom, rgba(4, 8, 20, 0.72) 40%, transparent 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .conditions::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 66px; /* 28px bottom gap + 32px buttons + 6px breathing room above */
+    background: linear-gradient(to top, rgba(4, 8, 20, 0.72) 40%, transparent 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 2;
+    pointer-events: none;
   }
   .cond-body {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

@@ -90,13 +90,14 @@ watch(() => props.isOpen, (open) => {
       const rect = btn.getBoundingClientRect()
       const card = document.querySelector('.conditions')
       const cardRect = card?.getBoundingClientRect()
+      const maxHeight = `${window.innerHeight - rect.bottom - 14}px`
       if (cardRect) {
-        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px` }
+        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px`, maxHeight }
       } else {
         const panelWidth = 320
         const rightEdge = Math.min(rect.right, window.innerWidth - 8)
         const leftEdge = Math.max(rightEdge - panelWidth, 8)
-        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px` }
+        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px`, maxHeight }
       }
     }
     if (!props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
@@ -152,7 +153,7 @@ function geoLocate() {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .search-section {
@@ -164,7 +165,8 @@ function geoLocate() {
 .location-list {
   list-style: none;
   overflow-y: auto;
-  max-height: min(calc(100dvh - 160px), 360px);
+  flex: 1;
+  min-height: 0;
   padding: 6px 0;
   border-radius: 0 0 12px 12px;
 }
