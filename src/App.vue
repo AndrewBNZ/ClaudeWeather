@@ -214,19 +214,19 @@
             </div>
             <div class="setting-row">
               <div>
-                <div class="setting-label">Weather details</div>
-                <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
+                <div class="setting-label">Units</div>
+                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
               </div>
-              <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
+              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
             </div>
           </template>
           <template v-else>
             <div class="setting-row">
               <div>
-                <div class="setting-label">Units</div>
-                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+                <div class="setting-label">Weather details</div>
+                <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
               </div>
-              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+              <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
             </div>
             <div class="setting-row">
               <div>
