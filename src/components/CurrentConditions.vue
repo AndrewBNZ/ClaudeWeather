@@ -616,26 +616,23 @@ function fmt(v, decimals) {
 }
 
 .bottom-btn {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-radius: 6px;
-  width: 30px;
-  height: 30px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  width: 36px;
+  height: 32px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.7);
+  color: #fff;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.2s;
   flex-shrink: 0;
 }
-.bottom-btn:hover {
-  background: rgba(8, 14, 30, 0.75);
-  border-color: rgba(255, 255, 255, 0.4);
-}
+.bottom-btn:hover { background: rgba(0, 0, 0, 0.5); }
 
 /* ── Sim controls ───────────────────────────────────────────────────────── */
 .sim-bar {
@@ -737,25 +734,25 @@ function fmt(v, decimals) {
 
 .sim-toggle {
   font-size: 0.92rem;
-  color: rgba(255,255,255,0.7);
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 6px;
-  width: 30px;
-  height: 30px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+  width: 36px;
+  height: 32px;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(6px);
-  transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s;
   line-height: 1;
 }
 .sim-toggle:hover,
 .sim-toggle.sim-open {
-  background: rgba(8, 14, 30, 0.75);
-  border-color: rgba(255,255,255,0.4);
+  background: rgba(0, 0, 0, 0.5);
 }
 .sim-toggle.sim-active {
   border-color: rgba(255, 210, 80, 0.9);
