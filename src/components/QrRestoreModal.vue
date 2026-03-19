@@ -37,21 +37,12 @@
 
       <!-- Phase: confirm -->
       <div v-else-if="phase === 'confirm'" class="modal-body qr-restore-confirm">
-        <p class="qr-instruction">The following settings will be applied:</p>
+        <p class="qr-instruction">Settings that will be applied:</p>
 
         <div class="qr-diff-list">
-          <div v-if="!diff.length" class="qr-diff-none">No changes — settings are already identical.</div>
-          <div v-for="(item, i) in diff" :key="i" class="qr-diff-row">
+          <div v-for="(item, i) in preview" :key="i" class="qr-diff-row">
             <span class="qr-diff-label">{{ item.label }}</span>
-            <span class="qr-diff-value">
-              <template v-if="item.from !== null && item.to !== null">
-                <span class="qr-diff-from">{{ item.from }}</span>
-                <span class="qr-diff-arrow"> → </span>
-                <span class="qr-diff-to">{{ item.to }}</span>
-              </template>
-              <template v-else-if="item.from === null">{{ item.to }}</template>
-              <template v-else>{{ item.from }}</template>
-            </span>
+            <span class="qr-diff-value">{{ item.value }}</span>
           </div>
         </div>
 
@@ -69,13 +60,13 @@
 <script setup>
 import { ref, onUnmounted } from 'vue'
 import jsQR from 'jsqr'
-import { decodeSettings, diffSettings, applySettings } from '../composables/useSettingsBackup.js'
+import { decodeSettings, previewSettings, applySettings } from '../composables/useSettingsBackup.js'
 
 defineEmits(['close'])
 
 const phase        = ref('pick')
 const pickError    = ref('')
-const diff         = ref([])
+const preview      = ref([])
 const decodedPayload = ref(null)
 
 // Camera
@@ -171,7 +162,7 @@ function handleDecoded(encoded) {
   try {
     const payload = decodeSettings(encoded)
     decodedPayload.value = payload
-    diff.value = diffSettings(payload)
+    preview.value = previewSettings(payload)
     phase.value = 'confirm'
   } catch (err) {
     pickError.value = err.message
@@ -252,12 +243,6 @@ onUnmounted(() => stopCamera())
   overflow: hidden;
 }
 
-.qr-diff-none {
-  padding: 14px 16px;
-  font-size: 0.85rem;
-  color: var(--text-faint);
-}
-
 .qr-diff-row {
   display: flex;
   align-items: baseline;
@@ -271,9 +256,6 @@ onUnmounted(() => stopCamera())
 
 .qr-diff-label { color: var(--text-muted); font-weight: 500; flex-shrink: 0; }
 .qr-diff-value { color: var(--text); text-align: right; }
-.qr-diff-from  { color: var(--text-faint); text-decoration: line-through; }
-.qr-diff-arrow { color: var(--text-faint); }
-.qr-diff-to    { color: #38bdf8; }
 
 .qr-reload-note {
   font-size: 0.78rem;

@@ -42,8 +42,8 @@ onMounted(async () => {
   try {
     const encoded = encodeSettings()
     await QRCode.toCanvas(canvasRef.value, encoded, {
-      width: 300,
-      margin: 2,
+      width: 400,
+      margin: 4,
       errorCorrectionLevel: 'L',
       color: { dark: '#000000', light: '#ffffff' },
     })
@@ -61,7 +61,7 @@ function download() {
     a.download = 'claudeweather-backup.png'
     a.click()
     URL.revokeObjectURL(url)
-  })
+  }, 'image/png')
 }
 </script>
 
