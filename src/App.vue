@@ -212,6 +212,15 @@
                 <span class="toggle-thumb" />
               </button>
             </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather simulator</div>
+                <div class="setting-hint">Preview weather effects on the scene</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
           </template>
           <template v-else>
             <div class="setting-row">
@@ -239,15 +248,6 @@
                   <span class="toggle-thumb" />
                 </button>
               </div>
-            </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Weather simulator</div>
-                <div class="setting-hint">Preview weather effects on the scene</div>
-              </div>
-              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
-                <span class="toggle-thumb" />
-              </button>
             </div>
             <div class="setting-row">
               <div>
