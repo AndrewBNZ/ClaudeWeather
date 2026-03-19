@@ -449,6 +449,7 @@ function fmt(v, decimals) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  pointer-events: none;
   padding: 78px 18px 16px;
 }
 
@@ -462,6 +463,7 @@ function fmt(v, decimals) {
 
 /* ── Shared selectable styles ───────────────────────────────────────────── */
 .selectable {
+  pointer-events: auto;
   cursor: pointer;
   border: 1px solid transparent;
   border-radius: 12px;

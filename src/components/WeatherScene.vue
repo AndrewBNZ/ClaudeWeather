@@ -5,11 +5,9 @@
     <div v-for="o in skyOverlays" :key="o.id" class="sky-overlay" :style="{ background: o.background }" />
 
     <!-- Stars (night, clear/partly) -->
-    <Transition name="tod-fade">
-      <div v-if="showStars" class="stars-layer">
-        <div v-for="s in stars" :key="s.id" class="star" :style="s.style" />
-      </div>
-    </Transition>
+    <div class="stars-layer" :style="{ opacity: starsOpacity }">
+      <div v-for="s in stars" :key="s.id" class="star" :style="s.style" />
+    </div>
 
     <!-- Aurora borealis (night, high latitude, low cloud) -->
     <Transition name="tod-fade">
@@ -19,9 +17,7 @@
     </Transition>
 
     <!-- Sun -->
-    <Transition name="tod-fade">
-      <div v-if="showSun" class="sun" />
-    </Transition>
+    <div class="sun" :style="{ opacity: sunOpacity }" />
 
     <!-- Shooting star -->
     <div
@@ -32,13 +28,11 @@
     />
 
     <!-- Moon (phase-accurate SVG) -->
-    <Transition name="tod-fade">
-      <svg v-if="showMoon" class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }">
-        <circle cx="20" cy="20" r="20" fill="#1a237e" />
-        <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
-        <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
-      </svg>
-    </Transition>
+    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }" @click.stop="moonModalOpen = true">
+      <circle cx="20" cy="20" r="20" fill="#1a237e" />
+      <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
+      <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
+    </svg>
 
     <!-- Lightning bolts — rendered before clouds so clouds layer on top -->
     <template v-if="isStorm && boltsVisible">
@@ -55,7 +49,9 @@
     </template>
 
     <!-- Clouds -->
-    <div v-for="(cl, i) in activeClouds" :key="i" class="cloud" :style="cl.style" />
+    <TransitionGroup name="cloud-fade">
+      <div v-for="(cl, i) in activeClouds" :key="i" class="cloud" :style="cl.style" />
+    </TransitionGroup>
 
     <!-- Rain drops -->
     <template v-if="isRain || isStorm">
@@ -143,6 +139,50 @@
     <canvas ref="fwCanvas" class="fw-canvas" />
 
   </div>
+
+  <!-- Moon phase modal -->
+  <Teleport to="body">
+  <Transition name="moon-modal-fade">
+    <div v-if="moonModalOpen" class="moon-modal-overlay" @click.self="moonModalOpen = false">
+      <div class="moon-modal">
+        <div class="moon-modal-header">
+          <span class="moon-modal-title">Moon</span>
+          <button class="moon-modal-close" @click="moonModalOpen = false">✕</button>
+        </div>
+        <div class="moon-modal-body">
+          <svg class="moon-modal-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="20" fill="#1a237e" />
+            <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
+            <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
+          </svg>
+          <div class="moon-modal-stats">
+            <div class="moon-stat">
+              <span class="moon-stat-label">Phase</span>
+              <span class="moon-stat-value">{{ moonPhaseName }}</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">Illuminated</span>
+              <span class="moon-stat-value">{{ moonIllumination }}%</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">Age</span>
+              <span class="moon-stat-value">{{ moonAge }} days</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">Full moon</span>
+              <span class="moon-stat-value">{{ daysToFullMoon }}</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">New moon</span>
+              <span class="moon-stat-value">{{ daysToNewMoon }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Transition>
+  </Teleport>
+
 </template>
 
 <script setup>
@@ -558,16 +598,23 @@ watch([timeOfDay, group], ([, ], [oldTod, oldGrp]) => {
 })
 
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
-const showSun   = computed(() => isDay.value && cloudCount.value === 0)
-const showMoon  = computed(() => timeOfDay.value === 'night')
+const sunOpacity = computed(() => {
+  if (!isDay.value || cloudCount.value > 3) return 0
+  return cloudCount.value <= 1 ? 1 : 0.6
+})
 const moonOpacity = computed(() => {
+  if (timeOfDay.value !== 'night') return 0
   const c = cloudCount.value
   if (c === 0) return 1
   if (c <= 3)  return 0.55
   if (c <= 5)  return 0.25
   return 0.12  // storm / fully overcast
 })
-const showStars = computed(() => timeOfDay.value === 'night' && cloudCount.value < 4)
+const starsOpacity = computed(() => {
+  if (timeOfDay.value !== 'night') return 0
+  const g = group.value
+  return (g === 'clear' || g === 'partly') ? 1 : 0
+})
 
 // ── Moon phase ─────────────────────────────────────────────────────────────
 // Phase 0 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
@@ -594,6 +641,41 @@ const moonPhasePath = computed(() => {
   return `M ${cx},${cy - R} A ${R},${R} 0 0,${s1} ${cx},${cy + R} A ${atx},${R} 0 0,${s2} ${cx},${cy - R} Z`
 })
 
+const moonModalOpen = ref(false)
+
+const LUNAR_PERIOD = 29.53058867
+const moonPhaseName = computed(() => {
+  const p = moonPhase.value
+  if (p < 0.02 || p > 0.98) return 'New Moon'
+  if (p < 0.23)              return 'Waxing Crescent'
+  if (p < 0.27)              return 'First Quarter'
+  if (p < 0.48)              return 'Waxing Gibbous'
+  if (p < 0.52)              return 'Full Moon'
+  if (p < 0.73)              return 'Waning Gibbous'
+  if (p < 0.77)              return 'Last Quarter'
+  return 'Waning Crescent'
+})
+
+const moonIllumination = computed(() =>
+  Math.round((1 - Math.cos(2 * Math.PI * moonPhase.value)) / 2 * 100)
+)
+
+const moonAge = computed(() =>
+  (moonPhase.value * LUNAR_PERIOD).toFixed(1)
+)
+
+const daysToFullMoon = computed(() => {
+  const d = moonPhase.value < 0.5
+    ? (0.5 - moonPhase.value) * LUNAR_PERIOD
+    : (1.5 - moonPhase.value) * LUNAR_PERIOD
+  return Math.round(d) === 0 ? 'Tonight' : `in ${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'}`
+})
+
+const daysToNewMoon = computed(() => {
+  const d = (1 - moonPhase.value) * LUNAR_PERIOD
+  return Math.round(d) === 0 ? 'Tonight' : `in ${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'}`
+})
+
 const stars = Array.from({ length: 38 }, (_, i) => ({
   id: i,
   style: {
@@ -601,7 +683,7 @@ const stars = Array.from({ length: 38 }, (_, i) => ({
     top:             `${(i * 19 + 5)  % 50}%`,
     width:           `${2 + (i % 2)}px`,
     height:          `${2 + (i % 2)}px`,
-    opacity:          0.4 + (i % 5) * 0.12,
+    '--star-op':      0.4 + (i % 5) * 0.12,
     animationDelay:  `${((i * 0.7) % 3).toFixed(1)}s`,
   },
 }))
@@ -826,7 +908,12 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 .tod-fade-leave-to     { opacity: 0; }
 
 /* ── Layer wrappers for element groups ───────────────────────────────────── */
-.stars-layer,
+.stars-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 2.5s ease;
+}
 .aurora-layer,
 .birds-layer {
   position: absolute;
@@ -842,7 +929,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   animation: scene-twinkle 3s ease-in-out infinite;
 }
 @keyframes scene-twinkle {
-  0%, 100% { opacity: inherit; }
+  0%, 100% { opacity: var(--star-op, 1); }
   50%       { opacity: 0.1; }
 }
 
@@ -876,6 +963,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   background: radial-gradient(circle at 38% 38%, #FFFFFF, #FFD54F 40%, #FFA000 68%, transparent);
   border-radius: 50%;
   box-shadow: 0 0 28px 8px rgba(255,213,79,0.45), 0 0 60px 24px rgba(255,179,0,0.22), 0 0 100px 40px rgba(255,160,0,0.12);
+  transition: opacity 2.5s ease;
 }
 
 /* ── Moon ─────────────────────────────────────────────────────────────────── */
@@ -889,6 +977,9 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   filter:
     drop-shadow(0 0 6px rgba(187,222,251,0.55))
     drop-shadow(0 0 18px rgba(187,222,251,0.28));
+  pointer-events: auto;
+  cursor: pointer;
+  transition: opacity 2.5s ease;
 }
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */
@@ -898,7 +989,13 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   background: var(--cloud-color, rgba(255,255,255,0.82));
   border-radius: 60px;
   animation: scene-drift linear infinite;
+  transition: background 2.5s ease;
 }
+
+.cloud-fade-enter-active,
+.cloud-fade-leave-active { transition: opacity 2.5s ease; }
+.cloud-fade-enter-from,
+.cloud-fade-leave-to     { opacity: 0; }
 .cloud::before,
 .cloud::after {
   content: '';
@@ -1074,5 +1171,97 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   from { transform: translateX(0); }
   to   { transform: translateX(250vw); }
 }
+
+/* ── Moon phase modal ─────────────────────────────────────────────────────── */
+.moon-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.moon-modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  width: 280px;
+  overflow: hidden;
+}
+
+.moon-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.moon-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.moon-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.moon-modal-close:hover { color: var(--text); }
+
+.moon-modal-body {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.moon-modal-svg {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  filter:
+    drop-shadow(0 0 6px rgba(187,222,251,0.55))
+    drop-shadow(0 0 18px rgba(187,222,251,0.28));
+}
+
+.moon-modal-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.moon-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.moon-stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.moon-stat-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+.moon-modal-fade-enter-active,
+.moon-modal-fade-leave-active { transition: opacity 0.2s ease; }
+.moon-modal-fade-enter-from,
+.moon-modal-fade-leave-to     { opacity: 0; }
 
 </style>

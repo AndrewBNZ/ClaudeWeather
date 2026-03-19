@@ -4,7 +4,7 @@
       <h3 class="chart-title">Daily</h3>
       <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType] || config.icon"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
     </div>
-    <div class="chart-wrap">
+    <div class="chart-wrap" ref="wrapRef">
       <div class="chart-scroll-inner" style="cursor: pointer">
         <canvas ref="canvasRef"></canvas>
       </div>
@@ -41,7 +41,9 @@ const props = defineProps({
 const emit = defineEmits(['day-selected', 'open-units-modal'])
 
 const canvasRef     = ref(null)
+const wrapRef       = ref(null)
 let   chartInstance = null
+let   ro            = null
 
 function handleCanvasClick(e) {
   if (!chartInstance) return
@@ -85,8 +87,14 @@ function getDailyValues(cfg) {
   return props.daily[cfg.dailyMaxKey] ?? []
 }
 
+function sizeChart() {
+  if (!chartInstance || !wrapRef.value) return
+  const { clientWidth: w, clientHeight: h } = wrapRef.value
+  if (w && h) chartInstance.resize(w, h)
+}
+
 function buildChart() {
-  if (!canvasRef.value || !props.daily) return
+  if (!canvasRef.value || !wrapRef.value || !props.daily) return
 
   if (chartInstance) {
     chartInstance.destroy()
@@ -380,7 +388,7 @@ function buildChart() {
     data: { labels, datasets },
     plugins: extraPlugins,
     options: {
-      responsive: true,
+      responsive: false,
       maintainAspectRatio: false,
       animation: { duration: 400 },
       interaction: { mode: 'index', intersect: false },
@@ -444,7 +452,12 @@ function buildChart() {
   })
 }
 
-function scheduleBuild() { requestAnimationFrame(() => requestAnimationFrame(buildChart)) }
+function scheduleBuild() {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    buildChart()
+    requestAnimationFrame(sizeChart)
+  }))
+}
 watch(
   [() => props.activeType, () => props.unitPrefs, () => props.daily, () => props.hourly, () => props.theme],
   scheduleBuild
@@ -469,15 +482,15 @@ watch(() => props.selectedDay, () => {
   }
   chartInstance.update('none')
 })
-function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
-  window.addEventListener('resize', onWindowResize)
-  requestAnimationFrame(() => requestAnimationFrame(buildChart))
+  ro = new ResizeObserver(() => requestAnimationFrame(sizeChart))
+  ro.observe(wrapRef.value)
+  scheduleBuild()
 })
 onBeforeUnmount(() => {
   canvasRef.value?.removeEventListener('click', handleCanvasClick)
-  window.removeEventListener('resize', onWindowResize)
+  ro?.disconnect()
   chartInstance?.destroy()
 })
 </script>
