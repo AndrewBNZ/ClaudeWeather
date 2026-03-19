@@ -101,8 +101,7 @@
     <!-- Scene footer (desktop only) -->
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-      <template v-if="pwsName"> · Current from 📡 {{ pwsName }}</template>
-      <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+<template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
       <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt" :stale-ms="staleMs" /></template>
       <button class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
         <span :class="{ spinning: loading }">↻</span>
