@@ -1468,7 +1468,7 @@ if (!isGeoActive.value) {
 
 .settings-tab {
   flex: 1;
-  padding: 10px 0;
+  padding: 14px 0;
   background: none;
   border: none;
   font-size: 0.85rem;
