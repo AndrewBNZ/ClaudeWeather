@@ -10,7 +10,8 @@
       <div class="settings-tabs">
         <button :class="['settings-tab', { active: tab === 'display' }]" @click="tab = 'display'">Display</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"    @click="tab = 'data'">Data</button>
-        <button :class="['settings-tab', { active: tab === 'backup' }]"  @click="tab = 'backup'">Backup</button>
+        <!-- Backup tab hidden until QR reliability is resolved -->
+        <!-- <button :class="['settings-tab', { active: tab === 'backup' }]"  @click="tab = 'backup'">Backup</button> -->
       </div>
       <div class="settings-body">
         <!-- Display tab -->
