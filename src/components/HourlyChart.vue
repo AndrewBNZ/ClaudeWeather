@@ -465,6 +465,9 @@ function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimal
       const x = point.getProps(['x'], true).x
       const y = scales.y.getPixelForValue(pwsValue)
 
+      const isLight = props.theme === 'light'
+      const labelStroke = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(15,23,42,0.85)'
+
       if (windDir != null) {
         // Wind chart: draw a direction arrow at the PWS speed position
         drawWindArrow(ctx, x, y, windDir, '#38bdf8', { isCurrent: true })
@@ -478,13 +481,12 @@ function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimal
         ctx.textBaseline = 'top'
         ctx.lineJoin = 'round'
         ctx.lineWidth = 3
-        ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+        ctx.strokeStyle = labelStroke
         ctx.strokeText(label, x, y + r + 4)
         ctx.fillStyle = '#38bdf8'
         ctx.fillText(label, x, y + r + 4)
         ctx.restore()
       } else {
-        const isLight = props.theme === 'light'
         const r = 5
 
         // Dot
@@ -507,7 +509,7 @@ function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimal
         ctx.textBaseline = 'top'
         ctx.lineJoin = 'round'
         ctx.lineWidth = 3
-        ctx.strokeStyle = 'rgba(255,255,255,0.75)'
+        ctx.strokeStyle = labelStroke
         ctx.strokeText(label, x, y + r + 4)
         ctx.fillStyle = '#38bdf8'
         ctx.fillText(label, x, y + r + 4)
