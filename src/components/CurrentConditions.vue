@@ -607,6 +607,7 @@ function fmt(v, decimals) {
   justify-content: center;
   gap: 6px;
   padding: 4px 0 2px;
+  pointer-events: auto;
 }
 
 .page-arrow {
