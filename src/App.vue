@@ -76,6 +76,7 @@
               :stale-ms="STALE_MS"
               :loading="loading"
               :can-manual-refresh="canManualRefresh"
+              :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
               :blurred="panelOpen || settingsOpen"
               :locations-open="panelOpen"
               :settings-open="settingsOpen"
@@ -84,6 +85,7 @@
               @open-locations="panelOpen = !panelOpen; settingsOpen = false"
               @open-settings="settingsOpen = !settingsOpen; panelOpen = false"
               @open-data-types="settingsPanel?.openDataTypesModal()"
+              @open-model-modal="settingsPanel?.openModelModal()"
               @refresh="loadWeather(false, true)"
             />
           </aside>
@@ -166,7 +168,8 @@
             </Transition>
             <div class="data-footer">
               Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-              <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+              · <button class="footer-model-btn" @click="settingsPanel?.openModelModal()">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
+              <template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
               <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
                 <span :class="{ spinning: loading }">↻</span>
               </button>
@@ -231,6 +234,7 @@ import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
+import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
 import { connectTempest, disconnectTempest, tempestData } from './services/tempestWs.js'
 import PwsPickerModal                                from './components/PwsPickerModal.vue'
@@ -240,7 +244,7 @@ import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composabl
 
 const {
   timeFormat, dailyFirst, showSim,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, activeDataType,
+  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
 } = useSettings()
 
 // ── Persistence keys (location / tutorial only) ───────────────────────────────
@@ -530,6 +534,8 @@ watch(unitPrefs, (newVal, oldVal) => {
   const apiChanged = ['temperature', 'wind', 'precipitation'].some(k => newVal[k] !== oldVal[k])
   if (location.value && apiChanged) loadWeather()
 }, { deep: true })
+
+watch(openMeteoModel, () => { if (location.value) loadWeather(false, true) })
 
 watch(activeDataType, checkAndRefresh)
 watch(selectedDay,    checkAndRefresh)
@@ -1079,7 +1085,9 @@ if (!isGeoActive.value) {
   padding: 8px 0 16px;
 }
 .data-footer a { color: var(--text-faint); text-decoration: none; }
-.data-footer a:hover { color: var(--text-muted); }@media (min-width: 1500px) { .data-footer { display: none; } }
+.data-footer a:hover { color: var(--text-muted); }
+.footer-model-btn { background: none; border: none; padding: 0; font: inherit; font-size: inherit; color: var(--text-faint); cursor: pointer; }
+.footer-model-btn:hover { color: var(--text-muted); }@media (min-width: 1500px) { .data-footer { display: none; } }
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) { .data-footer { display: none; } }
 
 .refresh-btn {

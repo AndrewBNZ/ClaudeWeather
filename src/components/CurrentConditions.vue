@@ -101,7 +101,8 @@
     <!-- Scene footer (desktop only) -->
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-<template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+      <template v-if="modelLabel"> · <button class="scene-footer-model-btn" @click="emit('open-model-modal')">{{ modelLabel }}</button></template>
+<template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
       <button v-if="canManualRefresh" class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
         <span :class="{ spinning: loading }">↻</span>
       </button>
@@ -277,6 +278,7 @@ const props = defineProps({
   staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
   canManualRefresh: { type: Boolean, default: true },
+  modelLabel:       { type: String,  default: '' },
   timeFormat:   { type: String, default: '12h' },
   blurred:       { type: Boolean, default: false },
   pwsName:       { type: String,  default: null },
@@ -286,7 +288,7 @@ const props = defineProps({
   selectedDay:   { type: Number,  default: 0 },
 })
 
-const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
+const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types', 'open-model-modal'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
@@ -888,6 +890,8 @@ function fmt(v, decimals) {
 }
 .scene-footer-refresh:hover:not(:disabled) { color: rgba(255, 255, 255, 0.9); }
 .scene-footer-refresh:disabled { cursor: default; }
+.scene-footer-model-btn { background: none; border: none; padding: 0; font: inherit; font-size: inherit; color: rgba(255, 255, 255, 0.55); cursor: pointer; }
+.scene-footer-model-btn:hover { color: rgba(255, 255, 255, 0.85); }
 
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
 

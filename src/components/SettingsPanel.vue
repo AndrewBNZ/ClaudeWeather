@@ -80,6 +80,16 @@
           </div>
           <div class="setting-row">
             <div>
+              <div class="setting-label">Forecast model</div>
+              <div class="setting-hint">Experiment to find the best model for your area</div>
+            </div>
+            <button class="model-picker-btn" @click="modelInfoOpen = true">
+              {{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Weather Underground PWS</div>
               <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Your API key is saved on this device' : 'Set your API key to get started') : 'PWS data temporarily hidden' }}</div>
             </div>
@@ -245,6 +255,31 @@
     </div>
   </transition>
 
+  <!-- Forecast model info modal -->
+  <transition name="modal-fade">
+    <div v-if="modelInfoOpen" class="modal-overlay" @click.self="modelInfoOpen = false">
+      <div class="modal-dialog modal-dialog--wide">
+        <div class="modal-header">
+          <span class="panel-title">Forecast model</span>
+          <button class="panel-close" @click="modelInfoOpen = false">✕</button>
+        </div>
+        <p class="modal-hint">Tap a model to select it. Most users can leave this on Best Match.</p>
+        <div class="model-list">
+          <button
+            v-for="m in OPEN_METEO_MODELS"
+            :key="m.value"
+            class="model-list-item"
+            :class="{ active: openMeteoModel === m.value }"
+            @click="openMeteoModel = m.value; modelInfoOpen = false"
+          >
+            <div class="model-list-name">{{ m.label }}</div>
+            <div class="model-list-hint">{{ m.hint }}</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
   <!-- Tempest token modal -->
   <transition name="modal-fade">
     <div v-if="tempestTokenModalOpen" class="modal-overlay" @click.self="tempestTokenModalOpen = false">
@@ -299,16 +334,17 @@ import { ref, watch } from 'vue'
 import { useSettings, UNIT_OPTIONS, TILE_META } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { APP_NAME } from '../config.js'
+import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
 import QrBackupModal  from './QrBackupModal.vue'
 import QrRestoreModal from './QrRestoreModal.vue'
 
 const props = defineProps({ isOpen: Boolean })
 defineEmits(['close'])
-defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true } })
+defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true }, openModelModal: () => { modelInfoOpen.value = true } })
 
 const {
   theme, timeFormat, dailyFirst, showSim,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken,
+  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
 } = useSettings()
 
@@ -318,6 +354,7 @@ const dropdownStyle    = ref({})
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
+const modelInfoOpen          = ref(false)
 const pwsKeyModalOpen        = ref(false)
 const tempestTokenModalOpen  = ref(false)
 const qrBackupOpen           = ref(false)
@@ -621,6 +658,60 @@ function onTileTouchEnd() {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
+
+.model-picker-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.model-picker-btn:hover { background: var(--btn-hover); color: var(--text); }
+
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 8px;
+}
+.model-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.model-list-item:hover { background: var(--btn-bg); }
+.model-list-item.active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+.model-list-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.model-list-item.active .model-list-name { color: #38bdf8; }
+.model-list-hint {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
 .setting-action-btn:hover { background: var(--btn-hover); color: var(--text); }
 
 .setting-action-btn--danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
@@ -683,7 +774,7 @@ function onTileTouchEnd() {
 }
 .modal-bulk-btn:hover { background: var(--btn-hover); color: var(--text); }
 
-.modal-hint { font-size: 0.75rem; color: var(--text-faint); padding: 0 20px 8px; margin: 0; }
+.modal-hint { font-size: 0.75rem; color: var(--text-faint); padding: 10px 20px 8px; margin: 0; }
 
 .modal-body {
   padding: 14px 20px 20px;

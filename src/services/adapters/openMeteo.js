@@ -36,10 +36,29 @@
  * }
  */
 
-const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
+import { APP_STORAGE_PREFIX } from '../../config.js'
 
-export const id = 'open-meteo'
+const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
+const MODEL_STG = `${APP_STORAGE_PREFIX}-open-meteo-model`
+
+export const id    = 'open-meteo'
 export const label = 'Open-Meteo'
+
+export const MODELS = [
+  { value: 'best_match',           label: 'Best Match (auto)',  hint: 'Automatically picks the best available model for your location' },
+  { value: 'ecmwf_ifs',            label: 'ECMWF IFS 9km',     hint: 'Very good global model; excellent worldwide' },
+  { value: 'ecmwf_ifs025',         label: 'ECMWF IFS 28km',   hint: 'Lower-resolution ECMWF model; global coverage' },
+  { value: 'gfs_seamless',         label: 'NOAA GFS',          hint: 'Good global coverage; best for the USA; longest range at 16 days' },
+  { value: 'icon_seamless',        label: 'DWD ICON',          hint: 'Excellent for Europe, especially Central Europe and Alpine regions' },
+  { value: 'gem_seamless',         label: 'GEM (Canada)',       hint: 'Best for Canada, North America, and the Arctic' },
+  { value: 'meteofrance_seamless', label: 'Météo-France',       hint: 'Finest resolution for France and W. Europe; note: 4-day forecast limit' },
+  { value: 'ukmo_seamless',        label: 'UK Met Office',      hint: 'Best for the UK, Ireland, and North Atlantic; note: 4-hour data delay' },
+  { value: 'jma_seamless',         label: 'JMA (Japan)',        hint: 'Best for Japan, Korea, and Western Pacific typhoon tracking' },
+]
+
+export function getVariant() {
+  return localStorage.getItem(MODEL_STG) ?? 'best_match'
+}
 
 /**
  * Fetch raw data from Open-Meteo and normalize to canonical schema.
@@ -98,7 +117,7 @@ export async function fetch(lat, lon, unitPrefs) {
     precipitation_unit: unitPrefs.precipitation,
     timezone:           'auto',
     forecast_days:      14,
-    models:             'best_match',
+    models:             getVariant(),
     cell_selection:     'nearest',
   })
 
