@@ -22,15 +22,22 @@
     </header>
 
     <main class="main">
+      <!-- Offline -->
+      <div v-if="isOffline && !weatherData" class="offline-card">
+        <span class="offline-icon">📡</span>
+        <p class="offline-title">No internet connection</p>
+        <p class="offline-sub">Weather will load automatically when you're back online.</p>
+      </div>
+
       <!-- Empty state — no location selected yet -->
-      <div v-if="!location && !loading" class="empty-state">
+      <div v-else-if="!location && !loading" class="empty-state">
         <div class="empty-icon">🌍</div>
         <p class="empty-title">Where in the world are you?</p>
         <button class="add-location-btn" @click="panelOpen = true">+ Add a location</button>
       </div>
 
       <!-- Loading -->
-      <div v-else-if="loading" class="loading-state">
+      <div v-else-if="loading && !isOffline" class="loading-state">
         <div class="loading-icon">🌤️</div>
         <div class="loading-dots">
           <span></span><span></span><span></span>
@@ -276,6 +283,7 @@ const pwsPickerLoc   = ref(null)
 const pwsData            = ref(null)
 const grassColor         = ref('#43A047')
 const locationName       = ref('')
+const isOffline          = ref(!navigator.onLine)
 const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location           = ref(null)
 const selectedDay        = ref(0)
@@ -493,6 +501,8 @@ function checkAndRefresh() {
 
 async function loadWeather(silent = false, forceRefresh = false) {
   if (!location.value) return
+  if (!navigator.onLine) { isOffline.value = true; loading.value = false; return }
+  isOffline.value = false
   if (!silent || !weatherData.value) loading.value = true
   error.value = null
   try {
@@ -613,10 +623,17 @@ onMounted(() => {
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)
 
+function onOnline()  { isOffline.value = false; if (location.value) loadWeather() }
+function onOffline() { isOffline.value = true }
+window.addEventListener('online',  onOnline)
+window.addEventListener('offline', onOffline)
+
 onUnmounted(() => {
   clearInterval(refreshTimer)
   clearInterval(autoTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('online',  onOnline)
+  window.removeEventListener('offline', onOffline)
 })
 
 // Restore last active location on load
@@ -1001,6 +1018,19 @@ if (!isGeoActive.value) {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+.offline-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+  color: #94a3b8;
+}
+.offline-icon { font-size: 2rem; }
+.offline-title { font-size: 1.1rem; font-weight: 600; color: #cbd5e1; margin: 0; }
+.offline-sub { font-size: 0.875rem; margin: 0; max-width: 240px; }
 
 .error-card {
   display: flex;

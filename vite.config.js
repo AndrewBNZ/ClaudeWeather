@@ -1,8 +1,33 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html}'],
+        navigateFallback: '/ClaudeWeather/index.html',
+      },
+      manifest: {
+        name: 'ClaudeWeather',
+        short_name: 'ClaudeWeather',
+        start_url: '/ClaudeWeather/',
+        display: 'standalone',
+        background_color: '#000000',
+        theme_color: '#000000',
+        icons: [
+          {
+            src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛅</text></svg>",
+            sizes: 'any',
+            type: 'image/svg+xml',
+          },
+        ],
+      },
+    }),
+  ],
   base: '/ClaudeWeather/',
   server: {
     proxy: {
