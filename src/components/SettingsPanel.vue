@@ -259,7 +259,7 @@
           <span class="panel-title">Forecast model</span>
           <button class="panel-close" @click="modelInfoOpen = false">✕</button>
         </div>
-        <p class="modal-hint">Tap a model to select it. Most users can leave this on Best Match.</p>
+        <p class="modal-hint">You may need to experiment to find the best model for your location.<br/>If unsure, select Auto, or ECMWF.</p>
         <div class="model-list">
           <button
             v-for="m in OPEN_METEO_MODELS"

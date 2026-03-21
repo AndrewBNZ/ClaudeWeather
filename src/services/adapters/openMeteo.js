@@ -45,9 +45,8 @@ export const id    = 'open-meteo'
 export const label = 'Open-Meteo'
 
 export const MODELS = [
-  { value: 'best_match',           label: 'Best Match (auto)',  hint: 'Automatically picks the best available model for your location' },
-  { value: 'ecmwf_ifs',            label: 'ECMWF 9km',     hint: 'Very good global model; excellent worldwide' },
-  { value: 'ecmwf_ifs025',         label: 'ECMWF 28km',   hint: 'Lower-resolution ECMWF model; global coverage' },
+  { value: 'best_match',           label: 'Auto',  hint: 'Open-Meteo will select what they think is best for your location' },
+  { value: 'ecmwf_ifs',            label: 'ECMWF HRES',     hint: 'Very good global model; excellent worldwide (9km high resolution)' },
   { value: 'gfs_seamless',         label: 'NOAA GFS',          hint: 'Good global coverage; best for the USA; longest range at 16 days' },
   { value: 'icon_seamless',        label: 'DWD ICON',          hint: 'Excellent for Europe, especially Central Europe and Alpine regions' },
   { value: 'gem_seamless',         label: 'GEM (Canada)',       hint: 'Best for Canada, North America, and the Arctic' },
