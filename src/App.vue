@@ -113,8 +113,6 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
-                  :pws-current="mergedCurrent"
-                  :pws-data-active="!!(pwsData || tempestData)"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -157,8 +155,6 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
-                  :pws-current="mergedCurrent"
-                  :pws-data-active="!!(pwsData || tempestData)"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />

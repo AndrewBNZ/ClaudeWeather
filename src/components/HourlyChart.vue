@@ -74,8 +74,6 @@ import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
 
 const APP_FONT = "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
 
-const PWS_CHART_TYPES = new Set(['temperature', 'feelsLike', 'humidity', 'wind', 'pressure', 'rain'])
-
 const props = defineProps({
   hourly:        { type: Object,  required: true },
   daily:         { type: Object,  default: null },
@@ -85,8 +83,6 @@ const props = defineProps({
   theme:         { type: String,  default: 'dark' },
   utcOffset:     { type: Number,  default: 0 },
   timeFormat:    { type: String,  default: '12h' },
-  pwsCurrent:    { type: Object,  default: null },
-  pwsDataActive: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['select-day', 'open-units-modal'])
@@ -98,8 +94,6 @@ const selectBtnRef  = ref(null)
 const dropdownOpen  = ref(false)
 const dropdownStyle = ref({})
 let   chartInstance = null
-// Mutable container read by makePwsCurrentPlugin — updated without chart rebuild
-const pwsLive = { value: null, windDir: null, currentHour: -1, decimals: 0, unit: '', keepDecimals: false }
 
 const navBtnBg     = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.05)'   : 'rgba(255,255,255,0.12)')
 const navBtnBorder = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.1)'    : 'rgba(255,255,255,0.2)')
@@ -455,72 +449,6 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   }
 }
 
-function makePwsCurrentPlugin() {
-  return {
-    id: 'pwsCurrentDot',
-    afterDatasetsDraw(chart) {
-      const { value: pwsValue, windDir, currentHour, decimals, unit, keepDecimals } = pwsLive
-      if (pwsValue == null || currentHour < 0) return
-      const { ctx, scales } = chart
-      const meta = chart.getDatasetMeta(0)
-      const point = meta.data[currentHour]
-      if (!point) return
-      const x = point.getProps(['x'], true).x
-      const y = scales.y.getPixelForValue(pwsValue)
-
-      const isLight = props.theme === 'light'
-      const labelStroke = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)'
-
-      if (windDir != null) {
-        // Wind chart: draw a direction arrow at the PWS speed position
-        drawWindArrow(ctx, x, y, windDir, '#38bdf8', { isCurrent: true })
-        // Speed label below the arrow circle
-        const r = 13
-        const formatted = Number(pwsValue).toFixed(decimals)
-        const label = keepDecimals ? formatted : formatted.replace(/\.0+$/, '')
-        ctx.save()
-        ctx.font = `bold 14px ${APP_FONT}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'top'
-        ctx.lineJoin = 'round'
-        ctx.lineWidth = 3
-        ctx.strokeStyle = labelStroke
-        ctx.strokeText(label, x, y + r + 4)
-        ctx.fillStyle = '#38bdf8'
-        ctx.fillText(label, x, y + r + 4)
-        ctx.restore()
-      } else {
-        const r = 5
-
-        // Dot
-        ctx.save()
-        ctx.beginPath()
-        ctx.arc(x, y, r, 0, Math.PI * 2)
-        ctx.fillStyle = '#38bdf8'
-        ctx.fill()
-        ctx.strokeStyle = isLight ? '#ffffff' : '#0f172a'
-        ctx.lineWidth = 2
-        ctx.stroke()
-        ctx.restore()
-
-        // Label below the dot
-        const formatted = Number(pwsValue).toFixed(decimals)
-        const label = `${keepDecimals ? formatted : formatted.replace(/\.0+$/, '')}${unit === '%' ? '%' : ''}`
-        ctx.save()
-        ctx.font = `bold 13px ${APP_FONT}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'top'
-        ctx.lineJoin = 'round'
-        ctx.lineWidth = 3
-        ctx.strokeStyle = labelStroke
-        ctx.strokeText(label, x, y + r + 4)
-        ctx.fillStyle = '#38bdf8'
-        ctx.fillText(label, x, y + r + 4)
-        ctx.restore()
-      }
-    },
-  }
-}
 
 function hourLabel(isoStr) {
   const h = parseInt(isoStr.slice(11, 13))
@@ -559,27 +487,14 @@ function buildChart() {
   const isRain = cfg.id === 'rain'
   const isTemp = cfg.id === 'temperature' || cfg.id === 'feelsLike'
 
-  const pwsActive = props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0 && currentHour >= 0
-  const pwsValue = pwsActive ? (props.pwsCurrent?.[cfg.hourlyKey] ?? null) : null
-  const pwsWindDir = (pwsActive && isWind) ? (props.pwsCurrent?.wind_direction_10m ?? null) : null
-
-  // Populate shared container so the plugin can update without chart rebuild
-  pwsLive.value = pwsValue
-  pwsLive.windDir = pwsWindDir
-  pwsLive.currentHour = currentHour
-  pwsLive.decimals = decimals
-  pwsLive.unit = unit
-  pwsLive.keepDecimals = isRain
-
   // Global min/max across all 14 days with padding so inline labels stay inside the chart area
   let globalYMin, globalYMax
   if (!isRain) {
     let allVals = (props.hourly[cfg.hourlyKey] ?? []).filter(v => v != null)
     if (cfg.scale) allVals = allVals.map(v => cfg.scale(v, props.unitPrefs))
     if (allVals.length) {
-      const valsForRange = pwsValue != null ? [...allVals, pwsValue] : allVals
-      const lo = Math.min(...valsForRange)
-      const hi = Math.max(...valsForRange)
+      const lo = Math.min(...allVals)
+      const hi = Math.max(...allVals)
       const pad = Math.max((hi - lo) * 0.18, 2)
       globalYMin = Math.floor(lo - pad)
       globalYMax = Math.ceil(hi + pad)
@@ -589,13 +504,6 @@ function buildChart() {
   const windDirs   = isWind ? (props.hourly.wind_direction_10m ?? []).slice(start, start + 25) : null
   const probValues = isRain ? (props.hourly.precipitation_probability ?? []).slice(start, start + 25) : null
   const wxCodes    = (props.hourly.weather_code ?? []).slice(start, start + 25)
-
-  // Hide forecast icon/label at currentHour when PWS value is close to the forecast value
-  const yRange = (globalYMax != null && globalYMin != null) ? (globalYMax - globalYMin) : null
-  const skipForecastHour = (pwsValue != null && currentHour >= 0 && yRange > 0 &&
-    values[currentHour] != null &&
-    Math.abs(pwsValue - values[currentHour]) < yRange * 0.07)
-    ? currentHour : -1
 
   // All non-rain charts: hide default dots (custom plugin draws icon + number instead)
   const pointRadii  = isRain ? labels.map((_, i) => i === currentHour ? 6 : 3) : 0
@@ -609,10 +517,9 @@ function buildChart() {
     makePastShadingPlugin(currentHour, props.dayIndex),
     crosshairPlugin,
     sunPlugin,
-    ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour, skipForecastHour)]
-      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix, skipForecastHour)]
+    ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour, -1)]
+      : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix, -1)]
       : []),
-    makePwsCurrentPlugin(),
   ]
 
   // Rain: bar chart for amount + probability line on a second right axis
@@ -648,7 +555,7 @@ function buildChart() {
           },
         ],
       },
-      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour), makePwsCurrentPlugin()],
+      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour)],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -787,21 +694,9 @@ async function buildAndScroll() {
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
 watch(
-  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat, () => props.pwsDataActive],
+  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat],
   scheduleAndScroll
 )
-// PWS live updates: skip full rebuild, just redraw the overlay dot/arrow in-place
-// deep:true is required because pwsCurrent is a shallowReactive object (stable reference,
-// mutated in-place) — without it, the watch never fires when properties change.
-watch(() => props.pwsCurrent, (cur) => {
-  if (!chartInstance) return
-  const cfg = DATA_TYPES[props.activeType]
-  if (!cfg) return
-  const pwsActive = props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0
-  pwsLive.value = pwsActive ? (cur?.[cfg.hourlyKey] ?? null) : null
-  pwsLive.windDir = (pwsActive && cfg.id === 'wind') ? (cur?.wind_direction_10m ?? null) : null
-  chartInstance.update('none')
-}, { deep: true })
 function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   document.addEventListener('click', onDocClick, true)
