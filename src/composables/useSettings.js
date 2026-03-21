@@ -7,6 +7,7 @@ const PWS_KEY_STG          = `${P}-pws-key`
 const PWS_ENABLED_STG      = `${P}-pws-enabled`
 const TEMPEST_TOKEN_STG    = `${P}-tempest-token`
 const TEMPEST_ENABLED_STG  = `${P}-tempest-enabled`
+const OPEN_METEO_MODEL_STG = `${P}-open-meteo-model`
 const UNIT_PREFS_KEY  = `${P}-unitprefs`
 const LEGACY_UNITS_KEY = `${P}-units`
 const SIM_KEY         = `${P}-sim`
@@ -67,8 +68,8 @@ function loadTileConfig() {
     const raw = JSON.parse(localStorage.getItem(TILES_KEY))
     if (Array.isArray(raw) && raw.every(t => t.type)) {
       const known = new Set(Object.keys(TILE_META))
-      const valid = raw.filter(t => known.has(t.type))
-      const seen  = new Set(valid.map(t => t.type))
+      const valid = raw.filter(t => t.type === 'pageBreak' || known.has(t.type))
+      const seen  = new Set(valid.filter(t => t.type !== 'pageBreak').map(t => t.type))
       for (const d of DEFAULT_TILES) { if (!seen.has(d.type)) valid.push({ ...d }) }
       return valid
     }
@@ -109,8 +110,9 @@ const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const pwsEnabled      = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
 const pwsApiKey       = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
-const tempestEnabled  = ref(localStorage.getItem(TEMPEST_ENABLED_STG) !== 'false')
-const tempestToken    = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
+const tempestEnabled   = ref(localStorage.getItem(TEMPEST_ENABLED_STG) !== 'false')
+const tempestToken     = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
+const openMeteoModel   = ref(localStorage.getItem(OPEN_METEO_MODEL_STG) ?? 'best_match')
 const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -122,8 +124,9 @@ watch(dailyFirst,    (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
 watch(showSim,       (v) => localStorage.setItem(SIM_KEY, String(v)))
 watch(pwsEnabled,     (v) => localStorage.setItem(PWS_ENABLED_STG, String(v)))
 watch(pwsApiKey,      (v) => { try { if (v) localStorage.setItem(PWS_KEY_STG, v); else localStorage.removeItem(PWS_KEY_STG) } catch {} })
-watch(tempestEnabled, (v) => localStorage.setItem(TEMPEST_ENABLED_STG, String(v)))
-watch(tempestToken,   (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_STG, v); else localStorage.removeItem(TEMPEST_TOKEN_STG) } catch {} })
+watch(tempestEnabled,  (v) => localStorage.setItem(TEMPEST_ENABLED_STG, String(v)))
+watch(tempestToken,    (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_STG, v); else localStorage.removeItem(TEMPEST_TOKEN_STG) } catch {} })
+watch(openMeteoModel,  (v) => localStorage.setItem(OPEN_METEO_MODEL_STG, v))
 watch(activeDataType,(v) => localStorage.setItem(DATATYPE_KEY, v))
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
@@ -143,15 +146,25 @@ function toggleTile(i) {
 }
 
 function setAllTiles(enabled) {
-  tileConfig.value = tileConfig.value.map(t => ({ ...t, enabled }))
+  tileConfig.value = tileConfig.value.map(t => t.type === 'pageBreak' ? t : { ...t, enabled })
   if (!enabled) activeDataType.value = 'temperature'
+}
+
+function addPageBreak(afterIndex) {
+  const arr = [...tileConfig.value]
+  arr.splice(afterIndex + 1, 0, { type: 'pageBreak' })
+  tileConfig.value = arr
+}
+
+function removePageBreak(index) {
+  tileConfig.value = tileConfig.value.filter((_, i) => i !== index)
 }
 
 export function useSettings() {
   return {
     theme, resolvedTheme, timeFormat, dailyFirst, showSim,
-    tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, activeDataType,
+    tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
     UNIT_OPTIONS, TILE_META,
-    toggleTile, setAllTiles, reorderTiles,
+    toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
   }
 }

@@ -67,7 +67,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">Weather details</div>
-              <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
+              <div class="setting-hint">{{ tileConfig.filter(t => t.type !== 'pageBreak' && t.enabled).length }} of {{ tileConfig.filter(t => t.type !== 'pageBreak').length }} shown</div>
             </div>
             <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
           </div>
@@ -77,6 +77,16 @@
               <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
             </div>
             <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Forecast model</div>
+              <div class="setting-hint">Experiment to find the best model for your area</div>
+            </div>
+            <button class="model-picker-btn" @click="modelInfoOpen = true">
+              {{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
           </div>
           <div class="setting-row">
             <div>
@@ -179,30 +189,50 @@
         <div class="modal-bulk-actions">
           <button class="modal-bulk-btn" @click="setAllTiles(true)">All On</button>
           <button class="modal-bulk-btn" @click="setAllTiles(false)">All Off</button>
+          <button class="modal-bulk-btn" @click="addPageBreak(tileConfig.length - 1)">+ Page</button>
         </div>
         <p class="modal-hint">Drag to reorder · tap to show/hide</p>
         <div class="tile-list">
-          <div
-            v-for="(tile, i) in tileConfig"
-            :key="tile.type"
-            :data-tile-idx="i"
-            class="tile-row"
-            :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
-            draggable="true"
-            @dragstart="onTileDragStart($event, i)"
-            @dragover="onTileDragOver($event, i)"
-            @dragend="onTileDragEnd"
-            @drop="onTileDrop($event, i)"
-            @touchstart.passive="onTileTouchStart($event, i)"
-            @touchmove="onTileTouchMove"
-            @touchend="onTileTouchEnd"
-          >
-            <span class="tile-drag-handle">⠿</span>
-            <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
-            <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
+          <template v-for="(tile, i) in tileConfig" :key="`${tile.type}-${i}`">
+            <!-- Page break divider -->
+            <div v-if="tile.type === 'pageBreak'"
+              :data-tile-idx="i"
+              class="tile-row tile-page-break"
+              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+              draggable="true"
+              @dragstart="onTileDragStart($event, i)"
+              @dragover="onTileDragOver($event, i)"
+              @dragend="onTileDragEnd"
+              @drop="onTileDrop($event, i)"
+              @touchstart.passive="onTileTouchStart($event, i)"
+              @touchmove="onTileTouchMove"
+              @touchend="onTileTouchEnd"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <span class="page-break-label">— Page {{ tileConfig.slice(0, i).filter(t => t.type === 'pageBreak').length + 2 }}</span>
+              <button class="page-break-remove" @click.stop="removePageBreak(i)" title="Remove page break">✕</button>
+            </div>
+            <!-- Regular tile -->
+            <div v-else
+              :data-tile-idx="i"
+              class="tile-row"
+              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+              draggable="true"
+              @dragstart="onTileDragStart($event, i)"
+              @dragover="onTileDragOver($event, i)"
+              @dragend="onTileDragEnd"
+              @drop="onTileDrop($event, i)"
+              @touchstart.passive="onTileTouchStart($event, i)"
+              @touchmove="onTileTouchMove"
+              @touchend="onTileTouchEnd"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
+              <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -220,6 +250,31 @@
         <div class="reset-confirm-actions">
           <button class="setting-action-btn" @click="resetConfirmOpen = false">Cancel</button>
           <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset</button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- Forecast model info modal -->
+  <transition name="modal-fade">
+    <div v-if="modelInfoOpen" class="modal-overlay" @click.self="modelInfoOpen = false">
+      <div class="modal-dialog modal-dialog--wide">
+        <div class="modal-header">
+          <span class="panel-title">Forecast model</span>
+          <button class="panel-close" @click="modelInfoOpen = false">✕</button>
+        </div>
+        <p class="modal-hint">Tap a model to select it. Most users can leave this on Best Match.</p>
+        <div class="model-list">
+          <button
+            v-for="m in OPEN_METEO_MODELS"
+            :key="m.value"
+            class="model-list-item"
+            :class="{ active: openMeteoModel === m.value }"
+            @click="openMeteoModel = m.value; modelInfoOpen = false"
+          >
+            <div class="model-list-name">{{ m.label }}</div>
+            <div class="model-list-hint">{{ m.hint }}</div>
+          </button>
         </div>
       </div>
     </div>
@@ -279,17 +334,18 @@ import { ref, watch } from 'vue'
 import { useSettings, UNIT_OPTIONS, TILE_META } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { APP_NAME } from '../config.js'
+import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
 import QrBackupModal  from './QrBackupModal.vue'
 import QrRestoreModal from './QrRestoreModal.vue'
 
 const props = defineProps({ isOpen: Boolean })
 defineEmits(['close'])
-defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true } })
+defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true }, openModelModal: () => { modelInfoOpen.value = true } })
 
 const {
   theme, timeFormat, dailyFirst, showSim,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken,
-  toggleTile, setAllTiles, reorderTiles,
+  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
+  toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
 } = useSettings()
 
 // ── Local state ───────────────────────────────────────────────────────────────
@@ -298,6 +354,7 @@ const dropdownStyle    = ref({})
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
+const modelInfoOpen          = ref(false)
 const pwsKeyModalOpen        = ref(false)
 const tempestTokenModalOpen  = ref(false)
 const qrBackupOpen           = ref(false)
@@ -601,6 +658,60 @@ function onTileTouchEnd() {
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
+
+.model-picker-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  color: var(--text-muted);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.model-picker-btn:hover { background: var(--btn-hover); color: var(--text); }
+
+.model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 8px;
+}
+.model-list-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+.model-list-item:hover { background: var(--btn-bg); }
+.model-list-item.active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+.model-list-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.model-list-item.active .model-list-name { color: #38bdf8; }
+.model-list-hint {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
 .setting-action-btn:hover { background: var(--btn-hover); color: var(--text); }
 
 .setting-action-btn--danger { color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
@@ -663,7 +774,7 @@ function onTileTouchEnd() {
 }
 .modal-bulk-btn:hover { background: var(--btn-hover); color: var(--text); }
 
-.modal-hint { font-size: 0.75rem; color: var(--text-faint); padding: 0 20px 8px; margin: 0; }
+.modal-hint { font-size: 0.75rem; color: var(--text-faint); padding: 10px 20px 8px; margin: 0; }
 
 .modal-body {
   padding: 14px 20px 20px;
@@ -785,4 +896,30 @@ function onTileTouchEnd() {
 
 .tile-dragging { opacity: 0.35; }
 .tile-drag-over { background: rgba(56, 189, 248, 0.08); border-top-color: rgba(56, 189, 248, 0.35); }
+
+.tile-page-break {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  border-top-color: rgba(56, 189, 248, 0.25);
+}
+.page-break-label {
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #38bdf8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.page-break-remove {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.page-break-remove:hover { color: #f87171; background: rgba(248,113,113,0.1); }
 </style>

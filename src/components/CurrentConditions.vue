@@ -101,7 +101,8 @@
     <!-- Scene footer (desktop only) -->
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-<template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
+      <template v-if="modelLabel"> · <button class="scene-footer-model-btn" @click="emit('open-model-modal')">{{ modelLabel }}</button></template>
+<template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
       <button v-if="canManualRefresh" class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
         <span :class="{ spinning: loading }">↻</span>
       </button>
@@ -130,10 +131,13 @@
         </div>
       </button>
 
-      <!-- Detail items — each selects its data type -->
-      <div class="cond-details">
+      <!-- Detail items — each selects its data type, split into swipeable pages -->
+      <div class="cond-details"
+        @touchstart.passive="onSwipeTouchStart"
+        @touchend.passive="onSwipeTouchEnd"
+      >
         <button
-          v-for="item in detailItems"
+          v-for="item in detailPages[currentPage]"
           :key="item.type"
           class="detail-item selectable"
           :class="{ active: activeType === item.type }"
@@ -157,6 +161,21 @@
             <div class="detail-value">{{ item.value }}</div>
           </div>
         </button>
+      </div>
+      <!-- Page navigation (only shown when there are multiple pages) -->
+      <div v-if="detailPages.length > 1" class="page-nav">
+        <button class="page-arrow" :disabled="currentPage === 0" @click="currentPage = currentPage - 1" aria-label="Previous page">‹</button>
+        <div class="page-dots">
+          <button
+            v-for="(_, i) in detailPages"
+            :key="i"
+            class="page-dot"
+            :class="{ active: i === currentPage }"
+            @click="currentPage = i"
+            :aria-label="`Page ${i + 1}`"
+          />
+        </div>
+        <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="currentPage = currentPage + 1" aria-label="Next page">›</button>
       </div>
     </div>
     </div>
@@ -259,6 +278,7 @@ const props = defineProps({
   staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
   canManualRefresh: { type: Boolean, default: true },
+  modelLabel:       { type: String,  default: '' },
   timeFormat:   { type: String, default: '12h' },
   blurred:       { type: Boolean, default: false },
   pwsName:       { type: String,  default: null },
@@ -268,7 +288,7 @@ const props = defineProps({
   selectedDay:   { type: Number,  default: 0 },
 })
 
-const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
+const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types', 'open-model-modal'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
@@ -325,13 +345,34 @@ const allTiles = computed(() => {
   }
 })
 
-const detailItems = computed(() => {
-  if (!props.tileConfig) return Object.values(allTiles.value)
-  return props.tileConfig
-    .filter(t => t.enabled)
-    .map(t => allTiles.value[t.type])
-    .filter(Boolean)
+const detailPages = computed(() => {
+  if (!props.tileConfig) return [Object.values(allTiles.value)]
+  const pages = [[]]
+  for (const t of props.tileConfig) {
+    if (t.type === 'pageBreak') {
+      pages.push([])
+    } else if (t.enabled && allTiles.value[t.type]) {
+      pages[pages.length - 1].push(allTiles.value[t.type])
+    }
+  }
+  return pages.filter(p => p.length > 0)
 })
+
+const currentPage = ref(0)
+watch(detailPages, (pages) => {
+  if (currentPage.value >= pages.length) currentPage.value = Math.max(0, pages.length - 1)
+})
+
+let swipeTouchStartX = null
+function onSwipeTouchStart(e) { swipeTouchStartX = e.touches[0].clientX }
+function onSwipeTouchEnd(e) {
+  if (swipeTouchStartX === null) return
+  const dx = e.changedTouches[0].clientX - swipeTouchStartX
+  swipeTouchStartX = null
+  if (Math.abs(dx) < 40) return
+  if (dx < 0 && currentPage.value < detailPages.value.length - 1) currentPage.value++
+  else if (dx > 0 && currentPage.value > 0) currentPage.value--
+}
 
 function fmt(v, decimals) {
   if (v == null) return '–'
@@ -559,6 +600,55 @@ function fmt(v, decimals) {
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   grid-auto-rows: 68px;
   gap: 8px;
+}
+
+.page-nav {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+  pointer-events: auto;
+}
+
+.page-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.page-arrow:hover:not(:disabled) { color: rgba(255, 255, 255, 0.9); }
+.page-arrow:disabled { opacity: 0.2; cursor: default; }
+
+.page-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.page-dot.active {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.3);
 }
 
 .detail-item {
@@ -800,6 +890,8 @@ function fmt(v, decimals) {
 }
 .scene-footer-refresh:hover:not(:disabled) { color: rgba(255, 255, 255, 0.9); }
 .scene-footer-refresh:disabled { cursor: default; }
+.scene-footer-model-btn { background: none; border: none; padding: 0; font: inherit; font-size: inherit; color: rgba(255, 255, 255, 0.55); cursor: pointer; }
+.scene-footer-model-btn:hover { color: rgba(255, 255, 255, 0.85); }
 
 /* ── Grass bar ─────────────────────────────────────────────────────────── */
 

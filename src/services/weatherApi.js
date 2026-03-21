@@ -37,10 +37,12 @@ export function setWeatherProvider(id) {
 
 const CACHE_TTL_MS = 15 * 60 * 1000
 
-function cacheKey(provider, lat, lon, unitPrefs) {
-  const rLat = Math.round(lat * 10000) / 10000
-  const rLon = Math.round(lon * 10000) / 10000
-  return `weather_cache_${provider}_${rLat}_${rLon}_${unitPrefs.temperature}_${unitPrefs.wind}_${unitPrefs.precipitation}`
+function cacheKey(adapter, lat, lon, unitPrefs) {
+  const rLat    = Math.round(lat * 10000) / 10000
+  const rLon    = Math.round(lon * 10000) / 10000
+  const variant = adapter.getVariant?.() ?? ''
+  const key     = variant ? `${adapter.id}_${variant}` : adapter.id
+  return `weather_cache_${key}_${rLat}_${rLon}_${unitPrefs.temperature}_${unitPrefs.wind}_${unitPrefs.precipitation}`
 }
 
 function readCache(key) {
@@ -49,9 +51,28 @@ function readCache(key) {
     if (!raw) return null
     const entry = JSON.parse(raw)
     if (Date.now() - entry.timestamp < CACHE_TTL_MS) return entry
+    localStorage.removeItem(key)
   } catch {}
   return null
 }
+
+function purgeExpiredCache() {
+  try {
+    const now = Date.now()
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('weather_cache_'))
+      .forEach(k => {
+        try {
+          const entry = JSON.parse(localStorage.getItem(k))
+          if (now - entry.timestamp >= CACHE_TTL_MS) localStorage.removeItem(k)
+        } catch {
+          localStorage.removeItem(k)
+        }
+      })
+  } catch {}
+}
+
+purgeExpiredCache()
 
 function writeCache(key, data) {
   const timestamp = Date.now()
@@ -83,7 +104,7 @@ export function clearWeatherCache(lat, lon) {
 export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false } = {}) {
   const provider = getWeatherProvider()
   const adapter  = ADAPTERS[provider] ?? openMeteo
-  const key      = cacheKey(provider, lat, lon, unitPrefs)
+  const key      = cacheKey(adapter, lat, lon, unitPrefs)
 
   if (!forceRefresh) {
     const cached = readCache(key)
