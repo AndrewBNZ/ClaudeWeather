@@ -339,7 +339,7 @@ function auroraBandStyle(n) {
 // ── Birds ──────────────────────────────────────────────────────────────────
 const showBirds = computed(() =>
   props.forceBirds ||
-  (isDay.value && (group.value === 'clear' || group.value === 'partly') && cloudCount.value < 4)
+  (isDay.value && (group.value === 'clear' || group.value === 'partly') && cloudCount.value < 5)
 )
 const birds = Array.from({ length: 6 }, (_, i) => {
   const n = i + 1
@@ -784,33 +784,40 @@ const cloudColor = computed(() => {
 
 const driftDur = computed(() => {
   const s = effectiveWind.value
-  if (s > 50) return 7
-  if (s > 30) return 13
-  if (s > 10) return 28  // breeze (15 km/h) lands here
-  return 65              // calm (0) — very slow lazy drift
+  if (s > 60) return 14
+  if (s > 50) return 19
+  if (s > 40) return 26
+  if (s > 30) return 36
+  if (s > 20) return 49
+  if (s > 10) return 65
+  if (s > 5)  return 95
+  return 120
 })
 
-const activeClouds = computed(() =>
-  [
-    { top: '6%',  w: 140, h: 48, delay: 0    },
-    { top: '16%', w: 105, h: 38, delay: -9   },
-    { top: '3%',  w: 120, h: 44, delay: -19  },
-    { top: '11%', w: 155, h: 52, delay: -28  },
-    { top: '20%', w:  90, h: 32, delay: -6   },
-    { top: '8%',  w: 130, h: 42, delay: -34  },
+const activeClouds = computed(() => {
+  const configs = [
+    { top: '6%',  w: 140, h: 48 },
+    { top: '16%', w: 105, h: 38 },
+    { top: '3%',  w: 120, h: 44 },
+    { top: '11%', w: 155, h: 52 },
+    { top: '20%', w:  90, h: 32 },
+    { top: '8%',  w: 130, h: 42 },
   ]
-  .slice(0, cloudCount.value)
-  .map(cfg => ({
-    style: {
-      top:               cfg.top,
-      width:             `${cfg.w}px`,
-      height:            `${cfg.h}px`,
-      '--cloud-color':   cloudColor.value,
-      animationDuration: `${driftDur.value}s`,
-      animationDelay:    `${cfg.delay}s`,
-    },
-  }))
-)
+  const count = cloudCount.value
+  const dur   = driftDur.value
+  return configs
+    .slice(0, count)
+    .map((cfg, i) => ({
+      style: {
+        top:               cfg.top,
+        width:             `${cfg.w}px`,
+        height:            `${cfg.h}px`,
+        '--cloud-color':   cloudColor.value,
+        animationDuration: `${dur}s`,
+        animationDelay:    `${-(i * dur / count).toFixed(1)}s`,
+      },
+    }))
+})
 
 // ── Rain ───────────────────────────────────────────────────────────────────
 const rainAngle = computed(() => {
@@ -952,8 +959,8 @@ const leaves = computed(() => {
 function swayVars() {
   const s = effectiveWind.value
   if (s < 5) return null
-  const dur   = s > 40 ? 0.3  : s > 20 ? 0.7  : 1.8
-  const angle = s > 40 ? 14   : s > 20 ? 7    : 4
+  const dur   = s > 40 ? 0.5  : s > 20 ? 0.7  : 1.8
+  const angle = s > 40 ? 12   : s > 20 ? 7    : 4
   return { '--sway-from': `${(angle * 0.3).toFixed(1)}deg`, '--sway-angle': `${angle}deg`, '--sway-dur': `${dur}s` }
 }
 const treeStyleA = computed(() => swayVars() ?? {})

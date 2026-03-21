@@ -81,7 +81,7 @@
           <button v-for="wl in windLevels" :key="wl.label"
             class="sim-btn" :class="{ active: previewWind === wl.speed }"
             @click="previewWind = previewWind === wl.speed ? null : wl.speed"
-            :title="wl.label">{{ wl.emoji }}</button>
+            :title="wl.speed === 0 ? `${wl.label} (0 km/h)` : `${wl.label} (${wl.speed} km/h)`">{{ wl.emoji }}</button>
         </div>
         <div class="sim-row">
           <span class="sim-row-label">Effects</span>
