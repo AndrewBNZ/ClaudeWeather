@@ -163,7 +163,7 @@
       </div>
       <!-- Page navigation (only shown when there are multiple pages) -->
       <div v-if="detailPages.length > 1" class="page-nav">
-        <button class="page-arrow" :disabled="currentPage === 0" @click="currentPage--" aria-label="Previous page">‹</button>
+        <button class="page-arrow" :disabled="currentPage === 0" @click="currentPage = currentPage - 1" aria-label="Previous page">‹</button>
         <div class="page-dots">
           <button
             v-for="(_, i) in detailPages"
@@ -174,7 +174,7 @@
             :aria-label="`Page ${i + 1}`"
           />
         </div>
-        <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="currentPage++" aria-label="Next page">›</button>
+        <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="currentPage = currentPage + 1" aria-label="Next page">›</button>
       </div>
     </div>
     </div>
