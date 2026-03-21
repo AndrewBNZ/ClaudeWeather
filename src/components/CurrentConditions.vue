@@ -656,11 +656,11 @@ function fmt(v, decimals) {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1.1rem;
+  font-size: 1.7rem;
   line-height: 1;
-  width: 16px;
-  height: 16px;
-  padding: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0 0 2px;
   cursor: pointer;
   transition: color 0.15s;
 }
@@ -673,8 +673,8 @@ function fmt(v, decimals) {
 }
 
 .page-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.25);
