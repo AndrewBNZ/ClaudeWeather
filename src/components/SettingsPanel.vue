@@ -67,7 +67,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">Weather details</div>
-              <div class="setting-hint">{{ tileConfig.filter(t => t.enabled).length }} of {{ tileConfig.length }} shown</div>
+              <div class="setting-hint">{{ tileConfig.filter(t => t.type !== 'pageBreak' && t.enabled).length }} of {{ tileConfig.filter(t => t.type !== 'pageBreak').length }} shown</div>
             </div>
             <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
           </div>
@@ -179,30 +179,50 @@
         <div class="modal-bulk-actions">
           <button class="modal-bulk-btn" @click="setAllTiles(true)">All On</button>
           <button class="modal-bulk-btn" @click="setAllTiles(false)">All Off</button>
+          <button class="modal-bulk-btn" @click="addPageBreak(tileConfig.length - 1)">+ Page</button>
         </div>
         <p class="modal-hint">Drag to reorder · tap to show/hide</p>
         <div class="tile-list">
-          <div
-            v-for="(tile, i) in tileConfig"
-            :key="tile.type"
-            :data-tile-idx="i"
-            class="tile-row"
-            :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
-            draggable="true"
-            @dragstart="onTileDragStart($event, i)"
-            @dragover="onTileDragOver($event, i)"
-            @dragend="onTileDragEnd"
-            @drop="onTileDrop($event, i)"
-            @touchstart.passive="onTileTouchStart($event, i)"
-            @touchmove="onTileTouchMove"
-            @touchend="onTileTouchEnd"
-          >
-            <span class="tile-drag-handle">⠿</span>
-            <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
-            <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
+          <template v-for="(tile, i) in tileConfig" :key="`${tile.type}-${i}`">
+            <!-- Page break divider -->
+            <div v-if="tile.type === 'pageBreak'"
+              :data-tile-idx="i"
+              class="tile-row tile-page-break"
+              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+              draggable="true"
+              @dragstart="onTileDragStart($event, i)"
+              @dragover="onTileDragOver($event, i)"
+              @dragend="onTileDragEnd"
+              @drop="onTileDrop($event, i)"
+              @touchstart.passive="onTileTouchStart($event, i)"
+              @touchmove="onTileTouchMove"
+              @touchend="onTileTouchEnd"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <span class="page-break-label">— Page {{ tileConfig.slice(0, i).filter(t => t.type === 'pageBreak').length + 2 }}</span>
+              <button class="page-break-remove" @click.stop="removePageBreak(i)" title="Remove page break">✕</button>
+            </div>
+            <!-- Regular tile -->
+            <div v-else
+              :data-tile-idx="i"
+              class="tile-row"
+              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
+              draggable="true"
+              @dragstart="onTileDragStart($event, i)"
+              @dragover="onTileDragOver($event, i)"
+              @dragend="onTileDragEnd"
+              @drop="onTileDrop($event, i)"
+              @touchstart.passive="onTileTouchStart($event, i)"
+              @touchmove="onTileTouchMove"
+              @touchend="onTileTouchEnd"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
+              <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -289,7 +309,7 @@ defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTy
 const {
   theme, timeFormat, dailyFirst, showSim,
   tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken,
-  toggleTile, setAllTiles, reorderTiles,
+  toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
 } = useSettings()
 
 // ── Local state ───────────────────────────────────────────────────────────────
@@ -785,4 +805,30 @@ function onTileTouchEnd() {
 
 .tile-dragging { opacity: 0.35; }
 .tile-drag-over { background: rgba(56, 189, 248, 0.08); border-top-color: rgba(56, 189, 248, 0.35); }
+
+.tile-page-break {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  border-top-color: rgba(56, 189, 248, 0.25);
+}
+.page-break-label {
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #38bdf8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.page-break-remove {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.page-break-remove:hover { color: #f87171; background: rgba(248,113,113,0.1); }
 </style>

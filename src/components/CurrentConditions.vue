@@ -130,10 +130,13 @@
         </div>
       </button>
 
-      <!-- Detail items — each selects its data type -->
-      <div class="cond-details">
+      <!-- Detail items — each selects its data type, split into swipeable pages -->
+      <div class="cond-details"
+        @touchstart.passive="onSwipeTouchStart"
+        @touchend.passive="onSwipeTouchEnd"
+      >
         <button
-          v-for="item in detailItems"
+          v-for="item in detailPages[currentPage]"
           :key="item.type"
           class="detail-item selectable"
           :class="{ active: activeType === item.type }"
@@ -157,6 +160,17 @@
             <div class="detail-value">{{ item.value }}</div>
           </div>
         </button>
+      </div>
+      <!-- Page dots (only shown when there are multiple pages) -->
+      <div v-if="detailPages.length > 1" class="page-dots">
+        <button
+          v-for="(_, i) in detailPages"
+          :key="i"
+          class="page-dot"
+          :class="{ active: i === currentPage }"
+          @click="currentPage = i"
+          :aria-label="`Page ${i + 1}`"
+        />
       </div>
     </div>
     </div>
@@ -325,13 +339,34 @@ const allTiles = computed(() => {
   }
 })
 
-const detailItems = computed(() => {
-  if (!props.tileConfig) return Object.values(allTiles.value)
-  return props.tileConfig
-    .filter(t => t.enabled)
-    .map(t => allTiles.value[t.type])
-    .filter(Boolean)
+const detailPages = computed(() => {
+  if (!props.tileConfig) return [Object.values(allTiles.value)]
+  const pages = [[]]
+  for (const t of props.tileConfig) {
+    if (t.type === 'pageBreak') {
+      pages.push([])
+    } else if (t.enabled && allTiles.value[t.type]) {
+      pages[pages.length - 1].push(allTiles.value[t.type])
+    }
+  }
+  return pages.filter(p => p.length > 0)
 })
+
+const currentPage = ref(0)
+watch(detailPages, (pages) => {
+  if (currentPage.value >= pages.length) currentPage.value = Math.max(0, pages.length - 1)
+})
+
+let swipeTouchStartX = null
+function onSwipeTouchStart(e) { swipeTouchStartX = e.touches[0].clientX }
+function onSwipeTouchEnd(e) {
+  if (swipeTouchStartX === null) return
+  const dx = e.changedTouches[0].clientX - swipeTouchStartX
+  swipeTouchStartX = null
+  if (Math.abs(dx) < 40) return
+  if (dx < 0 && currentPage.value < detailPages.value.length - 1) currentPage.value++
+  else if (dx > 0 && currentPage.value > 0) currentPage.value--
+}
 
 function fmt(v, decimals) {
   if (v == null) return '–'
@@ -559,6 +594,30 @@ function fmt(v, decimals) {
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   grid-auto-rows: 68px;
   gap: 8px;
+}
+
+.page-dots {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 0 2px;
+}
+
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.page-dot.active {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.3);
 }
 
 .detail-item {

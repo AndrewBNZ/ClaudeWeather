@@ -67,8 +67,8 @@ function loadTileConfig() {
     const raw = JSON.parse(localStorage.getItem(TILES_KEY))
     if (Array.isArray(raw) && raw.every(t => t.type)) {
       const known = new Set(Object.keys(TILE_META))
-      const valid = raw.filter(t => known.has(t.type))
-      const seen  = new Set(valid.map(t => t.type))
+      const valid = raw.filter(t => t.type === 'pageBreak' || known.has(t.type))
+      const seen  = new Set(valid.filter(t => t.type !== 'pageBreak').map(t => t.type))
       for (const d of DEFAULT_TILES) { if (!seen.has(d.type)) valid.push({ ...d }) }
       return valid
     }
@@ -143,8 +143,18 @@ function toggleTile(i) {
 }
 
 function setAllTiles(enabled) {
-  tileConfig.value = tileConfig.value.map(t => ({ ...t, enabled }))
+  tileConfig.value = tileConfig.value.map(t => t.type === 'pageBreak' ? t : { ...t, enabled })
   if (!enabled) activeDataType.value = 'temperature'
+}
+
+function addPageBreak(afterIndex) {
+  const arr = [...tileConfig.value]
+  arr.splice(afterIndex + 1, 0, { type: 'pageBreak' })
+  tileConfig.value = arr
+}
+
+function removePageBreak(index) {
+  tileConfig.value = tileConfig.value.filter((_, i) => i !== index)
 }
 
 export function useSettings() {
@@ -152,6 +162,6 @@ export function useSettings() {
     theme, resolvedTheme, timeFormat, dailyFirst, showSim,
     tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, activeDataType,
     UNIT_OPTIONS, TILE_META,
-    toggleTile, setAllTiles, reorderTiles,
+    toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
   }
 }
