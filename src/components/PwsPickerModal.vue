@@ -9,7 +9,8 @@
 
         <!-- Station entry -->
         <div class="pws-station-section">
-          <div class="pws-section-label">{{ currentStation ? 'Active station' : 'Station ID' }}</div>
+          <div v-if="currentStation" class="pws-section-label">Active station</div>
+          <div v-else class="pws-input-label">Station ID</div>
 
           <!-- Active station info row -->
           <div v-if="currentStation" class="pws-active-row">
@@ -48,35 +49,7 @@
           </div>
         </div>
 
-        <!-- Data source info -->
-        <div class="pws-data-info">
-          <div class="pws-section-label pws-data-title">Data coverage</div>
-          <p class="pws-data-desc">
-            Live readings replace the highlighted fields.<br>Everything else uses Open-Meteo.
-          </p>
-          <div class="pws-data-cols">
-            <div class="pws-data-col">
-              <div class="pws-data-heading">From PWS</div>
-              <div class="pws-data-items">
-                <span class="pws-chip pws-chip--on">Temp</span>
-                <span class="pws-chip pws-chip--on">Feels like</span>
-                <span class="pws-chip pws-chip--on">Humidity</span>
-                <span class="pws-chip pws-chip--on">Wind</span>
-                <span class="pws-chip pws-chip--on">Pressure</span>
-                <span class="pws-chip pws-chip--on">Precipitation</span>
-              </div>
-            </div>
-            <div class="pws-data-col">
-              <div class="pws-data-heading">From Open-Meteo</div>
-              <div class="pws-data-items">
-                <span class="pws-chip pws-chip--off">UV Index</span>
-                <span class="pws-chip pws-chip--off">Cloud cover</span>
-                <span class="pws-chip pws-chip--off">Visibility</span>
-                <span class="pws-chip pws-chip--off">Forecast</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <p class="pws-hint">Tiles showing live station readings are marked with a blue dot.</p>
 
       </div>
     </div>
@@ -140,10 +113,8 @@ function useVerified() {
 
 /* Shared section label */
 .pws-section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--text-faint);
   margin-bottom: 8px;
 }
@@ -238,54 +209,12 @@ function useVerified() {
 .pws-verified-temp  { color: var(--text-faint); white-space: nowrap; }
 .pws-use-btn        { margin-left: auto; }
 
-/* Data coverage section */
-.pws-data-info {
-  padding: 10px 0 2px;
-  border-top: 1px solid var(--panel-divider);
-}
-.pws-data-title { margin-bottom: 6px; }
-
-.pws-data-desc {
+.pws-hint {
   font-size: 0.78rem;
   color: var(--text-faint);
   line-height: 1.5;
-  margin: 0 0 10px;
-}
-.pws-data-cols {
-  display: flex;
-  gap: 12px;
-}
-.pws-data-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-.pws-data-heading {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--text-faint);
-}
-.pws-data-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.pws-chip {
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-.pws-chip--on {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
-}
-.pws-chip--off {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-faint);
-  border: 1px solid var(--panel-border);
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-divider);
 }
 </style>

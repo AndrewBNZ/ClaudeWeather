@@ -689,7 +689,7 @@ if (!isGeoActive.value) {
   .layout-right {
     position: sticky;
     top: 72px;
-    z-index: 1;
+    z-index: 203;
     margin-top: -18px;
   }
   .layout-left .conditions {

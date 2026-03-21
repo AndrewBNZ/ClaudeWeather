@@ -773,7 +773,7 @@ function fmt(v, decimals) {
   position: absolute;
   bottom: 10px;
   left: 14px;
-  z-index: 2;
+  z-index: 3;
   font-size: 0.72rem;
   color: rgba(255, 255, 255, 0.55);
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
@@ -868,6 +868,13 @@ function fmt(v, decimals) {
   .detail-icon { font-size: 17px; }
   .detail-label { font-size: 0.76rem; }
   .detail-value { font-size: 0.78rem; }
+}
+
+@media (orientation: landscape) and (min-height: 500px) and (max-height: 900px) and (max-width: 1366px) {
+  .conditions::before,
+  .conditions::after {
+    display: none;
+  }
 }
 
 @media (min-width: 640px) and (max-width: 1499px) {

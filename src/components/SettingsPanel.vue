@@ -493,18 +493,22 @@ function onTileTouchEnd() {
 .toggle-switch.on .toggle-thumb { transform: translateX(20px); }
 
 .panel-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .panel-close {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 1.1rem;
-  padding: 4px 8px;
+  font-size: 1rem;
+  padding: 2px 4px;
+  cursor: pointer;
   transition: color 0.15s;
+  flex-shrink: 0;
 }
 .panel-close:hover { color: var(--text); }
 
@@ -597,10 +601,12 @@ function onTileTouchEnd() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 12px;
+  padding: 10px 14px 10px 16px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
 }
 
-.modal-bulk-actions { display: flex; gap: 8px; padding: 0 20px 8px; }
+.modal-bulk-actions { display: flex; gap: 8px; padding: 10px 20px 8px; }
 
 .modal-bulk-btn {
   padding: 4px 12px;
@@ -617,7 +623,7 @@ function onTileTouchEnd() {
 .modal-hint { font-size: 0.75rem; color: var(--text-faint); padding: 0 20px 8px; margin: 0; }
 
 .modal-body {
-  padding: 0 20px 20px;
+  padding: 14px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
