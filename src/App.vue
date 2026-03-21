@@ -52,7 +52,7 @@
             <CurrentConditions
               :data="mergedCurrent"
               :pws-name="activePwsStation?.name ?? null"
-              :pws-data-active="!!pwsData"
+              :pws-data-active="!!(pwsData || tempestData)"
               :daily="weatherData.daily"
               :selected-day="selectedDay"
               :unit-prefs="unitPrefs"
@@ -104,7 +104,7 @@
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
                   :pws-current="mergedCurrent"
-                  :pws-data-active="!!pwsData"
+                  :pws-data-active="!!(pwsData || tempestData)"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -148,7 +148,7 @@
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
                   :pws-current="mergedCurrent"
-                  :pws-data-active="!!pwsData"
+                  :pws-data-active="!!(pwsData || tempestData)"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -180,7 +180,8 @@
       <PwsPickerModal
         v-if="pwsPickerLoc"
         :loc="pwsPickerLoc"
-        :api-key="pwsApiKey"
+        :api-key="pwsEnabled ? pwsApiKey : ''"
+        :tempest-token="tempestEnabled ? tempestToken : ''"
         :current-station="pwsPickerLoc.pwsStation ?? null"
         @select="onSetPws(pwsPickerLoc, $event); pwsPickerLoc = null"
         @close="pwsPickerLoc = null"
@@ -193,7 +194,7 @@
       :is-open="panelOpen"
       :is-geo-active="isGeoActive"
       :geo-location-name="isGeoActive ? locationName : ''"
-      :pws-api-key="pwsEnabled ? pwsApiKey : ''"
+      :pws-api-key="(pwsEnabled && pwsApiKey) || (tempestEnabled && tempestToken) ? 'yes' : ''"
       @select="onPanelSelect"
       @delete="onPanelDelete"
       @close="panelOpen = false; tutSearching = false"
@@ -214,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, shallowReactive } from 'vue'
 import CurrentConditions from './components/CurrentConditions.vue'
 import HourlyChart       from './components/HourlyChart.vue'
 import DailyChart        from './components/DailyChart.vue'
@@ -224,15 +225,16 @@ import TutorialGuide     from './components/TutorialGuide.vue'
 import CountdownTimer    from './components/CountdownTimer.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
-import { getPwsObservations }              from './services/pwsApi.js'
-import PwsPickerModal                      from './components/PwsPickerModal.vue'
-import { reverseGeocode }                  from './services/geocoding.js'
-import { APP_STORAGE_PREFIX }              from './config.js'
+import { getPwsObservations }                        from './services/pwsApi.js'
+import { connectTempest, disconnectTempest, tempestData } from './services/tempestWs.js'
+import PwsPickerModal                                from './components/PwsPickerModal.vue'
+import { reverseGeocode }                            from './services/geocoding.js'
+import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
 
 const {
   timeFormat, dailyFirst, showSim,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, activeDataType,
+  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, activeDataType,
 } = useSettings()
 
 // ── Persistence keys (location / tutorial only) ───────────────────────────────
@@ -295,6 +297,12 @@ const activePwsStation = computed(() => {
   return loc?.pwsStation ?? null
 })
 
+// Tempest station is active when the linked station has type 'tempest'
+const activeTempestStation = computed(() => {
+  const s = activePwsStation.value
+  return s?.type === 'tempest' ? s : null
+})
+
 // ── Tutorial ──────────────────────────────────────────────────────────────────
 const tutorialStep = ref(
   !localStorage.getItem(TUTORIAL_KEY)
@@ -344,6 +352,39 @@ watch(settingsOpen, (open) => {
   if (!open && pendingFireworks.value) { pendingFireworks.value = false; launchFireworks() }
 })
 
+// ── Tempest ───────────────────────────────────────────────────────────────────
+function convertTempestFields(obs, prefs) {
+  const result  = {}
+  const toTemp  = c => prefs.temperature === 'fahrenheit' ? c * 9 / 5 + 32 : c
+  if (obs.air_temperature  != null) result.temperature_2m     = toTemp(obs.air_temperature)
+  if (obs.relative_humidity != null) result.relative_humidity_2m = obs.relative_humidity
+  if (obs.wind_avg != null) {
+    const c = { kmh: 3.6, mph: 2.237, ms: 1, kn: 1.944 }
+    result.wind_speed_10m = obs.wind_avg * (c[prefs.wind] ?? 3.6)
+  }
+  if (obs.wind_direction != null) result.wind_direction_10m = obs.wind_direction
+  if (obs.station_pressure != null) {
+    const c = { hpa: 1, inhg: 0.02953, mmhg: 0.75006 }
+    result.surface_pressure = obs.station_pressure * (c[prefs.pressure] ?? 1)
+  }
+  if (obs.uv != null) result.uv_index = obs.uv
+  if (obs.rain_prev_min != null)
+    result.precipitation = prefs.precipitation === 'inch' ? obs.rain_prev_min * 0.0393701 : obs.rain_prev_min
+  return result
+}
+
+function syncTempestWs() {
+  if (tempestEnabled.value && activeTempestStation.value && tempestToken.value) {
+    connectTempest(tempestToken.value, activeTempestStation.value.deviceId)
+  } else {
+    disconnectTempest()
+  }
+}
+
+watch(tempestEnabled,       syncTempestWs)
+watch(tempestToken,         syncTempestWs)
+watch(activeTempestStation, syncTempestWs)
+
 // ── PWS ───────────────────────────────────────────────────────────────────────
 function convertPwsFields(obs, prefs) {
   const m = obs.metric
@@ -370,16 +411,43 @@ function convertPwsFields(obs, prefs) {
   return result
 }
 
-const mergedCurrent = computed(() => {
-  if (!weatherData.value) return null
-  if (!pwsData.value) return weatherData.value.current
-  return { ...weatherData.value.current, ...convertPwsFields(pwsData.value, unitPrefs.value) }
+// Stable reactive object — only changed fields update, preventing a full
+// downstream re-render cascade on every rapid_wind message (every 3s).
+const mergedCurrent = shallowReactive({})
+
+function _assignChanged(target, source) {
+  for (const [k, v] of Object.entries(source)) {
+    if (target[k] !== v) target[k] = v
+  }
+}
+
+function _rebuildMerged() {
+  if (!weatherData.value) return
+  const base = weatherData.value.current
+  for (const k of Object.keys(mergedCurrent)) { if (!(k in base)) delete mergedCurrent[k] }
+  _assignChanged(mergedCurrent, base)
+  if (tempestData.value)     _assignChanged(mergedCurrent, convertTempestFields(tempestData.value, unitPrefs.value))
+  else if (pwsData.value)    _assignChanged(mergedCurrent, convertPwsFields(pwsData.value, unitPrefs.value))
+}
+
+// Full rebuild when base weather data, PWS source, or units change
+watch([weatherData, pwsData, unitPrefs], _rebuildMerged, { immediate: true })
+// Partial update on rapid_wind — only changed fields (wind_speed, wind_direction)
+// propagate downstream, keeping other tiles and computeds idle
+watch(tempestData, () => {
+  if (weatherData.value && tempestData.value)
+    _assignChanged(mergedCurrent, convertTempestFields(tempestData.value, unitPrefs.value))
 })
 
 async function loadPwsData() {
-  if (!pwsEnabled.value || !activePwsStation.value || !pwsApiKey.value) { pwsData.value = null; return }
+  // Only fetch WU data — Tempest data arrives via WebSocket instead
+  const station = activePwsStation.value
+  if (!pwsEnabled.value || !station || !pwsApiKey.value || station.type === 'tempest') {
+    pwsData.value = null
+    return
+  }
   try {
-    pwsData.value = await getPwsObservations(activePwsStation.value.id, pwsApiKey.value)
+    pwsData.value = await getPwsObservations(station.id, pwsApiKey.value)
   } catch {
     pwsData.value = null
   }
@@ -395,8 +463,9 @@ function onSetPws(loc, station) {
   })
   persistLocations(savedLocations.value)
   if (location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
-    if (station) loadPwsData()
-    else pwsData.value = null
+    if (station?.type === 'tempest') { pwsData.value = null; syncTempestWs() }
+    else if (station) { disconnectTempest(); loadPwsData() }
+    else { pwsData.value = null; disconnectTempest() }
   }
 }
 
@@ -435,6 +504,7 @@ async function loadWeather(silent = false, forceRefresh = false) {
     }
     fetchedAt.value = new Date(timestamp)
     loadPwsData()
+    syncTempestWs()
   } catch (e) {
     error.value = e.message ?? 'Failed to load weather data.'
   } finally {

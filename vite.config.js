@@ -11,6 +11,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite:     (path) => path.replace(/^\/wu-proxy/, ''),
       },
+      '/tempest-proxy': {
+        target:      'https://swd.weatherflow.com',
+        changeOrigin: true,
+        rewrite:     (path) => path.replace(/^\/tempest-proxy/, ''),
+      },
     },
   },
 })

@@ -98,6 +98,8 @@ const selectBtnRef  = ref(null)
 const dropdownOpen  = ref(false)
 const dropdownStyle = ref({})
 let   chartInstance = null
+// Mutable container read by makePwsCurrentPlugin — updated without chart rebuild
+const pwsLive = { value: null, windDir: null, currentHour: -1, decimals: 0, unit: '', keepDecimals: false }
 
 const navBtnBg     = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.05)'   : 'rgba(255,255,255,0.12)')
 const navBtnBorder = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.1)'    : 'rgba(255,255,255,0.2)')
@@ -453,10 +455,11 @@ function makeSunriseSunsetPlugin(sunriseHour, sunsetHour) {
   }
 }
 
-function makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, keepDecimals = false, windDir = null) {
+function makePwsCurrentPlugin() {
   return {
     id: 'pwsCurrentDot',
     afterDatasetsDraw(chart) {
+      const { value: pwsValue, windDir, currentHour, decimals, unit, keepDecimals } = pwsLive
       if (pwsValue == null || currentHour < 0) return
       const { ctx, scales } = chart
       const meta = chart.getDatasetMeta(0)
@@ -560,6 +563,14 @@ function buildChart() {
   const pwsValue = pwsActive ? (props.pwsCurrent?.[cfg.hourlyKey] ?? null) : null
   const pwsWindDir = (pwsActive && isWind) ? (props.pwsCurrent?.wind_direction_10m ?? null) : null
 
+  // Populate shared container so the plugin can update without chart rebuild
+  pwsLive.value = pwsValue
+  pwsLive.windDir = pwsWindDir
+  pwsLive.currentHour = currentHour
+  pwsLive.decimals = decimals
+  pwsLive.unit = unit
+  pwsLive.keepDecimals = isRain
+
   // Global min/max across all 14 days with padding so inline labels stay inside the chart area
   let globalYMin, globalYMax
   if (!isRain) {
@@ -601,7 +612,7 @@ function buildChart() {
     ...(isWind ? [makeWindArrowPlugin(windDirs, values, cfg.color, currentHour, skipForecastHour)]
       : !isRain ? [makeWeatherEmojiPlugin(wxCodes, values, currentHour, labelSuffix, skipForecastHour)]
       : []),
-    makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain, pwsWindDir),
+    makePwsCurrentPlugin(),
   ]
 
   // Rain: bar chart for amount + probability line on a second right axis
@@ -637,7 +648,7 @@ function buildChart() {
           },
         ],
       },
-      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour), makePwsCurrentPlugin(pwsValue, currentHour, decimals, unit, isRain)],
+      plugins: [makePastShadingPlugin(currentHour, props.dayIndex), crosshairPlugin, sunPlugin, makeRainLabelPlugin(wxCodes, values, currentHour), makePwsCurrentPlugin()],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -776,9 +787,21 @@ async function buildAndScroll() {
 
 function scheduleAndScroll() { requestAnimationFrame(() => requestAnimationFrame(buildAndScroll)) }
 watch(
-  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat, () => props.pwsCurrent, () => props.pwsDataActive],
+  [() => props.activeType, () => props.unitPrefs, () => props.theme, () => props.hourly, () => props.dayIndex, () => props.timeFormat, () => props.pwsDataActive],
   scheduleAndScroll
 )
+// PWS live updates: skip full rebuild, just redraw the overlay dot/arrow in-place
+// deep:true is required because pwsCurrent is a shallowReactive object (stable reference,
+// mutated in-place) — without it, the watch never fires when properties change.
+watch(() => props.pwsCurrent, (cur) => {
+  if (!chartInstance) return
+  const cfg = DATA_TYPES[props.activeType]
+  if (!cfg) return
+  const pwsActive = props.pwsDataActive && PWS_CHART_TYPES.has(cfg.id) && props.dayIndex === 0
+  pwsLive.value = pwsActive ? (cur?.[cfg.hourlyKey] ?? null) : null
+  pwsLive.windDir = (pwsActive && cfg.id === 'wind') ? (cur?.wind_direction_10m ?? null) : null
+  chartInstance.update('none')
+}, { deep: true })
 function onWindowResize() { requestAnimationFrame(() => chartInstance?.resize()) }
 onMounted(() => {
   document.addEventListener('click', onDocClick, true)

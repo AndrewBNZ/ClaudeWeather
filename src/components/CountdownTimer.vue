@@ -12,7 +12,7 @@ const props = defineProps({
 
 const now = ref(Date.now())
 let timer = null
-onMounted(()       => { timer = setInterval(() => { now.value = Date.now() }, 1000) })
+onMounted(()       => { timer = setInterval(() => { now.value = Date.now() }, 10000) })
 onBeforeUnmount(() => clearInterval(timer))
 
 const text = computed(() => {

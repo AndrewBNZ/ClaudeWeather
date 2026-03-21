@@ -3,8 +3,10 @@ import { APP_STORAGE_PREFIX } from '../config.js'
 
 const P = APP_STORAGE_PREFIX
 
-const PWS_KEY_STG     = `${P}-pws-key`
-const PWS_ENABLED_STG = `${P}-pws-enabled`
+const PWS_KEY_STG          = `${P}-pws-key`
+const PWS_ENABLED_STG      = `${P}-pws-enabled`
+const TEMPEST_TOKEN_STG    = `${P}-tempest-token`
+const TEMPEST_ENABLED_STG  = `${P}-tempest-enabled`
 const UNIT_PREFS_KEY  = `${P}-unitprefs`
 const LEGACY_UNITS_KEY = `${P}-units`
 const SIM_KEY         = `${P}-sim`
@@ -105,8 +107,10 @@ const unitPrefs      = ref(loadUnitPrefs())
 const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
 const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
-const pwsEnabled     = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
-const pwsApiKey      = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
+const pwsEnabled      = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
+const pwsApiKey       = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
+const tempestEnabled  = ref(localStorage.getItem(TEMPEST_ENABLED_STG) !== 'false')
+const tempestToken    = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
 const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -116,8 +120,10 @@ watch(unitPrefs,     (v) => { try { localStorage.setItem(UNIT_PREFS_KEY, JSON.st
 watch(timeFormat,    (v) => localStorage.setItem(TIME_FORMAT_KEY, v))
 watch(dailyFirst,    (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
 watch(showSim,       (v) => localStorage.setItem(SIM_KEY, String(v)))
-watch(pwsEnabled,    (v) => localStorage.setItem(PWS_ENABLED_STG, String(v)))
-watch(pwsApiKey,     (v) => { try { if (v) localStorage.setItem(PWS_KEY_STG, v); else localStorage.removeItem(PWS_KEY_STG) } catch {} })
+watch(pwsEnabled,     (v) => localStorage.setItem(PWS_ENABLED_STG, String(v)))
+watch(pwsApiKey,      (v) => { try { if (v) localStorage.setItem(PWS_KEY_STG, v); else localStorage.removeItem(PWS_KEY_STG) } catch {} })
+watch(tempestEnabled, (v) => localStorage.setItem(TEMPEST_ENABLED_STG, String(v)))
+watch(tempestToken,   (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_STG, v); else localStorage.removeItem(TEMPEST_TOKEN_STG) } catch {} })
 watch(activeDataType,(v) => localStorage.setItem(DATATYPE_KEY, v))
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
@@ -144,7 +150,7 @@ function setAllTiles(enabled) {
 export function useSettings() {
   return {
     theme, resolvedTheme, timeFormat, dailyFirst, showSim,
-    tileConfig, unitPrefs, pwsEnabled, pwsApiKey, activeDataType,
+    tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, activeDataType,
     UNIT_OPTIONS, TILE_META,
     toggleTile, setAllTiles, reorderTiles,
   }

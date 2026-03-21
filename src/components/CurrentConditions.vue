@@ -142,7 +142,16 @@
           @click="emit('select', item.type)"
         >
           <span v-if="pwsDataActive && item.pwsSource" class="tile-pws-dot" :title="`${item.label} from ${pwsName}`"></span>
-          <span v-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
+          <span v-if="item.type === 'wind' && props.data.wind_direction_10m != null" class="detail-icon wind-arrow-icon">
+            <svg width="23" height="23" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="9.5" fill="rgba(15,23,42,0.75)" stroke="#06b6d4" stroke-width="1.5"/>
+              <g class="wind-arrow-g" :style="{ transform: `rotate(${windDisplayAngle}deg)`, transformOrigin: '10px 10px' }">
+                <line x1="10" y1="16" x2="10" y2="10" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"/>
+                <polygon points="10,4 7,10 13,10" fill="#06b6d4"/>
+              </g>
+            </svg>
+          </span>
+          <span v-else-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
           <span v-else class="detail-icon">{{ item.icon }}</span>
           <div>
             <div class="detail-label">{{ item.label }}</div>
@@ -271,25 +280,20 @@ const todaySunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ??
 const todaySunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
 
 
-const windArrowSvg = computed(() => {
-  const c = '#06b6d4'
-  const dir = props.data.wind_direction_10m
-  if (dir == null) {
-    return `<svg width="23" height="23" viewBox="0 0 20 20" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M3 7c2-2 4-2 6 0s4 2 8 0"/>
-      <path d="M3 11c2-2 4-2 6 0s4 2 7 0"/>
-      <path d="M3 15c2-2 4-2 5 0"/>
-    </svg>`
+// Smooth wind arrow rotation — accumulates angle to always take shortest path
+const windDisplayAngle = ref(0)
+watch(() => props.data.wind_direction_10m, (dir) => {
+  if (dir == null) return
+  const target = (dir + 180) % 360
+  if (windDisplayAngle.value === 0 && target !== 0) {
+    // First update — snap without transition
+    windDisplayAngle.value = target
+    return
   }
-  const angle = (dir + 180) % 360
-  return `<svg width="23" height="23" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="10" cy="10" r="9.5" fill="rgba(15,23,42,0.75)" stroke="${c}" stroke-width="1.5"/>
-    <g transform="rotate(${angle},10,10)">
-      <line x1="10" y1="16" x2="10" y2="10" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
-      <polygon points="10,4 7,10 13,10" fill="${c}"/>
-    </g>
-  </svg>`
-})
+  // Delta in [-180, 180] so we always rotate the short way
+  let delta = ((target - (windDisplayAngle.value % 360)) + 540) % 360 - 180
+  windDisplayAngle.value += delta
+}, { immediate: true })
 const tempUnit = computed(() => DATA_TYPES.temperature.getUnit(props.unitPrefs))
 
 const uvLabel = computed(() => {
@@ -311,7 +315,7 @@ const allTiles = computed(() => {
   }
   return {
     rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain,       pwsSource: true }),
-    wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { iconHtml: windArrowSvg.value,               pwsSource: true }),
+    wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { pwsSource: true }),
     feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`,         { iconHtml: TILE_ICONS.feelsLike,  pwsSource: true }),
     humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`,                         { iconHtml: TILE_ICONS.humidity,   pwsSource: true }),
     uv:         tile('uv',         `${fmt(d.uv_index, 1)}${uvLabel.value}`,                      { iconHtml: TILE_ICONS.uv }),
@@ -589,6 +593,7 @@ function fmt(v, decimals) {
 
 .detail-icon { font-size: 23px; flex-shrink: 0; display: flex; align-items: center; }
 .detail-icon svg { width: 23px; height: 23px; }
+.wind-arrow-g { transition: transform 0.6s ease; }
 
 .detail-label {
   font-size: 0.83rem;

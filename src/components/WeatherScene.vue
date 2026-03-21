@@ -54,14 +54,14 @@
     </TransitionGroup>
 
     <!-- Rain drops -->
-    <template v-if="isRain || isStorm">
-      <div v-for="(s, i) in drops" :key="i" class="drop" :style="s" />
-    </template>
+    <div v-if="isRain || isStorm" class="drops-layer" :style="dropsContainerStyle">
+      <div v-for="(s, i) in dropStyles" :key="i" class="drop" :style="s" />
+    </div>
 
     <!-- Snowflakes -->
-    <template v-if="isSnow">
-      <div v-for="(s, i) in flakes" :key="i" class="flake" :style="s" />
-    </template>
+    <div v-if="isSnow" class="flakes-layer" :style="flakesContainerStyle">
+      <div v-for="(s, i) in flakeStyles" :key="i" class="flake" :style="s" />
+    </div>
 
     <!-- Birds (clear/partly, daytime) -->
     <Transition name="tod-fade">
@@ -90,7 +90,7 @@
       </template>
       <!-- Tree A — large (cx=80) -->
       <rect x="77" y="69" width="6" height="13" :fill="trunkColor" />
-      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleA">
+      <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleA">
         <polygon points="80,46 47,74 113,74" :fill="foliage[0]" />
         <polygon points="80,31 51,61 109,61" :fill="foliage[0]" />
         <polygon points="80,18 58,50 102,50"  :fill="foliage[0]" />
@@ -100,7 +100,7 @@
       </g>
       <!-- Tree B — medium (cx=180, 68% scale) -->
       <rect x="177" y="72" width="5" height="10" :fill="trunkColor" />
-      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleB">
+      <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleB">
         <polygon points="180,58 158,77 202,77" :fill="foliage[0]" />
         <polygon points="180,47 160,68 200,68" :fill="foliage[0]" />
         <polygon points="180,39 165,60 195,60" :fill="foliage[0]" />
@@ -110,7 +110,7 @@
       </g>
       <!-- Tree C — small (cx=265, 50% scale) -->
       <rect x="262" y="74" width="5" height="8" :fill="trunkColor" />
-      <g :class="{ 'tree-sway': effectiveWind >= 5 }" :style="treeStyleC">
+      <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleC">
         <polygon points="265,64 247,78 283,78" :fill="foliage[0]" />
         <polygon points="265,57 250,72 280,72" :fill="foliage[0]" />
         <polygon points="265,50 253,66 277,66" :fill="foliage[0]" />
@@ -238,6 +238,20 @@ const emit = defineEmits(['grass-color'])
 
 // ── Derived preview values ─────────────────────────────────────────────────
 const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
+
+// sceneWind: smoothed version of effectiveWind used for visual effects.
+// Large jumps (>10 km/h) apply immediately; small fluctuations debounce for
+// 12s so rapid PWS updates (every 3s) don't restart cloud/tree animations.
+const sceneWind = ref(effectiveWind.value ?? 0)
+let _windDebounce = null
+watch(effectiveWind, (val, old) => {
+  clearTimeout(_windDebounce)
+  if (Math.abs((val ?? 0) - (old ?? 0)) > 10) {
+    sceneWind.value = val ?? 0
+  } else {
+    _windDebounce = setTimeout(() => { sceneWind.value = val ?? 0 }, 12_000)
+  }
+})
 
 // ── Reactive clock for time-of-day transitions ─────────────────────────────
 const clockNow = ref(Date.now())
@@ -783,7 +797,7 @@ const cloudColor = computed(() => {
 })
 
 const driftDur = computed(() => {
-  const s = effectiveWind.value
+  const s = sceneWind.value
   if (s > 60) return 14
   if (s > 50) return 19
   if (s > 40) return 26
@@ -820,52 +834,43 @@ const activeClouds = computed(() => {
 })
 
 // ── Rain ───────────────────────────────────────────────────────────────────
-const rainAngle = computed(() => {
-  const s = effectiveWind.value
-  return Math.min(38, 5 + s * 0.42) // positive = leans right with wind
+// Static per-drop styles (position, timing, per-drop angle variation)
+const dropStyles = Array.from({ length: 32 }, (_, i) => {
+  const n = i + 1
+  return {
+    left:              `${(n * 29 + 7) % 100}%`,
+    height:            `${14 + (n % 4) * 5}px`,
+    animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
+    animationDuration: `${(1.00 + (n % 5) * 0.1).toFixed(2)}s`,
+    '--angle-var':     `${(((n % 5) - 2) * 1.5).toFixed(1)}deg`,
+  }
 })
 
-const rainDrift = computed(() => {
-  const s = effectiveWind.value
-  return Math.min(200, s * 2.5) // px rightward drift over full fall
-})
-
-const drops = computed(() =>
-  Array.from({ length: 32 }, (_, i) => {
-    const n = i + 1
-    const angleVariation = ((n % 5) - 2) * 1.5
-    return {
-      left:              `${(n * 29 + 7) % 100}%`,
-      height:            `${14 + (n % 4) * 5}px`,
-      opacity:            isStorm.value ? 0.75 : 0.5,
-      animationDelay:    `${((n * 0.17) % 1).toFixed(2)}s`,
-      animationDuration: `${(1.00 + (n % 5) * 0.1).toFixed(2)}s`,
-      '--rain-angle':    `${-(rainAngle.value + angleVariation).toFixed(1)}deg`,
-      '--rain-drift':    `${rainDrift.value.toFixed(0)}px`,
-    }
-  })
-)
+// Dynamic CSS vars on the container — only recomputes when wind/storm changes
+const dropsContainerStyle = computed(() => ({
+  '--rain-angle':   `${-Math.min(38, 5 + sceneWind.value * 0.42).toFixed(1)}deg`,
+  '--rain-drift':   `${Math.min(200, sceneWind.value * 2.5).toFixed(0)}px`,
+  '--drop-opacity':  isStorm.value ? '0.75' : '0.5',
+}))
 
 // ── Snow ───────────────────────────────────────────────────────────────────
-const snowDrift = computed(() => {
-  const s = effectiveWind.value
-  return Math.min(120, 10 + s * 2.8)
+// Static per-flake styles (position, sizing, timing, per-flake drift variation)
+const flakeStyles = Array.from({ length: 22 }, (_, i) => {
+  const n = i + 1
+  return {
+    left:              `${(n * 37 + 11) % 95}%`,
+    width:             `${4 + (n % 3) * 2}px`,
+    height:            `${4 + (n % 3) * 2}px`,
+    animationDelay:    `${((n * 0.23) % 2).toFixed(2)}s`,
+    animationDuration: `${(2.2 + (n % 5) * 0.4).toFixed(2)}s`,
+    '--drift-var':     `${(n % 5) * 6}px`,
+  }
 })
 
-const flakes = computed(() =>
-  Array.from({ length: 22 }, (_, i) => {
-    const n = i + 1
-    const driftVariation = (n % 5) * 6
-    return {
-      left:              `${(n * 37 + 11) % 95}%`,
-      width:             `${4 + (n % 3) * 2}px`,
-      height:            `${4 + (n % 3) * 2}px`,
-      animationDelay:    `${((n * 0.23) % 2).toFixed(2)}s`,
-      animationDuration: `${(2.2 + (n % 5) * 0.4).toFixed(2)}s`,
-      '--snow-drift':    `${(snowDrift.value + driftVariation).toFixed(0)}px`,
-    }
-  })
-)
+// Dynamic CSS vars on the container — only recomputes when wind changes
+const flakesContainerStyle = computed(() => ({
+  '--snow-drift': `${Math.min(120, 10 + sceneWind.value * 2.8).toFixed(0)}px`,
+}))
 
 // ── Landscape colours ──────────────────────────────────────────────────────
 const hillFarColor = computed(() => {
@@ -929,12 +934,12 @@ const leafColors = computed(() => [
   '#795548',  // Brown 500
   '#A1887F',  // Brown 300
 ])
-const showLeaves = computed(() => effectiveWind.value >= 15)
+const showLeaves = computed(() => sceneWind.value >= 15)
 
 // Tree A ≈ 20%, Tree B ≈ 45%, Tree C ≈ 66% of scene width
 const TREE_ORIGINS = [17, 42, 63]
 const leaves = computed(() => {
-  const s = effectiveWind.value
+  const s = sceneWind.value
   const count = s >= 60 ? 10 : s >= 35 ? 7 : 4
   const cols  = leafColors.value
   return Array.from({ length: count }, (_, i) => {
@@ -957,7 +962,7 @@ const leaves = computed(() => {
 
 // ── Tree sway ──────────────────────────────────────────────────────────────
 function swayVars() {
-  const s = effectiveWind.value
+  const s = sceneWind.value
   if (s < 5) return null
   const dur   = s > 40 ? 0.5  : s > 20 ? 0.7  : 1.8
   const angle = s > 40 ? 12   : s > 20 ? 7    : 4
@@ -975,6 +980,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
+  contain: layout style paint;
 }
 
 /* ── Sky cross-fade overlay ───────────────────────────────────────────────── */
@@ -1079,6 +1085,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   border-radius: 60px;
   animation: scene-drift linear infinite;
   transition: background 2.5s ease;
+  will-change: transform;
 }
 
 .cloud-fade-enter-active,
@@ -1110,30 +1117,43 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 }
 
 /* ── Rain ─────────────────────────────────────────────────────────────────── */
+.drops-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .drop {
   position: absolute;
   top: -28px;
   width: 1.5px;
   background: linear-gradient(to bottom, transparent, rgba(129,212,250,0.75));
   border-radius: 2px;
+  opacity: var(--drop-opacity, 0.5);
   animation: scene-rain linear infinite;
+  will-change: transform;
 }
 @keyframes scene-rain {
-  from { transform: translateY(0)     translateX(0)                    rotate(var(--rain-angle, 8deg)); }
-  to   { transform: translateY(110vh) translateX(var(--rain-drift, 40px)) rotate(var(--rain-angle, 8deg)); }
+  from { transform: translateY(0)     translateX(0)                       rotate(calc(var(--rain-angle, -8deg) + var(--angle-var, 0deg))); }
+  to   { transform: translateY(110vh) translateX(var(--rain-drift, 40px)) rotate(calc(var(--rain-angle, -8deg) + var(--angle-var, 0deg))); }
 }
 
 /* ── Snow ─────────────────────────────────────────────────────────────────── */
+.flakes-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 .flake {
   position: absolute;
   top: -14px;
   background: rgba(255,255,255,0.88);
   border-radius: 50%;
   animation: scene-snow linear infinite;
+  will-change: transform;
 }
 @keyframes scene-snow {
   from { transform: translateY(0)     translateX(0); }
-  to   { transform: translateY(110vh) translateX(var(--snow-drift, 18px)); }
+  to   { transform: translateY(110vh) translateX(calc(var(--snow-drift, 18px) + var(--drift-var, 0px))); }
 }
 
 /* ── Lightning bolts ──────────────────────────────────────────────────────── */
@@ -1205,6 +1225,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   position: absolute;
   opacity: 0;
   animation: scene-leaf linear infinite;
+  will-change: transform, opacity;
 }
 @keyframes scene-leaf {
   0%   { transform: translateX(0)    translateY(0)                     rotate(0deg);   opacity: 0; }
@@ -1224,6 +1245,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   border-radius: 50%;
   animation: aurora-wave ease-in-out infinite alternate;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 @keyframes aurora-wave {
   0%   { transform: scaleX(1)    scaleY(1)    skewX(0deg);   opacity: 0.45; }
@@ -1237,6 +1259,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   left: -30px;
   animation: bird-fly linear infinite;
   pointer-events: none;
+  will-change: transform;
 }
 .bird svg { display: block; width: 100%; height: auto; }
 @keyframes bird-fly {
@@ -1255,6 +1278,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   border-radius: 50%;
   animation: fog-drift linear infinite;
   pointer-events: none;
+  will-change: transform;
 }
 @keyframes fog-drift {
   from { transform: translateX(0); }

@@ -92,6 +92,18 @@
           </div>
           <div class="setting-row">
             <div>
+              <div class="setting-label">Tempest Weather Station</div>
+              <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Token saved on this device' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
+            </div>
+            <div class="setting-row-controls">
+              <button v-if="tempestEnabled" class="setting-action-btn" @click="openTempestTokenModal">{{ tempestToken ? 'Change →' : 'Set token →' }}</button>
+              <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Reset</div>
               <div class="setting-hint">Delete all preferences and locations</div>
             </div>
@@ -213,6 +225,30 @@
     </div>
   </transition>
 
+  <!-- Tempest token modal -->
+  <transition name="modal-fade">
+    <div v-if="tempestTokenModalOpen" class="modal-overlay" @click.self="tempestTokenModalOpen = false">
+      <div class="modal-dialog modal-dialog--wide">
+        <div class="modal-header">
+          <span class="panel-title">Tempest Weather Station</span>
+          <button class="panel-close" @click="tempestTokenModalOpen = false">✕</button>
+        </div>
+        <div class="modal-body pws-key-body">
+          <div class="pws-key-about">
+            <p>Connects {{ APP_NAME }} to your WeatherFlow Tempest station via WebSocket, streaming real-time conditions directly from your backyard. Stations are linked per location in the Locations panel.</p>
+            <p>Generate a token in the Tempest app → <em>Settings → Data Authorizations → Create Token</em>, or at <strong>tempestwx.com</strong>.</p>
+          </div>
+          <input v-model="tempestTokenInput" class="pws-key-input" type="text" placeholder="Paste your personal access token" spellcheck="false" autocomplete="off" @keyup.enter="saveTempestToken" />
+          <div class="pws-key-hint">Stored on this device only.</div>
+          <div class="pws-key-actions">
+            <button v-if="tempestToken" class="setting-action-btn setting-action-btn--danger" @click="clearTempestToken">Remove</button>
+            <button class="setting-action-btn" @click="saveTempestToken" :disabled="!tempestTokenInput.trim()">Save</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
+
   <!-- PWS API key modal -->
   <transition name="modal-fade">
     <div v-if="pwsKeyModalOpen" class="modal-overlay" @click.self="pwsKeyModalOpen = false">
@@ -252,7 +288,7 @@ defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTy
 
 const {
   theme, timeFormat, dailyFirst, showSim,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey,
+  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken,
   toggleTile, setAllTiles, reorderTiles,
 } = useSettings()
 
@@ -262,10 +298,12 @@ const dropdownStyle    = ref({})
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
-const pwsKeyModalOpen    = ref(false)
-const qrBackupOpen       = ref(false)
-const qrRestoreOpen      = ref(false)
-const pwsKeyInput        = ref('')
+const pwsKeyModalOpen        = ref(false)
+const tempestTokenModalOpen  = ref(false)
+const qrBackupOpen           = ref(false)
+const qrRestoreOpen          = ref(false)
+const pwsKeyInput            = ref('')
+const tempestTokenInput      = ref('')
 const tileDragIndex      = ref(null)
 const tileDragOver       = ref(null)
 let   tileTouchIdx       = null
@@ -299,6 +337,11 @@ watch(() => props.isOpen, (open) => {
 function openPwsKeyModal() { pwsKeyInput.value = pwsApiKey.value; pwsKeyModalOpen.value = true }
 function savePwsKey()      { pwsApiKey.value = pwsKeyInput.value.trim(); pwsKeyModalOpen.value = false }
 function clearPwsKey()     { pwsApiKey.value = ''; pwsKeyModalOpen.value = false }
+
+// ── Tempest token modal ───────────────────────────────────────────────────────
+function openTempestTokenModal() { tempestTokenInput.value = tempestToken.value; tempestTokenModalOpen.value = true }
+function saveTempestToken()      { tempestToken.value = tempestTokenInput.value.trim(); tempestTokenModalOpen.value = false }
+function clearTempestToken()     { tempestToken.value = ''; tempestTokenModalOpen.value = false }
 
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll() { try { localStorage.clear() } catch {}; window.location.reload() }
