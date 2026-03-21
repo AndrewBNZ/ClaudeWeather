@@ -68,6 +68,7 @@
               :fetched-at="fetchedAt?.getTime() ?? null"
               :stale-ms="STALE_MS"
               :loading="loading"
+              :can-manual-refresh="canManualRefresh"
               :blurred="panelOpen || settingsOpen"
               :locations-open="panelOpen"
               :settings-open="settingsOpen"
@@ -159,8 +160,7 @@
             <div class="data-footer">
               Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
               <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-              <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt?.getTime() ?? null" :stale-ms="STALE_MS" /></template>
-              <button class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
+              <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
                 <span :class="{ spinning: loading }">↻</span>
               </button>
             </div>
@@ -222,7 +222,6 @@ import DailyChart        from './components/DailyChart.vue'
 import RadarMap          from './components/RadarMap.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
-import CountdownTimer    from './components/CountdownTimer.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
@@ -284,6 +283,9 @@ const weatherData        = ref(null)
 const loading            = ref(false)
 const error              = ref(null)
 const fetchedAt          = ref(null)
+const tickNow            = ref(Date.now())
+
+const canManualRefresh = computed(() => !fetchedAt.value || tickNow.value - fetchedAt.value.getTime() >= 60_000)
 
 const updatedAt = computed(() =>
   fetchedAt.value
@@ -595,7 +597,7 @@ let refreshTimer = null
 
 onMounted(() => {
   autoTimer    = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
-  refreshTimer = setInterval(() => { if (location.value && isStale()) loadWeather(true, true) }, 30_000)
+  refreshTimer = setInterval(() => { tickNow.value = Date.now(); if (location.value && isStale()) loadWeather(true, true) }, 30_000)
 
   if (isGeoActive.value) {
     loading.value = true
@@ -1047,9 +1049,7 @@ if (!isGeoActive.value) {
   padding: 8px 0 16px;
 }
 .data-footer a { color: var(--text-faint); text-decoration: none; }
-.data-footer a:hover { color: var(--text-muted); }
-.footer-countdown { font-variant-numeric: tabular-nums; }
-@media (min-width: 1500px) { .data-footer { display: none; } }
+.data-footer a:hover { color: var(--text-muted); }@media (min-width: 1500px) { .data-footer { display: none; } }
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) { .data-footer { display: none; } }
 
 .refresh-btn {

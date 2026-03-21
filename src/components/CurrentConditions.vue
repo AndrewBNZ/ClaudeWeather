@@ -102,8 +102,7 @@
     <div class="scene-footer">
       Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
 <template v-if="updatedAt"> · Updated {{ updatedAt }}</template>
-      <template v-if="!loading"> · <CountdownTimer :fetched-at="fetchedAt" :stale-ms="staleMs" /></template>
-      <button class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
+      <button v-if="canManualRefresh" class="scene-footer-refresh" @click="emit('refresh')" :disabled="loading" title="Refresh">
         <span :class="{ spinning: loading }">↻</span>
       </button>
     </div>
@@ -172,7 +171,6 @@ import { APP_NAME } from '../config.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import WeatherScene from './WeatherScene.vue'
-import CountdownTimer from './CountdownTimer.vue'
 
 // ── Sim preview state ──────────────────────────────────────────────────────
 const timeOfDays = [
@@ -260,6 +258,7 @@ const props = defineProps({
   fetchedAt:    { type: Number, default: null },
   staleMs:      { type: Number, default: 0 },
   loading:      { type: Boolean, default: false },
+  canManualRefresh: { type: Boolean, default: true },
   timeFormat:   { type: String, default: '12h' },
   blurred:       { type: Boolean, default: false },
   pwsName:       { type: String,  default: null },
@@ -789,9 +788,7 @@ function fmt(v, decimals) {
   color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
 }
-.scene-footer a:hover { color: rgba(255, 255, 255, 0.85); }
-.scene-footer-countdown { font-variant-numeric: tabular-nums; }
-.scene-footer-refresh {
+.scene-footer a:hover { color: rgba(255, 255, 255, 0.85); }.scene-footer-refresh {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.55);

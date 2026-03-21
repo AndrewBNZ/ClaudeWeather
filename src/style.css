@@ -6,6 +6,11 @@
   padding: 0;
 }
 
+@media (pointer: coarse) {
+  body { user-select: none; }
+  input, textarea, [contenteditable] { user-select: text; }
+}
+
 :root {
   --nav-h: 56px;
   /* colour palette */
