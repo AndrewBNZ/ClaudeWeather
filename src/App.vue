@@ -406,7 +406,7 @@ watch(pwsEnabled, (v) => {
 })
 
 // ── Weather ───────────────────────────────────────────────────────────────────
-const STALE_MS = 15 * 60 * 1000
+const STALE_MS = 5 * 60 * 1000
 
 function isStale() {
   if (!fetchedAt.value || !weatherData.value) return true
