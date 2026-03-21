@@ -611,12 +611,17 @@ function fmt(v, decimals) {
 }
 
 .page-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   line-height: 1;
-  padding: 0 4px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
   cursor: pointer;
   transition: color 0.15s;
 }
