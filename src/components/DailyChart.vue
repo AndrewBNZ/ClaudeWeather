@@ -239,6 +239,8 @@ function buildChart() {
       const dataset = chart.data.datasets[0]
       meta.data.forEach((bar, i) => {
         const { x, y, base } = bar.getProps(['x', 'y', 'base'], true)
+        const topY = Math.min(y, base)
+        const botY = Math.max(y, base)
         const dataPoint = dataset.data[i]
 
         // Emoji above the bar (raised to clear the high-temp number)
@@ -248,7 +250,7 @@ function buildChart() {
           ctx.font = `22px ${APP_FONT}`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
-          ctx.fillText(emoji, x, y - 16)
+          ctx.fillText(emoji, x, topY - 16)
           ctx.restore()
         }
 
@@ -261,7 +263,7 @@ function buildChart() {
           ctx.textAlign = 'center'
           ctx.textBaseline = 'bottom'
           ctx.fillStyle = props.theme === 'light' ? '#1e293b' : '#e2e8f0'
-          ctx.fillText(`${Math.round(dataPoint[1])}`, x, y - 2)
+          ctx.fillText(`${Math.round(dataPoint[1])}`, x, topY - 2)
           ctx.restore()
         }
 
@@ -272,7 +274,7 @@ function buildChart() {
           ctx.textAlign = 'center'
           ctx.textBaseline = 'top'
           ctx.fillStyle = props.theme === 'light' ? '#64748b' : '#94a3b8'
-          ctx.fillText(`${Math.round(dataPoint[0])}`, x, base + 2)
+          ctx.fillText(`${Math.round(dataPoint[0])}`, x, botY + 2)
           ctx.restore()
         }
       })
