@@ -807,7 +807,7 @@ function fmt(v, decimals) {
     inset: 0;
     overflow-y: auto;
     scrollbar-width: none;
-    padding: 72px 12px 0;
+    padding: 70px 12px 0;
     gap: 8px;
   }
   .cond-content::-webkit-scrollbar { display: none; }
@@ -824,7 +824,7 @@ function fmt(v, decimals) {
     top: 0;
     left: 0;
     right: 0;
-    height: 72px;
+    height: 68px;
     background: linear-gradient(to bottom, rgba(4, 8, 20, 0.72) 40%, transparent 100%);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
