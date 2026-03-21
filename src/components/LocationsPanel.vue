@@ -7,6 +7,10 @@
   <!-- Dropdown card -->
   <Transition name="drop">
     <div v-if="isOpen" class="dropdown" :style="dropdownStyle">
+      <div class="dropdown-header">
+        <span class="dropdown-title">Locations</span>
+        <button class="dropdown-close" @click="emit('close')">✕</button>
+      </div>
       <div class="search-section">
         <LocationSearch
           ref="searchRef"
@@ -146,7 +150,7 @@ function geoLocate() {
 
 .dropdown {
   position: fixed;
-  z-index: 201;
+  z-index: 203;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
@@ -155,6 +159,34 @@ function geoLocate() {
   flex-direction: column;
   overflow: hidden;
 }
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 10px 16px;
+  border-bottom: 1px solid var(--panel-divider);
+  flex-shrink: 0;
+}
+
+.dropdown-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dropdown-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.dropdown-close:hover { color: var(--text); }
 
 .search-section {
   padding: 8px;

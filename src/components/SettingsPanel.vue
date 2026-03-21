@@ -7,6 +7,10 @@
   <!-- Dropdown -->
   <Transition name="settings-drop">
     <div v-if="isOpen" class="settings-dropdown" :style="dropdownStyle">
+      <div class="settings-header">
+        <span class="settings-panel-title">Preferences</span>
+        <button class="settings-tab-close" @click="$emit('close')">✕</button>
+      </div>
       <div class="settings-tabs">
         <button :class="['settings-tab', { active: tab === 'display' }]" @click="tab = 'display'">Display</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"    @click="tab = 'data'">Data</button>
@@ -336,7 +340,7 @@ function onTileTouchEnd() {
 
 .settings-dropdown {
   position: fixed;
-  z-index: 201;
+  z-index: 203;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
@@ -379,6 +383,34 @@ function onTileTouchEnd() {
 
 .settings-tab.active { color: var(--text); }
 .settings-tab.active::after { opacity: 1; }
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 10px 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.settings-panel-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-tab-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.settings-tab-close:hover { color: var(--text); }
 
 .settings-body {
   display: grid;

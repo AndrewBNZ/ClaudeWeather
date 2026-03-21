@@ -2,13 +2,13 @@
   <div class="app-shell">
     <header v-if="!weatherData" class="header">
       <div class="header-right">
-        <button data-locations-btn class="locations-btn" :class="{ active: panelOpen }" @click="panelOpen = !panelOpen" title="Saved locations">
+        <button data-locations-btn class="locations-btn" :class="{ active: panelOpen }" @click="panelOpen = !panelOpen; settingsOpen = false" title="Saved locations">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
         </button>
-        <button data-settings-btn class="settings-btn" data-tut="settings" :class="{ active: settingsOpen }" @click="settingsOpen = !settingsOpen" title="Preferences">
+        <button data-settings-btn class="settings-btn" data-tut="settings" :class="{ active: settingsOpen }" @click="settingsOpen = !settingsOpen; panelOpen = false" title="Preferences">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
@@ -54,6 +54,7 @@
               :pws-name="activePwsStation?.name ?? null"
               :pws-data-active="!!pwsData"
               :daily="weatherData.daily"
+              :selected-day="selectedDay"
               :unit-prefs="unitPrefs"
               :active-type="activeDataType"
               :location-name="locationName"
@@ -72,8 +73,8 @@
               :settings-open="settingsOpen"
               @select="activeDataType = $event"
               @grass-color="grassColor = $event"
-              @open-locations="panelOpen = !panelOpen"
-              @open-settings="settingsOpen = !settingsOpen"
+              @open-locations="panelOpen = !panelOpen; settingsOpen = false"
+              @open-settings="settingsOpen = !settingsOpen; panelOpen = false"
               @open-data-types="settingsPanel?.openDataTypesModal()"
               @refresh="loadWeather(false, true)"
             />
@@ -580,6 +581,8 @@ if (!isGeoActive.value) {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--header-border);
+  position: relative;
+  z-index: 201;
 }
 
 .header-right {
@@ -671,6 +674,7 @@ if (!isGeoActive.value) {
   .layout-left {
     position: sticky;
     top: 0;
+    z-index: 202;
   }
   .layout-left::after {
     content: '';

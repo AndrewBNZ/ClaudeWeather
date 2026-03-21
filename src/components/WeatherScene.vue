@@ -17,7 +17,7 @@
     </Transition>
 
     <!-- Sun -->
-    <div class="sun" :style="{ opacity: sunOpacity }" />
+    <div class="sun" :style="{ opacity: sunOpacity }" @click.stop="openCelestialModal()" />
 
     <!-- Shooting star -->
     <div
@@ -28,7 +28,7 @@
     />
 
     <!-- Moon (phase-accurate SVG) -->
-    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }" @click.stop="moonModalOpen = true">
+    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }" @click.stop="openCelestialModal()">
       <circle cx="20" cy="20" r="20" fill="#1a237e" />
       <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
       <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
@@ -140,19 +140,46 @@
 
   </div>
 
-  <!-- Moon phase modal -->
+  <!-- Celestial modal (Sun + Moon tabs) -->
   <Teleport to="body">
   <Transition name="moon-modal-fade">
-    <div v-if="moonModalOpen" class="moon-modal-overlay" @click.self="moonModalOpen = false">
+    <div v-if="celestialModalOpen" class="moon-modal-overlay" @click.self="celestialModalOpen = false">
       <div class="moon-modal">
         <div class="moon-modal-header">
-          <span class="moon-modal-title">Moon</span>
-          <button class="moon-modal-close" @click="moonModalOpen = false">✕</button>
+          <div class="cel-tabs">
+            <button class="cel-tab" :class="{ active: celestialTab === 'sun' }" @click="celestialTab = 'sun'">Sun</button>
+            <button class="cel-tab" :class="{ active: celestialTab === 'moon' }" @click="celestialTab = 'moon'">Moon</button>
+          </div>
+          <button class="moon-modal-close" @click="celestialModalOpen = false">✕</button>
         </div>
-        <div class="moon-modal-body">
+
+        <div v-if="selectedDayLabel" class="cel-day-label">{{ selectedDayLabel }}</div>
+
+        <div class="cel-body-grid">
+        <!-- Sun tab -->
+        <div class="moon-modal-body" :class="{ 'cel-pane--hidden': celestialTab !== 'sun' }">
+          <div class="sun-modal-icon">☀</div>
+          <div class="moon-modal-stats">
+            <div class="moon-stat">
+              <span class="moon-stat-label">Sunrise</span>
+              <span class="moon-stat-value">{{ sunriseFormatted }}</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">Sunset</span>
+              <span class="moon-stat-value">{{ sunsetFormatted }}</span>
+            </div>
+            <div class="moon-stat">
+              <span class="moon-stat-label">Day length</span>
+              <span class="moon-stat-value">{{ dayLength }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Moon tab -->
+        <div class="moon-modal-body" :class="{ 'cel-pane--hidden': celestialTab !== 'moon' }">
           <svg class="moon-modal-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
             <circle cx="20" cy="20" r="20" fill="#1a237e" />
-            <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
+            <path v-if="modalMoonPhasePath" :d="modalMoonPhasePath" fill="#F0F4FF" />
             <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
           </svg>
           <div class="moon-modal-stats">
@@ -178,6 +205,7 @@
             </div>
           </div>
         </div>
+        </div><!-- /cel-body-grid -->
       </div>
     </div>
   </Transition>
@@ -599,7 +627,9 @@ watch([timeOfDay, group], ([, ], [oldTod, oldGrp]) => {
 
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
 const sunOpacity = computed(() => {
-  if (!isDay.value || cloudCount.value > 3) return 0
+  if (!isDay.value) return 0
+  const maxClouds = group.value === 'partly' ? 4 : 3
+  if (cloudCount.value > maxClouds) return 0
   return cloudCount.value <= 1 ? 1 : 0.6
 })
 const moonOpacity = computed(() => {
@@ -618,34 +648,85 @@ const starsOpacity = computed(() => {
 
 // ── Moon phase ─────────────────────────────────────────────────────────────
 // Phase 0 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
+// Uses noon of the selected day (derived from props.sunrise) so the modal
+// reflects the correct phase for the chosen day, not always today.
+const moonReferenceTime = computed(() => {
+  if (!props.sunrise) return Date.now()
+  return new Date(props.sunrise.slice(0, 10) + 'T12:00:00Z').getTime()
+})
+
 const moonPhase = computed(() => {
-  const knownNewMoon  = new Date('2000-01-06T18:14:00Z').getTime()
-  const lunarPeriod   = 29.53058867 * 24 * 60 * 60 * 1000
-  const now           = Date.now()
-  return ((now - knownNewMoon) % lunarPeriod + lunarPeriod) % lunarPeriod / lunarPeriod
+  const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime()
+  const lunarPeriod  = 29.53058867 * 24 * 60 * 60 * 1000
+  const t            = Date.now()
+  return ((t - knownNewMoon) % lunarPeriod + lunarPeriod) % lunarPeriod / lunarPeriod
 })
 
-const moonPhasePath = computed(() => {
-  const p  = moonPhase.value
-  if (p < 0.02 || p > 0.98) return ''   // new moon — show only dark disc
+const modalMoonPhase = computed(() => {
+  const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime()
+  const lunarPeriod  = 29.53058867 * 24 * 60 * 60 * 1000
+  const t            = moonReferenceTime.value
+  return ((t - knownNewMoon) % lunarPeriod + lunarPeriod) % lunarPeriod / lunarPeriod
+})
 
-  const R  = 20
-  const cx = 20, cy = 20
-  const tx = Math.cos(2 * Math.PI * p) * R  // signed terminator x-radius
+function moonPathForPhase(p) {
+  if (p < 0.02 || p > 0.98) return ''
+  const R = 20, cx = 20, cy = 20
+  const tx = Math.cos(2 * Math.PI * p) * R
   const atx = Math.abs(tx)
-
-  const litOnRight = (p < 0.5) !== (props.lat < 0)     // waxing=right in N. Hemisphere; flipped in S. Hemisphere
-  const s1 = litOnRight ? 1 : 0                        // outer arc: clockwise (right side) when lit is on right
-  const s2 = (litOnRight === (tx < 0)) ? 1 : 0         // terminator sweep depends on lit side + gibbous/crescent
-
+  const litOnRight = (p < 0.5) !== (props.lat < 0)
+  const s1 = litOnRight ? 1 : 0
+  const s2 = (litOnRight === (tx < 0)) ? 1 : 0
   return `M ${cx},${cy - R} A ${R},${R} 0 0,${s1} ${cx},${cy + R} A ${atx},${R} 0 0,${s2} ${cx},${cy - R} Z`
+}
+
+const moonPhasePath      = computed(() => moonPathForPhase(moonPhase.value))
+const modalMoonPhasePath = computed(() => moonPathForPhase(modalMoonPhase.value))
+
+const celestialModalOpen = ref(false)
+const celestialTab = ref('sun')
+
+function openCelestialModal() {
+  celestialTab.value = isDay.value ? 'sun' : 'moon'
+  celestialModalOpen.value = true
+}
+
+const sunriseFormatted = computed(() => {
+  if (!props.sunrise) return '—'
+  const [h, m] = props.sunrise.slice(11, 16).split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 })
 
-const moonModalOpen = ref(false)
+const sunsetFormatted = computed(() => {
+  if (!props.sunset) return '—'
+  const [h, m] = props.sunset.slice(11, 16).split(':').map(Number)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+})
+
+const dayLength = computed(() => {
+  if (!props.sunrise || !props.sunset) return '—'
+  const riseMs = new Date(props.sunrise + 'Z').getTime()
+  const setMs  = new Date(props.sunset  + 'Z').getTime()
+  const mins   = Math.round((setMs - riseMs) / 60000)
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`
+})
+
+const selectedDayLabel = computed(() => {
+  if (!props.sunrise) return ''
+  const selDate  = props.sunrise.slice(0, 10)
+  const locNow   = clockNow.value + props.utcOffset * 1000
+  const todayStr = new Date(locNow).toISOString().slice(0, 10)
+  if (selDate === todayStr) return 'Today'
+  const tomorrowStr = new Date(locNow + 86400000).toISOString().slice(0, 10)
+  if (selDate === tomorrowStr) return 'Tomorrow'
+  return new Date(selDate + 'T12:00:00Z').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })
+})
 
 const LUNAR_PERIOD = 29.53058867
 const moonPhaseName = computed(() => {
-  const p = moonPhase.value
+  const p = modalMoonPhase.value
   if (p < 0.02 || p > 0.98) return 'New Moon'
   if (p < 0.23)              return 'Waxing Crescent'
   if (p < 0.27)              return 'First Quarter'
@@ -657,22 +738,22 @@ const moonPhaseName = computed(() => {
 })
 
 const moonIllumination = computed(() =>
-  Math.round((1 - Math.cos(2 * Math.PI * moonPhase.value)) / 2 * 100)
+  Math.round((1 - Math.cos(2 * Math.PI * modalMoonPhase.value)) / 2 * 100)
 )
 
 const moonAge = computed(() =>
-  (moonPhase.value * LUNAR_PERIOD).toFixed(1)
+  (modalMoonPhase.value * LUNAR_PERIOD).toFixed(1)
 )
 
 const daysToFullMoon = computed(() => {
-  const d = moonPhase.value < 0.5
-    ? (0.5 - moonPhase.value) * LUNAR_PERIOD
-    : (1.5 - moonPhase.value) * LUNAR_PERIOD
+  const d = modalMoonPhase.value < 0.5
+    ? (0.5 - modalMoonPhase.value) * LUNAR_PERIOD
+    : (1.5 - modalMoonPhase.value) * LUNAR_PERIOD
   return Math.round(d) === 0 ? 'Tonight' : `in ${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'}`
 })
 
 const daysToNewMoon = computed(() => {
-  const d = (1 - moonPhase.value) * LUNAR_PERIOD
+  const d = (1 - modalMoonPhase.value) * LUNAR_PERIOD
   return Math.round(d) === 0 ? 'Tonight' : `in ${Math.round(d)} day${Math.round(d) === 1 ? '' : 's'}`
 })
 
@@ -964,6 +1045,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   border-radius: 50%;
   box-shadow: 0 0 28px 8px rgba(255,213,79,0.45), 0 0 60px 24px rgba(255,179,0,0.22), 0 0 100px 40px rgba(255,160,0,0.12);
   transition: opacity 2.5s ease;
+  cursor: pointer;
 }
 
 /* ── Moon ─────────────────────────────────────────────────────────────────── */
@@ -1172,7 +1254,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   to   { transform: translateX(250vw); }
 }
 
-/* ── Moon phase modal ─────────────────────────────────────────────────────── */
+/* ── Celestial modal (Sun + Moon) ─────────────────────────────────────────── */
 .moon-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1194,16 +1276,52 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 
 .moon-modal-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px 14px;
+  align-items: stretch;
   border-bottom: 1px solid var(--panel-border);
 }
 
-.moon-modal-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
+.cel-tabs {
+  display: flex;
+  flex: 1;
+}
+
+.cel-tab {
+  flex: 1;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+  position: relative;
+}
+
+.cel-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cel-tab.active { color: var(--text); }
+.cel-tab.active::after { opacity: 1; }
+.cel-tab:hover:not(.active) { color: var(--text); }
+
+.sun-modal-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+  width: 72px;
+  text-align: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(255,200,50,0.6));
 }
 
 .moon-modal-close {
@@ -1212,16 +1330,38 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   color: var(--text-muted);
   font-size: 0.9rem;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 0 16px;
+  align-self: center;
   line-height: 1;
 }
 .moon-modal-close:hover { color: var(--text); }
 
+.cel-day-label {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--panel-border);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cel-body-grid {
+  display: grid;
+}
+
 .moon-modal-body {
+  grid-area: 1 / 1;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.cel-pane--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .moon-modal-svg {

@@ -257,6 +257,7 @@ const props = defineProps({
   pwsDataActive: { type: Boolean, default: false },
   locationsOpen: { type: Boolean, default: false },
   settingsOpen:  { type: Boolean, default: false },
+  selectedDay:   { type: Number,  default: 0 },
 })
 
 const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types'])
@@ -266,8 +267,8 @@ watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else re
 const info      = computed(() => getWeatherInfo(props.data.weather_code))
 const todayHigh    = computed(() => props.daily?.temperature_2m_max?.[0] ?? null)
 const todayLow     = computed(() => props.daily?.temperature_2m_min?.[0] ?? null)
-const todaySunrise = computed(() => props.daily?.sunrise?.[0] ?? null)
-const todaySunset  = computed(() => props.daily?.sunset?.[0] ?? null)
+const todaySunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ?? null)
+const todaySunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
 
 
 const windArrowSvg = computed(() => {
@@ -339,6 +340,7 @@ function fmt(v, decimals) {
 <style scoped>
 .conditions {
   position: relative;
+  z-index: 202;
   overflow: hidden;
   padding: 0;
 }
@@ -356,7 +358,7 @@ function fmt(v, decimals) {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 2;
+  z-index: 201;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -623,8 +625,8 @@ function fmt(v, decimals) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-radius: 9999px;
-  width: 36px;
-  height: 32px;
+  width: 42px;
+  height: 34px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -740,8 +742,8 @@ function fmt(v, decimals) {
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
-  width: 36px;
-  height: 32px;
+  width: 42px;
+  height: 34px;
   padding: 0;
   display: flex;
   align-items: center;
