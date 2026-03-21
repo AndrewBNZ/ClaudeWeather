@@ -132,52 +132,57 @@
       </button>
 
       <!-- Detail items — each selects its data type, split into swipeable pages -->
-      <div class="cond-details"
+      <div class="cond-details-outer"
         @touchstart.passive="onSwipeTouchStart"
         @touchend.passive="onSwipeTouchEnd"
       >
-        <button
-          v-for="item in detailPages[currentPage]"
-          :key="item.type"
-          class="detail-item selectable"
-          :class="{ active: activeType === item.type }"
-          :style="{ '--sel-color': item.color }"
-          @click="emit('select', item.type)"
-        >
-          <span v-if="pwsDataActive && item.pwsSource" class="tile-pws-dot" :title="`${item.label} from ${pwsName}`"></span>
-          <span v-if="item.type === 'wind' && props.data.wind_direction_10m != null" class="detail-icon wind-arrow-icon">
-            <svg width="23" height="23" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="10" cy="10" r="9.5" fill="rgba(15,23,42,0.75)" stroke="#06b6d4" stroke-width="1.5"/>
-              <g class="wind-arrow-g" :style="{ transform: `rotate(${windDisplayAngle}deg)`, transformOrigin: '10px 10px' }">
-                <line x1="10" y1="16" x2="10" y2="10" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"/>
-                <polygon points="10,4 7,10 13,10" fill="#06b6d4"/>
-              </g>
-            </svg>
-          </span>
-          <span v-else-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
-          <span v-else class="detail-icon">{{ item.icon }}</span>
-          <div>
-            <div class="detail-label">{{ item.label }}</div>
-            <div class="detail-value">{{ item.value }}</div>
+        <Transition :name="'page-' + pageDirection">
+          <div class="cond-details" :key="currentPage">
+            <button
+              v-for="item in detailPages[currentPage]"
+              :key="item.type"
+              class="detail-item selectable"
+              :class="{ active: activeType === item.type }"
+              :style="{ '--sel-color': item.color }"
+              @click="emit('select', item.type)"
+            >
+              <span v-if="pwsDataActive && item.pwsSource" class="tile-pws-dot" :title="`${item.label} from ${pwsName}`"></span>
+              <span v-if="item.type === 'wind' && props.data.wind_direction_10m != null" class="detail-icon wind-arrow-icon">
+                <svg width="23" height="23" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="10" cy="10" r="9.5" fill="rgba(15,23,42,0.75)" stroke="#06b6d4" stroke-width="1.5"/>
+                  <g class="wind-arrow-g" :style="{ transform: `rotate(${windDisplayAngle}deg)`, transformOrigin: '10px 10px' }">
+                    <line x1="10" y1="16" x2="10" y2="10" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round"/>
+                    <polygon points="10,4 7,10 13,10" fill="#06b6d4"/>
+                  </g>
+                </svg>
+              </span>
+              <span v-else-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
+              <span v-else class="detail-icon">{{ item.icon }}</span>
+              <div>
+                <div class="detail-label">{{ item.label }}</div>
+                <div class="detail-value">{{ item.value }}</div>
+              </div>
+            </button>
           </div>
-        </button>
-      </div>
-      <!-- Page navigation (only shown when there are multiple pages) -->
-      <div v-if="detailPages.length > 1" class="page-nav">
-        <button class="page-arrow" :disabled="currentPage === 0" @click="currentPage = currentPage - 1" aria-label="Previous page">‹</button>
-        <div class="page-dots">
-          <button
-            v-for="(_, i) in detailPages"
-            :key="i"
-            class="page-dot"
-            :class="{ active: i === currentPage }"
-            @click="currentPage = i"
-            :aria-label="`Page ${i + 1}`"
-          />
-        </div>
-        <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="currentPage = currentPage + 1" aria-label="Next page">›</button>
+        </Transition>
       </div>
     </div>
+    </div>
+
+    <!-- Page navigation (only shown when there are multiple pages) -->
+    <div v-if="detailPages.length > 1" class="page-nav">
+      <button class="page-arrow" :disabled="currentPage === 0" @click="goToPage(currentPage - 1)" aria-label="Previous page">‹</button>
+      <div class="page-dots">
+        <button
+          v-for="(_, i) in detailPages"
+          :key="i"
+          class="page-dot"
+          :class="{ active: i === currentPage }"
+          @click="goToPage(i)"
+          :aria-label="`Page ${i + 1}`"
+        />
+      </div>
+      <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="goToPage(currentPage + 1)" aria-label="Next page">›</button>
     </div>
 
   </div>
@@ -359,6 +364,13 @@ const detailPages = computed(() => {
 })
 
 const currentPage = ref(0)
+const pageDirection = ref('left')
+
+function goToPage(n) {
+  pageDirection.value = n > currentPage.value ? 'left' : 'right'
+  currentPage.value = n
+}
+
 watch(detailPages, (pages) => {
   if (currentPage.value >= pages.length) currentPage.value = Math.max(0, pages.length - 1)
 })
@@ -370,8 +382,8 @@ function onSwipeTouchEnd(e) {
   const dx = e.changedTouches[0].clientX - swipeTouchStartX
   swipeTouchStartX = null
   if (Math.abs(dx) < 40) return
-  if (dx < 0 && currentPage.value < detailPages.value.length - 1) currentPage.value++
-  else if (dx > 0 && currentPage.value > 0) currentPage.value--
+  if (dx < 0 && currentPage.value < detailPages.value.length - 1) goToPage(currentPage.value + 1)
+  else if (dx > 0 && currentPage.value > 0) goToPage(currentPage.value - 1)
 }
 
 function fmt(v, decimals) {
@@ -594,22 +606,47 @@ function fmt(v, decimals) {
 }
 
 /* ── Detail grid ────────────────────────────────────────────────────────── */
-.cond-details {
+.cond-details-outer {
   grid-column: 1 / -1;
+  position: relative;
+  overflow: hidden;
+}
+
+.cond-details {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   grid-auto-rows: 68px;
   gap: 8px;
 }
 
+/* Page slide transitions */
+.page-left-enter-active,
+.page-left-leave-active,
+.page-right-enter-active,
+.page-right-leave-active {
+  transition: transform 0.28s ease, opacity 0.28s ease;
+}
+.page-left-leave-active,
+.page-right-leave-active {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+}
+.page-left-enter-from  { transform: translateX(100%); opacity: 0; }
+.page-left-leave-to    { transform: translateX(-100%); opacity: 0; }
+.page-right-enter-from { transform: translateX(-100%); opacity: 0; }
+.page-right-leave-to   { transform: translateX(100%); opacity: 0; }
+
 .page-nav {
-  grid-column: 1 / -1;
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 4px 0 2px;
-  pointer-events: auto;
+  pointer-events: all;
 }
 
 .page-arrow {

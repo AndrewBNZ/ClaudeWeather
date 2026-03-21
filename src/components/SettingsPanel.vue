@@ -205,8 +205,6 @@
               @dragend="onTileDragEnd"
               @drop="onTileDrop($event, i)"
               @touchstart.passive="onTileTouchStart($event, i)"
-              @touchmove="onTileTouchMove"
-              @touchend="onTileTouchEnd"
             >
               <span class="tile-drag-handle">⠿</span>
               <span class="page-break-label">— Page {{ tileConfig.slice(0, i).filter(t => t.type === 'pageBreak').length + 2 }}</span>
@@ -223,8 +221,6 @@
               @dragend="onTileDragEnd"
               @drop="onTileDrop($event, i)"
               @touchstart.passive="onTileTouchStart($event, i)"
-              @touchmove="onTileTouchMove"
-              @touchend="onTileTouchEnd"
             >
               <span class="tile-drag-handle">⠿</span>
               <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
@@ -412,9 +408,13 @@ function onTileDrop(e, i) {
   if (tileDragIndex.value !== null && tileDragIndex.value !== i) reorderTiles(tileDragIndex.value, i)
   tileDragIndex.value = null; tileDragOver.value = null
 }
-function onTileTouchStart(_e, i) { tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i }
-function onTileTouchMove(e) {
-  if (tileTouchIdx === null) return
+function onTileTouchStart(e, i) {
+  if (!e.target.closest('.tile-drag-handle')) return
+  tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i
+  document.addEventListener('touchmove', _onTileTouchMove, { passive: false })
+  document.addEventListener('touchend', _onTileTouchEnd)
+}
+function _onTileTouchMove(e) {
   e.preventDefault()
   tileTouchMoved = true
   const touch = e.touches[0]
@@ -422,11 +422,13 @@ function onTileTouchMove(e) {
   const row   = el?.closest('[data-tile-idx]')
   tileDragOver.value = row ? parseInt(row.dataset.tileIdx) : null
 }
-function onTileTouchEnd() {
+function _onTileTouchEnd() {
   if (tileTouchMoved && tileTouchIdx !== null && tileDragOver.value !== null && tileTouchIdx !== tileDragOver.value) {
     reorderTiles(tileTouchIdx, tileDragOver.value)
   }
   tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
+  document.removeEventListener('touchmove', _onTileTouchMove)
+  document.removeEventListener('touchend', _onTileTouchEnd)
 }
 </script>
 
