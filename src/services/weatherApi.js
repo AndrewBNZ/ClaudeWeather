@@ -51,9 +51,28 @@ function readCache(key) {
     if (!raw) return null
     const entry = JSON.parse(raw)
     if (Date.now() - entry.timestamp < CACHE_TTL_MS) return entry
+    localStorage.removeItem(key)
   } catch {}
   return null
 }
+
+function purgeExpiredCache() {
+  try {
+    const now = Date.now()
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('weather_cache_'))
+      .forEach(k => {
+        try {
+          const entry = JSON.parse(localStorage.getItem(k))
+          if (now - entry.timestamp >= CACHE_TTL_MS) localStorage.removeItem(k)
+        } catch {
+          localStorage.removeItem(k)
+        }
+      })
+  } catch {}
+}
+
+purgeExpiredCache()
 
 function writeCache(key, data) {
   const timestamp = Date.now()
