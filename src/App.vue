@@ -496,7 +496,7 @@ function isStale() {
 }
 
 function checkAndRefresh() {
-  if (location.value && isStale()) loadWeather(false, true)
+  if (location.value && isStale()) loadWeather(true, true)
 }
 
 async function loadWeather(silent = false, forceRefresh = false) {
