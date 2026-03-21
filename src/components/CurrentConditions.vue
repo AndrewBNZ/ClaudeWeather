@@ -161,16 +161,20 @@
           </div>
         </button>
       </div>
-      <!-- Page dots (only shown when there are multiple pages) -->
-      <div v-if="detailPages.length > 1" class="page-dots">
-        <button
-          v-for="(_, i) in detailPages"
-          :key="i"
-          class="page-dot"
-          :class="{ active: i === currentPage }"
-          @click="currentPage = i"
-          :aria-label="`Page ${i + 1}`"
-        />
+      <!-- Page navigation (only shown when there are multiple pages) -->
+      <div v-if="detailPages.length > 1" class="page-nav">
+        <button class="page-arrow" :disabled="currentPage === 0" @click="currentPage--" aria-label="Previous page">‹</button>
+        <div class="page-dots">
+          <button
+            v-for="(_, i) in detailPages"
+            :key="i"
+            class="page-dot"
+            :class="{ active: i === currentPage }"
+            @click="currentPage = i"
+            :aria-label="`Page ${i + 1}`"
+          />
+        </div>
+        <button class="page-arrow" :disabled="currentPage === detailPages.length - 1" @click="currentPage++" aria-label="Next page">›</button>
       </div>
     </div>
     </div>
@@ -596,12 +600,31 @@ function fmt(v, decimals) {
   gap: 8px;
 }
 
-.page-dots {
+.page-nav {
   grid-column: 1 / -1;
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 4px 0 2px;
+}
+
+.page-arrow {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.page-arrow:hover:not(:disabled) { color: rgba(255, 255, 255, 0.9); }
+.page-arrow:disabled { opacity: 0.2; cursor: default; }
+
+.page-dots {
+  display: flex;
+  gap: 6px;
 }
 
 .page-dot {
