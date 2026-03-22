@@ -629,6 +629,17 @@ onMounted(() => {
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)
 
+function onDocumentClick(e) {
+  if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]')) {
+    settingsOpen.value = false
+  }
+  if (panelOpen.value && !e.target.closest('.dropdown') && !e.target.closest('[data-locations-btn]')) {
+    panelOpen.value = false
+    tutSearching.value = false
+  }
+}
+document.addEventListener('click', onDocumentClick)
+
 function onOnline()  { isOffline.value = false; if (location.value) loadWeather() }
 function onOffline() { isOffline.value = true }
 window.addEventListener('online',  onOnline)
@@ -638,6 +649,7 @@ onUnmounted(() => {
   clearInterval(refreshTimer)
   clearInterval(autoTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  document.removeEventListener('click', onDocumentClick)
   window.removeEventListener('online',  onOnline)
   window.removeEventListener('offline', onOffline)
 })

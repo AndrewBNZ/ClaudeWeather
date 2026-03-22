@@ -1,9 +1,4 @@
 <template>
-  <!-- Transparent clickaway -->
-  <Transition name="fade">
-    <div v-if="isOpen" class="clickaway" @click="emit('close')" />
-  </Transition>
-
   <!-- Dropdown card -->
   <Transition name="drop">
     <div v-if="isOpen" class="dropdown" :style="dropdownStyle">
@@ -142,12 +137,6 @@ function geoLocate() {
 </script>
 
 <style scoped>
-.clickaway {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-}
-
 .dropdown {
   position: fixed;
   z-index: 203;

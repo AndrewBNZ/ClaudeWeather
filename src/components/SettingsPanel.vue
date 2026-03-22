@@ -1,9 +1,4 @@
 <template>
-  <!-- Clickaway -->
-  <Transition name="fade">
-    <div v-if="isOpen" class="settings-clickaway" @click="$emit('close')" />
-  </Transition>
-
   <!-- Dropdown -->
   <Transition name="settings-drop">
     <div v-if="isOpen" class="settings-dropdown" :style="dropdownStyle">
@@ -443,12 +438,6 @@ function _onTileTouchEnd() {
 
 <style>
 /* ── Settings dropdown ───────────────────────────────────────────────────── */
-.settings-clickaway {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-}
-
 .settings-dropdown {
   position: fixed;
   z-index: 203;
