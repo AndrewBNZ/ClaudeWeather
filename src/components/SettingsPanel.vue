@@ -39,7 +39,7 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Chart display order</div>
+              <div class="setting-label">Swap chart display order</div>
               <div class="setting-hint">{{ hourlyFirst ? 'Hourly on top' : 'Daily on top' }}</div>
             </div>
             <button class="toggle-switch" :class="{ on: hourlyFirst }" @click="hourlyFirst = !hourlyFirst">
@@ -49,7 +49,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">Daily forecast summary</div>
-              <div class="setting-hint">Show a summary above the hourly chart</div>
+              <div class="setting-hint">Show a summary below the daily chart</div>
             </div>
             <button class="toggle-switch" :class="{ on: showDailySummary }" @click="showDailySummary = !showDailySummary">
               <span class="toggle-thumb" />

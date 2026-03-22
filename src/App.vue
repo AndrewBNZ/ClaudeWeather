@@ -113,6 +113,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :silent-refresh="silentRefresh"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -127,6 +128,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :show-summary="showDailySummary"
+                  :silent-refresh="silentRefresh"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -143,6 +145,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :show-summary="showDailySummary"
+                  :silent-refresh="silentRefresh"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -157,6 +160,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :silent-refresh="silentRefresh"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -290,6 +294,7 @@ const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location           = ref(null)
 const selectedDay        = ref(0)
 const weatherData        = ref(null)
+const silentRefresh      = ref(false)
 const loading            = ref(false)
 const error              = ref(null)
 const fetchedAt          = ref(null)
@@ -512,6 +517,7 @@ async function loadWeather(silent = false, forceRefresh = false) {
     const locHour = new Date(Date.now() + data.utc_offset_seconds * 1000).getUTCHours()
     data.current.precipitation_probability =
       data.hourly?.precipitation_probability?.[locHour] ?? null
+    silentRefresh.value = silent
     weatherData.value = data
     const maxDay = (data.daily?.time?.length ?? 1) - 1
     if (selectedDay.value > maxDay) selectedDay.value = maxDay

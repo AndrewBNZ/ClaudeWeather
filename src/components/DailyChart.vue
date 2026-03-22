@@ -36,9 +36,10 @@ const props = defineProps({
   activeType:  { type: String, required: true },
   unitPrefs:   { type: Object, required: true },
   selectedDay: { type: Number, default: 0 },
-  theme:       { type: String, default: 'dark' },
-  utcOffset:   { type: Number, default: 0 },
-  showSummary: { type: Boolean, default: true },
+  theme:         { type: String,  default: 'dark' },
+  utcOffset:     { type: Number,  default: 0 },
+  showSummary:   { type: Boolean, default: true },
+  silentRefresh: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['day-selected', 'open-units-modal'])
@@ -410,7 +411,7 @@ function buildChart() {
     options: {
       responsive: false,
       maintainAspectRatio: false,
-      animation: { duration: 400 },
+      animation: { duration: props.silentRefresh ? 0 : 400 },
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
