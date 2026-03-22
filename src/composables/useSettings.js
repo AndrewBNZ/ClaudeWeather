@@ -15,7 +15,8 @@ const TILES_KEY       = `${P}-tiles`
 const CHART_ORDER_KEY = `${P}-chartorder`
 const TIME_FORMAT_KEY = `${P}-timeformat`
 const THEME_KEY       = `${P}-theme`
-const DATATYPE_KEY    = `${P}-datatype`
+const DATATYPE_KEY      = `${P}-datatype`
+const DAILY_SUMMARY_KEY = `${P}-dailysummary`
 
 export const DEFAULT_UNIT_PREFS = {
   temperature: 'celsius', wind: 'kmh', precipitation: 'mm', pressure: 'hpa', visibility: 'km',
@@ -106,28 +107,30 @@ export function isAutoNight() { const h = new Date().getHours(); return h < 6 ||
 const tileConfig     = ref(loadTileConfig())
 const unitPrefs      = ref(loadUnitPrefs())
 const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
-const dailyFirst     = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
+const hourlyFirst    = ref(localStorage.getItem(CHART_ORDER_KEY) === 'true')
 const showSim        = ref(localStorage.getItem(SIM_KEY) === 'true')
 const pwsEnabled      = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
 const pwsApiKey       = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
 const tempestEnabled   = ref(localStorage.getItem(TEMPEST_ENABLED_STG) !== 'false')
 const tempestToken     = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
 const openMeteoModel   = ref(localStorage.getItem(OPEN_METEO_MODEL_STG) ?? 'best_match')
-const activeDataType = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
+const activeDataType   = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
+const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
 watch(tileConfig,    (v) => { try { localStorage.setItem(TILES_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(unitPrefs,     (v) => { try { localStorage.setItem(UNIT_PREFS_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(timeFormat,    (v) => localStorage.setItem(TIME_FORMAT_KEY, v))
-watch(dailyFirst,    (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
+watch(hourlyFirst,   (v) => localStorage.setItem(CHART_ORDER_KEY, String(v)))
 watch(showSim,       (v) => localStorage.setItem(SIM_KEY, String(v)))
 watch(pwsEnabled,     (v) => localStorage.setItem(PWS_ENABLED_STG, String(v)))
 watch(pwsApiKey,      (v) => { try { if (v) localStorage.setItem(PWS_KEY_STG, v); else localStorage.removeItem(PWS_KEY_STG) } catch {} })
 watch(tempestEnabled,  (v) => localStorage.setItem(TEMPEST_ENABLED_STG, String(v)))
 watch(tempestToken,    (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_STG, v); else localStorage.removeItem(TEMPEST_TOKEN_STG) } catch {} })
 watch(openMeteoModel,  (v) => localStorage.setItem(OPEN_METEO_MODEL_STG, v))
-watch(activeDataType,(v) => localStorage.setItem(DATATYPE_KEY, v))
+watch(activeDataType,   (v) => localStorage.setItem(DATATYPE_KEY, v))
+watch(showDailySummary, (v) => localStorage.setItem(DAILY_SUMMARY_KEY, String(v)))
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -162,7 +165,7 @@ function removePageBreak(index) {
 
 export function useSettings() {
   return {
-    theme, resolvedTheme, timeFormat, dailyFirst, showSim,
+    theme, resolvedTheme, timeFormat, hourlyFirst, showSim, showDailySummary,
     tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
     UNIT_OPTIONS, TILE_META,
     toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,

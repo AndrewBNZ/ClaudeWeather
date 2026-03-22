@@ -102,7 +102,7 @@
                 />
               </div>
             </template>
-            <template v-else-if="!dailyFirst">
+            <template v-else-if="hourlyFirst">
               <div class="layout-chart">
                 <HourlyChart
                   :hourly="weatherData.hourly"
@@ -113,6 +113,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :show-summary="showDailySummary"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -155,6 +156,7 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
+                  :show-summary="showDailySummary"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -239,7 +241,7 @@ import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
 
 const {
-  timeFormat, dailyFirst, showSim,
+  timeFormat, hourlyFirst, showSim, showDailySummary,
   tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
 } = useSettings()
 

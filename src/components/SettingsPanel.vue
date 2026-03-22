@@ -44,10 +44,19 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Swap chart positions</div>
-              <div class="setting-hint">{{ dailyFirst ? 'Daily on top' : 'Hourly on top' }}</div>
+              <div class="setting-label">Chart display order</div>
+              <div class="setting-hint">{{ hourlyFirst ? 'Hourly on top' : 'Daily on top' }}</div>
             </div>
-            <button class="toggle-switch" :class="{ on: dailyFirst }" @click="dailyFirst = !dailyFirst">
+            <button class="toggle-switch" :class="{ on: hourlyFirst }" @click="hourlyFirst = !hourlyFirst">
+              <span class="toggle-thumb" />
+            </button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Daily forecast summary</div>
+              <div class="setting-hint">Show a summary above the hourly chart</div>
+            </div>
+            <button class="toggle-switch" :class="{ on: showDailySummary }" @click="showDailySummary = !showDailySummary">
               <span class="toggle-thumb" />
             </button>
           </div>
@@ -339,7 +348,7 @@ defineEmits(['close'])
 defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true }, openModelModal: () => { modelInfoOpen.value = true } })
 
 const {
-  theme, timeFormat, dailyFirst, showSim,
+  theme, timeFormat, hourlyFirst, showSim, showDailySummary,
   tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
 } = useSettings()

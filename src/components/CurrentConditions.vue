@@ -162,7 +162,10 @@
               <span v-else class="detail-icon">{{ item.icon }}</span>
               <div>
                 <div class="detail-label">{{ item.label }}</div>
-                <div class="detail-value">{{ item.value }}</div>
+                <div class="detail-value">
+                  {{ item.value }}
+                  <span v-if="item.type === 'wind' && windTrend" class="wind-trend-arrow" :class="windTrend">{{ windTrend === 'up' ? '▲' : '▼' }}</span>
+                </div>
               </div>
             </button>
           </div>
@@ -307,6 +310,31 @@ const todaySunset    = computed(() => props.daily?.sunset?.[0] ?? null)
 const selectedSunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ?? null)
 const selectedSunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
 
+
+// Wind speed trend detection — tracks last 5 distinct readings while PWS is active
+const windHistory = ref([])
+watch(
+  [() => props.data.wind_speed_10m, () => props.pwsDataActive],
+  ([speed, active]) => {
+    if (!active || speed == null) { windHistory.value = []; return }
+    const last = windHistory.value[windHistory.value.length - 1]
+    if (last == null || Math.abs(speed - last) >= 0.3) {
+      windHistory.value = [...windHistory.value.slice(-4), speed]
+    }
+  }
+)
+const windTrend = computed(() => {
+  if (!props.pwsDataActive) return null
+  const h = windHistory.value
+  if (h.length < 3) return null
+  const half = Math.floor(h.length / 2)
+  const older = h.slice(0, half).reduce((a, b) => a + b, 0) / half
+  const newer = h.slice(half + 1).reduce((a, b) => a + b, 0) / (h.length - half - 1)
+  const diff = newer - older
+  if (diff > 1.5) return 'up'
+  if (diff < -1.5) return 'down'
+  return null
+})
 
 // Smooth wind arrow rotation — accumulates angle to always take shortest path
 const windDisplayAngle = ref(0)
@@ -724,6 +752,14 @@ function fmt(v, decimals) {
 .detail-icon { font-size: 23px; flex-shrink: 0; display: flex; align-items: center; }
 .detail-icon svg { width: 23px; height: 23px; }
 .wind-arrow-g { transition: transform 0.6s ease; }
+.wind-trend-arrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-left: 2px;
+  vertical-align: middle;
+}
+.wind-trend-arrow.up   { color: #f97316; }
+.wind-trend-arrow.down { color: #38bdf8; }
 
 .detail-label {
   font-size: 0.83rem;
