@@ -9,6 +9,7 @@
         <canvas ref="canvasRef"></canvas>
       </div>
     </div>
+    <div v-if="showSummary && dailySummary" class="daily-summary"><span class="daily-summary-prefix">{{ summaryPrefix }}</span>{{ dailySummary }}</div>
   </div>
 </template>
 
@@ -22,6 +23,7 @@ Tooltip.positioners.linePoint = function(items) {
   return { x: line.element.x, y: line.element.y }
 }
 import { DATA_TYPES, getDailyAvgFromHourly, getUnitLabel } from '../utils/dataTypes.js'
+import { getDailySummary } from '../utils/dailySummary.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { drawWindArrow } from '../utils/chartHelpers.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
@@ -36,6 +38,7 @@ const props = defineProps({
   selectedDay: { type: Number, default: 0 },
   theme:       { type: String, default: 'dark' },
   utcOffset:   { type: Number, default: 0 },
+  showSummary: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['day-selected', 'open-units-modal'])
@@ -71,6 +74,19 @@ function handleCanvasClick(e) {
 
 const config = computed(() => DATA_TYPES[props.activeType])
 const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
+
+const dailySummary = computed(() => getDailySummary(props.daily, props.selectedDay, props.unitPrefs))
+const summaryPrefix = computed(() => {
+  const isoDate = props.daily?.time?.[props.selectedDay]
+  if (!isoDate) return ''
+  const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
+  if (isoDate === locDateStr) return 'Today: '
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d, 12))
+  const weekday = date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+  const day     = date.toLocaleDateString('en', { day: 'numeric',  timeZone: 'UTC' })
+  return `${weekday} ${day}: `
+})
 
 function dayLabel(isoDate) {
   const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
@@ -485,6 +501,14 @@ watch(() => props.selectedDay, () => {
     chartInstance.data.datasets[0].borderColor      = barBg('ff', '66')
   }
   chartInstance.update('none')
+
+  // Scroll selected bar into view inside the chart-wrap container
+  const bar = chartInstance.getDatasetMeta(0).data[props.selectedDay]
+  if (bar && wrapRef.value) {
+    const barX = bar.x
+    const wrapWidth = wrapRef.value.clientWidth
+    wrapRef.value.scrollTo({ left: barX - wrapWidth / 2, behavior: 'smooth' })
+  }
 })
 onMounted(() => {
   canvasRef.value.addEventListener('click', handleCanvasClick)
@@ -544,6 +568,17 @@ onBeforeUnmount(() => {
 .chart-wrap {
   position: relative;
   height: 250px;
+}
+
+.daily-summary {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.daily-summary-prefix {
+  font-weight: 600;
 }
 
 .chart-scroll-inner {

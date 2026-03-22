@@ -46,7 +46,6 @@
         </Teleport>
       </div>
     </div>
-    <div v-if="showSummary && dailySummary" class="daily-summary">{{ dailySummary }}</div>
     <div class="chart-area">
       <div v-if="noHourlyData" class="chart-empty-msg">No forecast data available for this day</div>
       <div v-else-if="noRainData" class="chart-empty-msg">No rain forecast for this day</div>
@@ -70,7 +69,6 @@ Tooltip.positioners.linePoint = function(items) {
   return { x: line.element.x, y: line.element.y }
 }
 import { DATA_TYPES, getUnitLabel } from '../utils/dataTypes.js'
-import { getDailySummary } from '../utils/dailySummary.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { drawWindArrow } from '../utils/chartHelpers.js'
 import { getWeatherInfo, getCompassDir } from '../utils/weatherCodes.js'
@@ -86,7 +84,6 @@ const props = defineProps({
   theme:         { type: String,  default: 'dark' },
   utcOffset:     { type: Number,  default: 0 },
   timeFormat:    { type: String,  default: '12h' },
-  showSummary:   { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['select-day', 'open-units-modal'])
@@ -98,8 +95,6 @@ const selectBtnRef  = ref(null)
 const dropdownOpen  = ref(false)
 const dropdownStyle = ref({})
 let   chartInstance = null
-
-const dailySummary = computed(() => getDailySummary(props.daily, props.dayIndex, props.unitPrefs))
 
 const navBtnBg     = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.05)'   : 'rgba(255,255,255,0.12)')
 const navBtnBorder = computed(() => props.theme === 'light' ? 'rgba(0,0,0,0.1)'    : 'rgba(255,255,255,0.2)')
@@ -1006,12 +1001,6 @@ onBeforeUnmount(() => {
 .day-step-btn:disabled {
   opacity: 0.25;
   cursor: default;
-}
-
-.daily-summary {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  line-height: 1.4;
 }
 
 .chart-area {

@@ -113,7 +113,6 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
-                  :show-summary="showDailySummary"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -127,6 +126,7 @@
                   :selected-day="selectedDay"
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
+                  :show-summary="showDailySummary"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -142,6 +142,7 @@
                   :selected-day="selectedDay"
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
+                  :show-summary="showDailySummary"
                   @day-selected="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
@@ -156,7 +157,6 @@
                   :theme="resolvedTheme"
                   :utc-offset="weatherData.utc_offset_seconds ?? 0"
                   :time-format="timeFormat"
-                  :show-summary="showDailySummary"
                   @select-day="selectedDay = $event"
                   @open-units-modal="settingsPanel?.openUnitsModal()"
                 />
