@@ -1,5 +1,8 @@
 <template>
-  <div class="conditions card" :class="{ blurred: blurred }">
+  <div class="conditions card" :class="{ blurred: blurred }"
+    @touchstart.passive="onSwipeTouchStart"
+    @touchend.passive="onSwipeTouchEnd"
+  >
 
     <!-- Scene header: location name + nav buttons overlaid on the scene -->
     <div class="scene-header">
@@ -134,10 +137,7 @@
       </button>
 
       <!-- Detail items — each selects its data type, split into swipeable pages -->
-      <div class="cond-details-outer"
-        @touchstart.passive="onSwipeTouchStart"
-        @touchend.passive="onSwipeTouchEnd"
-      >
+      <div class="cond-details-outer">
         <Transition :name="'page-' + pageDirection">
           <div class="cond-details" :key="currentPage">
             <button
@@ -642,6 +642,7 @@ function fmt(v, decimals) {
   grid-column: 1 / -1;
   position: relative;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 .cond-details {
@@ -688,10 +689,10 @@ function fmt(v, decimals) {
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1.7rem;
+  font-size: 2.1rem;
   line-height: 1;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   padding: 0 0 2px;
   cursor: pointer;
   transition: color 0.15s;
@@ -701,7 +702,9 @@ function fmt(v, decimals) {
 
 .page-dots {
   display: flex;
+  align-items: center;
   gap: 6px;
+  margin-top: 3px;
 }
 
 .page-dot {

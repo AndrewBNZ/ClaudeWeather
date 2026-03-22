@@ -743,7 +743,7 @@ const selectedDayLabel = computed(() => {
   if (selDate === todayStr) return 'Today'
   const tomorrowStr = new Date(locNow + 86400000).toISOString().slice(0, 10)
   if (selDate === tomorrowStr) return 'Tomorrow'
-  return new Date(selDate + 'T12:00:00Z').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })
+  return new Date(selDate + 'T12:00:00Z').toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })
 })
 
 const LUNAR_PERIOD = 29.53058867
