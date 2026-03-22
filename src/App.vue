@@ -511,6 +511,8 @@ async function loadWeather(silent = false, forceRefresh = false) {
     data.current.precipitation_probability =
       data.hourly?.precipitation_probability?.[locHour] ?? null
     weatherData.value = data
+    const maxDay = (data.daily?.time?.length ?? 1) - 1
+    if (selectedDay.value > maxDay) selectedDay.value = maxDay
     if (locationName.value === 'Locating…' && data.timezone_abbreviation) {
       locationName.value = data.timezone ?? locationName.value
     }

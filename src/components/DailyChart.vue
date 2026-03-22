@@ -202,10 +202,10 @@ function buildChart() {
   // rather than using the API's "most severe" daily code, which can surface brief fog etc.
   function dominantDaytimeCode(dayIndex) {
     const hourlyWx = props.hourly?.weather_code
-    if (!hourlyWx) return props.daily.weather_code?.[dayIndex] ?? 0
+    if (!hourlyWx) return props.daily.weather_code?.[dayIndex] ?? null
     const start = dayIndex * 24
     const daytime = hourlyWx.slice(start + 7, start + 21).filter(v => v != null)
-    if (!daytime.length) return props.daily.weather_code?.[dayIndex] ?? 0
+    if (!daytime.length) return props.daily.weather_code?.[dayIndex] ?? null
     const freq = {}
     for (const c of daytime) freq[c] = (freq[c] ?? 0) + 1
     return Number(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0])
@@ -244,7 +244,7 @@ function buildChart() {
         const dataPoint = dataset.data[i]
 
         // Emoji above the bar (raised to clear the high-temp number)
-        const emoji = getWeatherInfo(wxCodes[i])?.emoji
+        const emoji = wxCodes[i] != null ? getWeatherInfo(wxCodes[i])?.emoji : null
         if (emoji) {
           ctx.save()
           ctx.font = `22px ${APP_FONT}`
@@ -327,7 +327,7 @@ function buildChart() {
       meta.data.forEach((bar, i) => {
         const { x, y } = bar.getProps(['x', 'y'], true)
 
-        const emoji = getWeatherInfo(wxCodes[i])?.emoji
+        const emoji = wxCodes[i] != null ? getWeatherInfo(wxCodes[i])?.emoji : null
         if (emoji) {
           ctx.save()
           ctx.font = `22px ${APP_FONT}`
@@ -361,7 +361,7 @@ function buildChart() {
       meta.data.forEach((bar, i) => {
         const { x, y } = bar.getProps(['x', 'y'], true)
 
-        const emoji = getWeatherInfo(wxCodes[i])?.emoji
+        const emoji = wxCodes[i] != null ? getWeatherInfo(wxCodes[i])?.emoji : null
         if (emoji) {
           ctx.save()
           ctx.font = `22px ${APP_FONT}`

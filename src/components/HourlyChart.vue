@@ -47,7 +47,8 @@
       </div>
     </div>
     <div class="chart-area">
-      <div v-if="noRainData" class="chart-empty-msg">No rain forecast for this day</div>
+      <div v-if="noHourlyData" class="chart-empty-msg">No forecast data available for this day</div>
+      <div v-else-if="noRainData" class="chart-empty-msg">No rain forecast for this day</div>
       <div class="chart-wrap" ref="chartWrapRef" :style="{ '--type-color': config.color }">
         <div class="chart-scroll-inner">
           <canvas ref="canvasRef"></canvas>
@@ -148,6 +149,13 @@ function scrollToCurrentHour(currentHour) {
 
 const config = computed(() => DATA_TYPES[props.activeType])
 const unitLabel = computed(() => getUnitLabel(props.activeType, props.unitPrefs))
+
+const noHourlyData = computed(() => {
+  if (!props.hourly) return false
+  const start = props.dayIndex * 24
+  const slice = (props.hourly.temperature_2m ?? []).slice(start, start + 24)
+  return slice.length === 0 || slice.every(v => v == null)
+})
 
 const noRainData = computed(() => {
   if (props.activeType !== 'rain' || !props.hourly) return false
@@ -268,7 +276,7 @@ function makeWeatherEmojiPlugin(codes, values, currentHour, suffix = '', skipInd
         const emojiSize = isCurrent ? 26 : 22
 
         // Emoji centered on the data point
-        const emoji = getWeatherInfo(codes[i])?.emoji
+        const emoji = codes[i] != null ? getWeatherInfo(codes[i])?.emoji : null
         if (emoji) {
           ctx.save()
           ctx.font = `${emojiSize}px ${APP_FONT}`
@@ -308,7 +316,7 @@ function makeRainLabelPlugin(codes, precipValues, currentHour) {
         const { x, y } = bar.getProps(['x', 'y'], true)
         const isCurrent = i === currentHour
 
-        const emoji = getWeatherInfo(codes[i])?.emoji
+        const emoji = codes[i] != null ? getWeatherInfo(codes[i])?.emoji : null
         if (emoji) {
           ctx.save()
           ctx.font = `${isCurrent ? 26 : 22}px ${APP_FONT}`
@@ -466,6 +474,8 @@ function buildChart() {
     chartInstance.destroy()
     chartInstance = null
   }
+
+  if (noHourlyData.value) return
 
   const cfg      = DATA_TYPES[props.activeType]
   const unit     = cfg.getUnit(props.unitPrefs)
