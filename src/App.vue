@@ -195,7 +195,7 @@
         :api-key="pwsEnabled ? pwsApiKey : ''"
         :tempest-token="tempestEnabled ? tempestToken : ''"
         :current-station="pwsPickerLoc.pwsStation ?? null"
-        @select="onSetPws(pwsPickerLoc, $event); pwsPickerLoc = null"
+        @select="pwsPickerLoc = onSetPws(pwsPickerLoc, $event)"
         @close="pwsPickerLoc = null"
       />
     </transition>
@@ -471,11 +471,13 @@ async function loadPwsData() {
 }
 
 function onSetPws(loc, station) {
+  let updatedLoc = loc
   savedLocations.value = savedLocations.value.map(l => {
     if (l.lat !== loc.lat || l.lon !== loc.lon) return l
     const updated = { ...l }
     if (station) updated.pwsStation = station
     else delete updated.pwsStation
+    updatedLoc = updated
     return updated
   })
   persistLocations(savedLocations.value)
@@ -484,6 +486,7 @@ function onSetPws(loc, station) {
     else if (station) { disconnectTempest(); loadPwsData() }
     else { pwsData.value = null; disconnectTempest() }
   }
+  return updatedLoc
 }
 
 watch(pwsEnabled, (v) => {
@@ -636,7 +639,7 @@ function onVisibilityChange() { if (document.visibilityState === 'visible') chec
 document.addEventListener('visibilitychange', onVisibilityChange)
 
 function onDocumentClick(e) {
-  if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]')) {
+  if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]') && !e.target.closest('.modal-overlay')) {
     settingsOpen.value = false
   }
   if (panelOpen.value && !e.target.closest('.dropdown') && !e.target.closest('[data-locations-btn]')) {

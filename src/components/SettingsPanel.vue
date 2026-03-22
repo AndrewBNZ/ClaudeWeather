@@ -95,10 +95,10 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">Weather Underground PWS</div>
-              <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Your API key is saved on this device' : 'Set your API key to get started') : 'PWS data temporarily hidden' }}</div>
+              <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
             </div>
             <div class="setting-row-controls">
-              <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Change →' : 'Set key →' }}</button>
+              <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
               <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
                 <span class="toggle-thumb" />
               </button>
@@ -106,11 +106,11 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Tempest Weather Station</div>
-              <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Token saved on this device' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
+              <div class="setting-label">Tempest PWS</div>
+              <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
             </div>
             <div class="setting-row-controls">
-              <button v-if="tempestEnabled" class="setting-action-btn" @click="openTempestTokenModal">{{ tempestToken ? 'Change →' : 'Set token →' }}</button>
+              <button v-if="tempestEnabled" class="setting-action-btn" @click="openTempestTokenModal">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
               <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
                 <span class="toggle-thumb" />
               </button>
@@ -285,16 +285,17 @@
     <div v-if="tempestTokenModalOpen" class="modal-overlay" @click.self="tempestTokenModalOpen = false">
       <div class="modal-dialog modal-dialog--wide">
         <div class="modal-header">
-          <span class="panel-title">Tempest Weather Station</span>
+          <span class="panel-title">Tempest PWS</span>
           <button class="panel-close" @click="tempestTokenModalOpen = false">✕</button>
         </div>
         <div class="modal-body pws-key-body">
           <div class="pws-key-about">
-            <p>Connects {{ APP_NAME }} to your WeatherFlow Tempest station via WebSocket, streaming real-time conditions directly from your backyard. Stations are linked per location in the Locations panel.</p>
+            <p>Replace current conditions with real local readings from your Tempest weather stations. Stations are linked per location in the Locations panel.</p>
+            <p>You can only see data from your own stations. Requires an access token, which are available for free to Tempest owners.</p>
             <p>Generate a token in the Tempest app → <em>Settings → Data Authorizations → Create Token</em>, or at <strong>tempestwx.com</strong>.</p>
           </div>
           <input v-model="tempestTokenInput" class="pws-key-input" type="text" placeholder="Paste your personal access token" spellcheck="false" autocomplete="off" @keyup.enter="saveTempestToken" />
-          <div class="pws-key-hint">Stored on this device only.</div>
+          <div class="pws-key-hint">Token stored on this device only.<br/>Station data will live-stream to the app when open.</div>
           <div class="pws-key-actions">
             <button v-if="tempestToken" class="setting-action-btn setting-action-btn--danger" @click="clearTempestToken">Remove</button>
             <button class="setting-action-btn" @click="saveTempestToken" :disabled="!tempestTokenInput.trim()">Save</button>
@@ -314,11 +315,12 @@
         </div>
         <div class="modal-body pws-key-body">
           <div class="pws-key-about">
-            <p>Connects {{ APP_NAME }} to Weather Underground personal weather stations (PWS), replacing current conditions with real local readings. Stations are set per location in the Locations panel.</p>
-            <p>Free for station owners actively uploading to WU. Sign in at <strong>wunderground.com</strong> → <em>My Profile → Member Settings → API Keys</em>.</p>
+            <p>Replace current conditions with real local readings from Weather Underground stations. Stations are linked per location in the Locations panel.</p>
+            <p>Requires an API key, which are available for free to weather station owners who are actively uploading their data to WU.</p>
+            <p>Sign in at <strong>wunderground.com</strong> → <em>My Profile → Member Settings → API Keys</em>.</p>
           </div>
           <input v-model="pwsKeyInput" class="pws-key-input" type="text" placeholder="Paste your WU API key" spellcheck="false" autocomplete="off" @keyup.enter="savePwsKey" />
-          <div class="pws-key-hint">Stored on this device only.</div>
+          <div class="pws-key-hint">API key stored on this device only.<br/>Station data will refresh every 5 mins when the app is open.</div>
           <div class="pws-key-actions">
             <button v-if="pwsApiKey" class="setting-action-btn setting-action-btn--danger" @click="clearPwsKey">Remove</button>
             <button class="setting-action-btn" @click="savePwsKey" :disabled="!pwsKeyInput.trim()">Save</button>
@@ -598,6 +600,10 @@ function _onTileTouchEnd() {
   color: var(--text-faint);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .panel-close {
@@ -755,6 +761,7 @@ function _onTileTouchEnd() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 10px 14px 10px 16px;
   border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
