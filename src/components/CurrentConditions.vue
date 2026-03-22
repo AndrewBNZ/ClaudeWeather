@@ -36,6 +36,8 @@
       :cloud-cover="data.cloud_cover"
       :sunrise="todaySunrise"
       :sunset="todaySunset"
+      :modal-sunrise="selectedSunrise"
+      :modal-sunset="selectedSunset"
       :lat="lat"
       :utc-offset="utcOffset"
       :preview-tod="previewTod"
@@ -300,8 +302,10 @@ watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else re
 const info      = computed(() => getWeatherInfo(props.data.weather_code))
 const todayHigh    = computed(() => props.daily?.temperature_2m_max?.[0] ?? null)
 const todayLow     = computed(() => props.daily?.temperature_2m_min?.[0] ?? null)
-const todaySunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ?? null)
-const todaySunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
+const todaySunrise   = computed(() => props.daily?.sunrise?.[0] ?? null)
+const todaySunset    = computed(() => props.daily?.sunset?.[0] ?? null)
+const selectedSunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ?? null)
+const selectedSunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
 
 
 // Smooth wind arrow rotation — accumulates angle to always take shortest path

@@ -222,6 +222,8 @@ const props = defineProps({
   cloudCover:           { type: Number,  default: null },
   sunrise:              { type: String,  default: null },
   sunset:               { type: String,  default: null },
+  modalSunrise:         { type: String,  default: null },
+  modalSunset:          { type: String,  default: null },
   previewTod:           { type: String,  default: null },
   previewWeather:       { type: String,  default: null },
   previewWind:          { type: Number,  default: null },
@@ -662,11 +664,12 @@ const starsOpacity = computed(() => {
 
 // ── Moon phase ─────────────────────────────────────────────────────────────
 // Phase 0 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
-// Uses noon of the selected day (derived from props.sunrise) so the modal
+// Uses noon of the selected day (derived from modalSunrise) so the modal
 // reflects the correct phase for the chosen day, not always today.
 const moonReferenceTime = computed(() => {
-  if (!props.sunrise) return Date.now()
-  return new Date(props.sunrise.slice(0, 10) + 'T12:00:00Z').getTime()
+  const src = props.modalSunrise ?? props.sunrise
+  if (!src) return Date.now()
+  return new Date(src.slice(0, 10) + 'T12:00:00Z').getTime()
 })
 
 const moonPhase = computed(() => {
@@ -706,30 +709,35 @@ function openCelestialModal() {
 }
 
 const sunriseFormatted = computed(() => {
-  if (!props.sunrise) return '—'
-  const [h, m] = props.sunrise.slice(11, 16).split(':').map(Number)
+  const src = props.modalSunrise ?? props.sunrise
+  if (!src) return '—'
+  const [h, m] = src.slice(11, 16).split(':').map(Number)
   const ampm = h >= 12 ? 'PM' : 'AM'
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 })
 
 const sunsetFormatted = computed(() => {
-  if (!props.sunset) return '—'
-  const [h, m] = props.sunset.slice(11, 16).split(':').map(Number)
+  const src = props.modalSunset ?? props.sunset
+  if (!src) return '—'
+  const [h, m] = src.slice(11, 16).split(':').map(Number)
   const ampm = h >= 12 ? 'PM' : 'AM'
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
 })
 
 const dayLength = computed(() => {
-  if (!props.sunrise || !props.sunset) return '—'
-  const riseMs = new Date(props.sunrise + 'Z').getTime()
-  const setMs  = new Date(props.sunset  + 'Z').getTime()
+  const rise = props.modalSunrise ?? props.sunrise
+  const set  = props.modalSunset  ?? props.sunset
+  if (!rise || !set) return '—'
+  const riseMs = new Date(rise + 'Z').getTime()
+  const setMs  = new Date(set  + 'Z').getTime()
   const mins   = Math.round((setMs - riseMs) / 60000)
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 })
 
 const selectedDayLabel = computed(() => {
-  if (!props.sunrise) return ''
-  const selDate  = props.sunrise.slice(0, 10)
+  const src = props.modalSunrise ?? props.sunrise
+  if (!src) return ''
+  const selDate  = src.slice(0, 10)
   const locNow   = clockNow.value + props.utcOffset * 1000
   const todayStr = new Date(locNow).toISOString().slice(0, 10)
   if (selDate === todayStr) return 'Today'
