@@ -82,6 +82,7 @@
               :settings-open="settingsOpen"
               @select="activeDataType = $event"
               @grass-color="grassColor = $event"
+              @sky-color="onSkyColor($event)"
               @open-locations="panelOpen = !panelOpen; settingsOpen = false"
               @open-settings="settingsOpen = !settingsOpen; panelOpen = false"
               @open-data-types="settingsPanel?.openDataTypesModal()"
@@ -288,6 +289,10 @@ const settingsPanel  = ref(null)
 const pwsPickerLoc   = ref(null)
 const pwsData            = ref(null)
 const grassColor         = ref('#43A047')
+function onSkyColor(color) {
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (meta) meta.content = color
+}
 const locationName       = ref('')
 const isOffline          = ref(!navigator.onLine)
 const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
