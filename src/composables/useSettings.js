@@ -12,6 +12,7 @@ const UNIT_PREFS_KEY  = `${P}-unitprefs`
 const LEGACY_UNITS_KEY = `${P}-units`
 const SIM_KEY         = `${P}-sim`
 const TILES_KEY       = `${P}-tiles`
+const CARDS_KEY       = `${P}-cardconfig`
 const CHART_ORDER_KEY = `${P}-chartorder`
 const TIME_FORMAT_KEY = `${P}-timeformat`
 const THEME_KEY       = `${P}-theme`
@@ -40,6 +41,40 @@ export const TILE_META = {
   pressure:   { icon: '↕️', label: 'Pressure' },
   visibility: { icon: '👁️', label: 'Visibility' },
   radar:      { icon: '🛰️', label: 'Radar' },
+}
+
+export const CARD_META = {
+  currentSummary: { icon: '🌡️', label: 'Current Conditions' },
+  detailTiles:    { icon: '📊', label: 'Weather Details' },
+  combinedHourly: { icon: '🕐', label: 'Hourly Forecast' },
+  dailyForecast:  { icon: '📅', label: 'Daily Forecast' },
+  hourlyStrip:    { icon: '⏱️', label: 'Hourly Strip' },
+  sunriseMoon:    { icon: '🌙', label: 'Sunrise & Moon' },
+  radar:          { icon: '🛰️', label: 'Radar' },
+}
+
+const DEFAULT_CARDS = [
+  { type: 'currentSummary', enabled: true  },
+  { type: 'detailTiles',    enabled: true  },
+  { type: 'combinedHourly', enabled: true  },
+  { type: 'dailyForecast',  enabled: true  },
+  { type: 'hourlyStrip',    enabled: false },
+  { type: 'sunriseMoon',    enabled: false },
+  { type: 'radar',          enabled: false },
+]
+
+function loadCardConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CARDS_KEY))
+    if (Array.isArray(raw) && raw.every(c => c.type)) {
+      const known = new Set(Object.keys(CARD_META))
+      const valid = raw.filter(c => known.has(c.type))
+      const seen  = new Set(valid.map(c => c.type))
+      for (const d of DEFAULT_CARDS) { if (!seen.has(d.type)) valid.push({ ...d }) }
+      return valid
+    }
+  } catch {}
+  return DEFAULT_CARDS.map(c => ({ ...c }))
 }
 
 const DEFAULT_TILES = [
@@ -104,6 +139,7 @@ applyTheme(theme.value)
 
 export function isAutoNight() { const h = new Date().getHours(); return h < 6 || h >= 20 }
 
+const cardConfig     = ref(loadCardConfig())
 const tileConfig     = ref(loadTileConfig())
 const unitPrefs      = ref(loadUnitPrefs())
 const timeFormat     = ref(localStorage.getItem(TIME_FORMAT_KEY) ?? '12h')
@@ -119,6 +155,7 @@ const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false'
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
+watch(cardConfig,    (v) => { try { localStorage.setItem(CARDS_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(tileConfig,    (v) => { try { localStorage.setItem(TILES_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(unitPrefs,     (v) => { try { localStorage.setItem(UNIT_PREFS_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(timeFormat,    (v) => localStorage.setItem(TIME_FORMAT_KEY, v))
@@ -163,11 +200,24 @@ function removePageBreak(index) {
   tileConfig.value = tileConfig.value.filter((_, i) => i !== index)
 }
 
+// ── Card helpers ──────────────────────────────────────────────────────────────
+function toggleCard(type) {
+  cardConfig.value = cardConfig.value.map(c => c.type === type ? { ...c, enabled: !c.enabled } : c)
+}
+
+function reorderCards(from, to) {
+  const arr = [...cardConfig.value]
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+  cardConfig.value = arr
+}
+
 export function useSettings() {
   return {
     theme, resolvedTheme, timeFormat, hourlyFirst, showSim, showDailySummary,
-    tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-    UNIT_OPTIONS, TILE_META,
+    tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
+    UNIT_OPTIONS, TILE_META, CARD_META,
     toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
+    toggleCard, reorderCards,
   }
 }

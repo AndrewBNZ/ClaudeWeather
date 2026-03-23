@@ -8,9 +8,8 @@
       </div>
       <div class="settings-tabs">
         <button :class="['settings-tab', { active: tab === 'display' }]" @click="tab = 'display'">Display</button>
+        <button :class="['settings-tab', { active: tab === 'cards' }]"   @click="tab = 'cards'">Cards</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"    @click="tab = 'data'">Data</button>
-        <!-- Backup tab hidden until QR reliability is resolved -->
-        <!-- <button :class="['settings-tab', { active: tab === 'backup' }]"  @click="tab = 'backup'">Backup</button> -->
       </div>
       <div class="settings-body">
         <!-- Display tab -->
@@ -63,6 +62,33 @@
             <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
               <span class="toggle-thumb" />
             </button>
+          </div>
+        </div>
+
+        <!-- Cards tab -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'cards' }">
+          <p class="modal-hint">Drag to reorder · tap to show/hide</p>
+          <div class="tile-list">
+            <div
+              v-for="(card, i) in cardConfig"
+              :key="card.type"
+              :data-card-idx="i"
+              class="tile-row"
+              :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i }"
+              draggable="true"
+              @dragstart="onCardDragStart($event, i)"
+              @dragover="onCardDragOver($event, i)"
+              @dragend="onCardDragEnd"
+              @drop="onCardDrop($event, i)"
+              @touchstart.passive="onCardTouchStart($event, i)"
+            >
+              <span class="tile-drag-handle" aria-hidden="true">⠿</span>
+              <span class="tile-icon-sm">{{ CARD_META[card.type]?.icon }}</span>
+              <span class="tile-row-label">{{ CARD_META[card.type]?.label }}</span>
+              <button class="toggle-switch toggle-switch--sm" :class="{ on: card.enabled }" @click="toggleCard(card.type)">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -333,7 +359,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useSettings, UNIT_OPTIONS, TILE_META } from '../composables/useSettings.js'
+import { useSettings, UNIT_OPTIONS, TILE_META, CARD_META } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { APP_NAME } from '../config.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
@@ -346,8 +372,9 @@ defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTy
 
 const {
   theme, timeFormat, hourlyFirst, showSim, showDailySummary,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
+  tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
+  toggleCard, reorderCards,
 } = useSettings()
 
 // ── Local state ───────────────────────────────────────────────────────────────
@@ -367,6 +394,10 @@ const tileDragIndex      = ref(null)
 const tileDragOver       = ref(null)
 let   tileTouchIdx       = null
 let   tileTouchMoved     = false
+const cardDragIndex      = ref(null)
+const cardDragOver       = ref(null)
+let   cardTouchIdx       = null
+let   cardTouchMoved     = false
 
 // ── Dropdown positioning ──────────────────────────────────────────────────────
 watch(() => props.isOpen, (open) => {
@@ -435,6 +466,38 @@ function _onTileTouchEnd() {
   tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
   document.removeEventListener('touchmove', _onTileTouchMove)
   document.removeEventListener('touchend', _onTileTouchEnd)
+}
+
+// ── Card drag-and-drop ────────────────────────────────────────────────────────
+function onCardDragStart(e, i) { cardDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
+function onCardDragOver(e, i)  { e.preventDefault(); cardDragOver.value = i }
+function onCardDragEnd()       { cardDragIndex.value = null; cardDragOver.value = null }
+function onCardDrop(e, i) {
+  e.preventDefault()
+  if (cardDragIndex.value !== null && cardDragIndex.value !== i) reorderCards(cardDragIndex.value, i)
+  cardDragIndex.value = null; cardDragOver.value = null
+}
+function onCardTouchStart(e, i) {
+  if (!e.target.closest('.tile-drag-handle')) return
+  cardTouchIdx = i; cardTouchMoved = false; cardDragIndex.value = i
+  document.addEventListener('touchmove', _onCardTouchMove, { passive: false })
+  document.addEventListener('touchend', _onCardTouchEnd)
+}
+function _onCardTouchMove(e) {
+  e.preventDefault()
+  cardTouchMoved = true
+  const touch = e.touches[0]
+  const el    = document.elementFromPoint(touch.clientX, touch.clientY)
+  const row   = el?.closest('[data-card-idx]')
+  cardDragOver.value = row ? parseInt(row.dataset.cardIdx) : null
+}
+function _onCardTouchEnd() {
+  if (cardTouchMoved && cardTouchIdx !== null && cardDragOver.value !== null && cardTouchIdx !== cardDragOver.value) {
+    reorderCards(cardTouchIdx, cardDragOver.value)
+  }
+  cardTouchIdx = null; cardTouchMoved = false; cardDragIndex.value = null; cardDragOver.value = null
+  document.removeEventListener('touchmove', _onCardTouchMove)
+  document.removeEventListener('touchend', _onCardTouchEnd)
 }
 </script>
 
