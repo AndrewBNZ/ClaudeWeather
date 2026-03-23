@@ -874,6 +874,7 @@ function _onTileTouchEnd() {
 /* ── Tile list (Data Types modal) ────────────────────────────────────────── */
 .tile-list { display: flex; flex-direction: column; }
 .modal-dialog .tile-list { overflow-y: auto; padding-bottom: 8px; }
+.modal-dialog .model-list { overflow-y: auto; }
 
 .tile-row {
   display: flex;
