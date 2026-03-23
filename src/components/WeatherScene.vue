@@ -236,7 +236,7 @@ const props = defineProps({
   forceFog:             { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['grass-color', 'sky-color'])
+const emit = defineEmits(['grass-color'])
 
 // ── Derived preview values ─────────────────────────────────────────────────
 const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
@@ -915,9 +915,6 @@ const groundColor = computed(() => {
 })
 
 watch(groundColor, val => emit('grass-color', val), { immediate: true })
-
-const topSkyColor = computed(() => (SKY[timeOfDay.value]?.[group.value] ?? SKY.day.clear)[0])
-watch(topSkyColor, val => emit('sky-color', val), { immediate: true })
 
 const foliage = computed(() => {
   const tod = timeOfDay.value

@@ -99,8 +99,6 @@ function applyTheme(v) {
   else if (v === 'auto') isLight = !autoIsDark.value
   else                   isLight = !systemDark.matches
   document.documentElement.classList.toggle('light-theme', isLight)
-  const themeMeta = document.querySelector('meta[name="theme-color"]')
-  if (themeMeta) themeMeta.content = isLight ? '#bfdbfe' : '#1e3a5f'
 }
 applyTheme(theme.value)
 

@@ -16,8 +16,8 @@ export default defineConfig({
         short_name: 'ClaudeWeather',
         start_url: '/ClaudeWeather/',
         display: 'standalone',
-        background_color: '#0b1120',
-        theme_color: '#1e3a5f',
+        background_color: '#000000',
+        theme_color: '#000000',
         icons: [
           {
             src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛅</text></svg>",

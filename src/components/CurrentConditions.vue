@@ -34,7 +34,6 @@
 
     <WeatherScene
       @grass-color="emit('grass-color', $event)"
-      @sky-color="emit('sky-color', $event)"
       :weather-code="data.weather_code"
       :wind-speed="data.wind_speed_10m"
       :cloud-cover="data.cloud_cover"
@@ -299,7 +298,7 @@ const props = defineProps({
   selectedDay:   { type: Number,  default: 0 },
 })
 
-const emit = defineEmits(['select', 'grass-color', 'sky-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types', 'open-model-modal'])
+const emit = defineEmits(['select', 'grass-color', 'open-locations', 'open-settings', 'refresh', 'open-data-types', 'open-model-modal'])
 
 watch(() => props.showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
 
