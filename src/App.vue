@@ -686,6 +686,7 @@ if (!isGeoActive.value) {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: env(safe-area-inset-top);
 }
 
 .header {
