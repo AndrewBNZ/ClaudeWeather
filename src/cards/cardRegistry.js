@@ -1,7 +1,6 @@
 import { defineAsyncComponent } from 'vue'
 
 export const CARD_REGISTRY = {
-  currentSummary: defineAsyncComponent(() => import('./CurrentSummaryCard.vue')),
   detailTiles:    defineAsyncComponent(() => import('./DetailTilesCard.vue')),
   combinedHourly: defineAsyncComponent(() => import('./CombinedHourlyCard.vue')),
   dailyForecast:  defineAsyncComponent(() => import('./DailyForecastCard.vue')),

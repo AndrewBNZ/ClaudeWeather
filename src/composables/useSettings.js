@@ -18,6 +18,77 @@ const TIME_FORMAT_KEY = `${P}-timeformat`
 const THEME_KEY       = `${P}-theme`
 const DATATYPE_KEY      = `${P}-datatype`
 const DAILY_SUMMARY_KEY = `${P}-dailysummary`
+const DAILY_FORECAST_LAYOUT_KEY = `${P}-daily-forecast-layout`
+
+export const MAIN_DATA_POINT_OPTIONS = [
+  { type: 'temperature', label: 'Temp',       iconKey: 'temperature' },
+  { type: 'feelsLike',   label: 'Feels',      iconKey: 'feelsLike'   },
+  { type: 'rain',        label: 'Rain',       iconKey: 'rain'        },
+  { type: 'wind',        label: 'Wind',       iconKey: 'wind'        },
+  { type: 'uv',          label: 'UV',         iconKey: 'uv'          },
+  { type: 'humidity',    label: 'Humidity',   iconKey: 'humidity'    },
+  { type: 'cloudCover',  label: 'Cloud',      iconKey: 'cloudCover'  },
+  { type: 'pressure',    label: 'Pressure',   iconKey: 'pressure'    },
+  { type: 'visibility',  label: 'Visibility', iconKey: 'visibility'  },
+]
+
+export const MAIN_POINT_LABEL = {
+  temperature: 'Temperature', feelsLike: 'Feels like', rain: 'Rain',
+  wind: 'Wind', uv: 'UV', humidity: 'Humidity', cloudCover: 'Cloud cover',
+  pressure: 'Pressure', visibility: 'Visibility',
+}
+
+// otherDataPoints types to exclude when a given main data point is selected
+export const MAIN_RELATED_TYPES = {
+  temperature: new Set([]),
+  feelsLike:   new Set(['feelsLike']),
+  rain:        new Set(['rainProb', 'rainAmount']),
+  wind:        new Set(['wind', 'gusts']),
+  uv:          new Set(['uv']),
+  humidity:    new Set(['humidity']),
+  cloudCover:  new Set(['cloudCover']),
+  pressure:    new Set(['pressure']),
+  visibility:  new Set(['visibility']),
+}
+
+// otherDataPoints types that can appear as picker pills (map to a main data point)
+export const PICKER_CAPABLE_TYPES = new Set(['feelsLike', 'wind', 'gusts', 'rainProb', 'rainAmount', 'uv', 'humidity', 'cloudCover', 'pressure', 'visibility'])
+
+// Maps otherDataPoints types to their TILE_ICONS key (identity mappings included for isMain entries)
+export const DAILY_POINT_ICON = {
+  temperature: 'temperature',
+  rain:        'rain',
+  rainProb:    'rain',
+  rainAmount:  'rain',
+  wind:        'wind',
+  gusts:       'wind',
+  feelsLike:   'feelsLike',
+  uv:          'uv',
+  humidity:    'humidity',
+  cloudCover:  'cloudCover',
+  pressure:    'pressure',
+  visibility:  'visibility',
+}
+
+export const DEFAULT_DAILY_FORECAST_LAYOUT = {
+  showTitle:           true,
+  showConditions:      true,
+  showDataPointPicker: false,
+  mainDataPoint:       'temperature',
+  otherDataPoints: [
+    { type: 'temperature', label: 'Temperature',      enabled: true,  showInPicker: true,  isMain: true },
+    { type: 'rainProb',    label: 'Rain probability', enabled: true,  showInPicker: true  },
+    { type: 'rainAmount',  label: 'Rain amount',      enabled: true,  showInPicker: true  },
+    { type: 'wind',        label: 'Wind speed',       enabled: true,  showInPicker: true  },
+    { type: 'gusts',       label: 'Wind gusts',       enabled: false, showInPicker: true  },
+    { type: 'feelsLike',   label: 'Feels like',       enabled: false, showInPicker: true  },
+    { type: 'uv',          label: 'UV index',         enabled: false, showInPicker: true  },
+    { type: 'humidity',    label: 'Humidity',         enabled: false, showInPicker: true  },
+    { type: 'cloudCover',  label: 'Cloud cover',      enabled: false, showInPicker: true  },
+    { type: 'pressure',    label: 'Pressure',         enabled: false, showInPicker: true  },
+    { type: 'visibility',  label: 'Visibility',       enabled: false, showInPicker: true  },
+  ],
+}
 
 export const DEFAULT_UNIT_PREFS = {
   temperature: 'celsius', wind: 'kmh', precipitation: 'mm', pressure: 'hpa', visibility: 'km',
@@ -44,7 +115,6 @@ export const TILE_META = {
 }
 
 export const CARD_META = {
-  currentSummary: { icon: '🌡️', label: 'Current Conditions' },
   detailTiles:    { icon: '📊', label: 'Weather Details' },
   combinedHourly: { icon: '🕐', label: 'Hourly Forecast' },
   dailyForecast:  { icon: '📅', label: 'Daily Forecast' },
@@ -54,7 +124,6 @@ export const CARD_META = {
 }
 
 const DEFAULT_CARDS = [
-  { type: 'currentSummary', enabled: true  },
   { type: 'detailTiles',    enabled: true  },
   { type: 'combinedHourly', enabled: true  },
   { type: 'dailyForecast',  enabled: true  },
@@ -62,6 +131,32 @@ const DEFAULT_CARDS = [
   { type: 'sunriseMoon',    enabled: false },
   { type: 'radar',          enabled: false },
 ]
+
+function loadDailyForecastLayout() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DAILY_FORECAST_LAYOUT_KEY))
+    if (raw && typeof raw === 'object') {
+      let otherPts = Array.isArray(raw.otherDataPoints)
+        ? raw.otherDataPoints
+        : DEFAULT_DAILY_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p }))
+      // Append any new default entries not yet in saved config
+      const seen = new Set(otherPts.map(p => p.type))
+      for (const d of DEFAULT_DAILY_FORECAST_LAYOUT.otherDataPoints) {
+        if (!seen.has(d.type)) otherPts.push({ ...d })
+      }
+      // Ensure isMain entry exists and matches mainDataPoint
+      const mainType = raw.mainDataPoint ?? DEFAULT_DAILY_FORECAST_LAYOUT.mainDataPoint
+      const hasMain = otherPts.some(p => p.isMain)
+      if (!hasMain) {
+        otherPts.unshift({ type: mainType, label: MAIN_POINT_LABEL[mainType] ?? mainType, enabled: true, showInPicker: true, isMain: true })
+      } else {
+        otherPts = otherPts.map(p => p.isMain ? { ...p, type: mainType, label: MAIN_POINT_LABEL[mainType] ?? mainType, enabled: true, showInPicker: true } : p)
+      }
+      return { ...DEFAULT_DAILY_FORECAST_LAYOUT, ...raw, otherDataPoints: otherPts }
+    }
+  } catch {}
+  return { ...DEFAULT_DAILY_FORECAST_LAYOUT, otherDataPoints: DEFAULT_DAILY_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p })) }
+}
 
 function loadCardConfig() {
   try {
@@ -152,6 +247,7 @@ const tempestToken     = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
 const openMeteoModel   = ref(localStorage.getItem(OPEN_METEO_MODEL_STG) ?? 'best_match')
 const activeDataType   = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false')
+const dailyForecastLayout = ref(loadDailyForecastLayout())
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
@@ -167,7 +263,8 @@ watch(tempestEnabled,  (v) => localStorage.setItem(TEMPEST_ENABLED_STG, String(v
 watch(tempestToken,    (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_STG, v); else localStorage.removeItem(TEMPEST_TOKEN_STG) } catch {} })
 watch(openMeteoModel,  (v) => localStorage.setItem(OPEN_METEO_MODEL_STG, v))
 watch(activeDataType,   (v) => localStorage.setItem(DATATYPE_KEY, v))
-watch(showDailySummary, (v) => localStorage.setItem(DAILY_SUMMARY_KEY, String(v)))
+watch(showDailySummary,      (v) => localStorage.setItem(DAILY_SUMMARY_KEY, String(v)))
+watch(dailyForecastLayout,   (v) => { try { localStorage.setItem(DAILY_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -200,6 +297,36 @@ function removePageBreak(index) {
   tileConfig.value = tileConfig.value.filter((_, i) => i !== index)
 }
 
+// ── Daily forecast layout helpers ────────────────────────────────────────────
+function toggleDailyOtherPoint(type) {
+  const pts = dailyForecastLayout.value.otherDataPoints.map(p =>
+    p.type === type ? { ...p, enabled: !p.enabled } : p
+  )
+  dailyForecastLayout.value = { ...dailyForecastLayout.value, otherDataPoints: pts }
+}
+
+function toggleDailyOtherPointPicker(type) {
+  const pts = dailyForecastLayout.value.otherDataPoints.map(p =>
+    p.type === type ? { ...p, showInPicker: !p.showInPicker } : p
+  )
+  dailyForecastLayout.value = { ...dailyForecastLayout.value, otherDataPoints: pts }
+}
+
+function reorderDailyOtherPoints(from, to) {
+  const arr = [...dailyForecastLayout.value.otherDataPoints]
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+  dailyForecastLayout.value = { ...dailyForecastLayout.value, otherDataPoints: arr }
+}
+
+function setDailyMainDataPoint(type) {
+  const label = MAIN_POINT_LABEL[type] ?? type
+  const pts = dailyForecastLayout.value.otherDataPoints.map(p =>
+    p.isMain ? { ...p, type, label, enabled: true, showInPicker: true } : p
+  )
+  dailyForecastLayout.value = { ...dailyForecastLayout.value, mainDataPoint: type, otherDataPoints: pts }
+}
+
 // ── Card helpers ──────────────────────────────────────────────────────────────
 function toggleCard(type) {
   cardConfig.value = cardConfig.value.map(c => c.type === type ? { ...c, enabled: !c.enabled } : c)
@@ -216,8 +343,10 @@ export function useSettings() {
   return {
     theme, resolvedTheme, timeFormat, hourlyFirst, showSim, showDailySummary,
     tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
+    dailyForecastLayout,
     UNIT_OPTIONS, TILE_META, CARD_META,
     toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
     toggleCard, reorderCards,
+    toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
   }
 }

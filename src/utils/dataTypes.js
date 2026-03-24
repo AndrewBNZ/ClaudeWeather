@@ -4,7 +4,6 @@ export const DATA_TYPES = {
   temperature: {
     id: 'temperature',
     label: 'Temperature',
-    icon: '🌡️',
     hourlyKey: 'temperature_2m',
     dailyMaxKey: 'temperature_2m_max',
     dailyMinKey: 'temperature_2m_min',
@@ -16,7 +15,6 @@ export const DATA_TYPES = {
   rain: {
     id: 'rain',
     label: 'Rain',
-    icon: '🌧️',
     hourlyKey: 'precipitation',
     dailyMaxKey: 'precipitation_sum',
     dailyMinKey: null,
@@ -28,7 +26,6 @@ export const DATA_TYPES = {
   wind: {
     id: 'wind',
     label: 'Wind',
-    icon: '💨',
     hourlyKey: 'wind_speed_10m',
     dailyMaxKey: 'wind_speed_10m_max',
     dailyMinKey: null,
@@ -40,7 +37,6 @@ export const DATA_TYPES = {
   feelsLike: {
     id: 'feelsLike',
     label: 'Feels Like',
-    icon: '🤔',
     hourlyKey: 'apparent_temperature',
     dailyMaxKey: 'apparent_temperature_max',
     dailyMinKey: 'apparent_temperature_min',
@@ -52,7 +48,6 @@ export const DATA_TYPES = {
   humidity: {
     id: 'humidity',
     label: 'Humidity',
-    icon: '💧',
     hourlyKey: 'relative_humidity_2m',
     dailyMaxKey: null,
     dailyMinKey: null,
@@ -65,7 +60,6 @@ export const DATA_TYPES = {
   uv: {
     id: 'uv',
     label: 'UV Index',
-    icon: '☀️',
     hourlyKey: 'uv_index',
     dailyMaxKey: 'uv_index_max',
     dailyMinKey: null,
@@ -77,7 +71,6 @@ export const DATA_TYPES = {
   cloudCover: {
     id: 'cloudCover',
     label: 'Cloud Cover',
-    icon: '☁️',
     hourlyKey: 'cloud_cover',
     dailyMaxKey: null,
     dailyMinKey: null,
@@ -90,7 +83,6 @@ export const DATA_TYPES = {
   pressure: {
     id: 'pressure',
     label: 'Pressure',
-    icon: '↕️',
     hourlyKey: 'surface_pressure',
     dailyMaxKey: null,
     dailyMinKey: null,
@@ -109,7 +101,6 @@ export const DATA_TYPES = {
   visibility: {
     id: 'visibility',
     label: 'Visibility',
-    icon: '👁️',
     hourlyKey: 'visibility',
     dailyMaxKey: null,
     dailyMinKey: null,
@@ -123,7 +114,6 @@ export const DATA_TYPES = {
   radar: {
     id: 'radar',
     label: 'Radar',
-    icon: '🛰️',
     isMap: true,
     color: '#10b981',
     getUnit: () => '',

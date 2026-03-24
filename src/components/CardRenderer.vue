@@ -1,19 +1,23 @@
 <template>
-  <Suspense>
-    <component
-      :is="cardComponent"
-      v-bind="cardProps"
-      v-on="cardEvents"
-    />
-    <template #fallback>
-      <div class="card card-loading-placeholder"></div>
-    </template>
-  </Suspense>
+  <div v-bind="pressHandlers">
+    <Suspense>
+      <component
+        :is="cardComponent"
+        v-bind="cardProps"
+        v-on="cardEvents"
+      />
+      <template #fallback>
+        <div class="card card-loading-placeholder"></div>
+      </template>
+    </Suspense>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { CARD_REGISTRY } from '../cards/cardRegistry.js'
+import { CARD_SETTINGS_REGISTRY } from '../cards/cardSettingsRegistry.js'
+import { useCardPress } from '../composables/useCardPress.js'
 
 const props = defineProps({
   cardType:     { type: String,  required: true },
@@ -37,12 +41,14 @@ const props = defineProps({
   staleMs:      { type: Number,  default: 0 },
   loading:      { type: Boolean, default: false },
   canManualRefresh: { type: Boolean, default: true },
-  modelLabel:   { type: String,  default: '' },
+  modelLabel:          { type: String,  default: '' },
+  dailyForecastLayout: { type: Object,  default: null },
 })
 
 const emit = defineEmits([
   'select', 'grass-color', 'open-locations', 'open-settings',
   'open-data-types', 'open-model-modal', 'refresh', 'day-selected',
+  'open-card-settings',
 ])
 
 const cardComponent = computed(() => CARD_REGISTRY[props.cardType])
@@ -69,7 +75,8 @@ const cardProps = computed(() => ({
   staleMs:        props.staleMs,
   loading:        props.loading,
   canManualRefresh: props.canManualRefresh,
-  modelLabel:     props.modelLabel,
+  modelLabel:          props.modelLabel,
+  dailyForecastLayout: props.dailyForecastLayout,
 }))
 
 const cardEvents = computed(() => ({
@@ -82,6 +89,11 @@ const cardEvents = computed(() => ({
   refresh:          ()  => emit('refresh'),
   'day-selected':   (v) => emit('day-selected', v),
 }))
+
+// Long-press (touch) + right-click opens card settings when available
+const pressHandlers = useCardPress(() => {
+  if (CARD_SETTINGS_REGISTRY[props.cardType]) emit('open-card-settings', props.cardType)
+})
 </script>
 
 <style>

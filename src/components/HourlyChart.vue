@@ -3,7 +3,7 @@
     <div class="chart-header">
       <div class="chart-title-group">
         <h3 class="chart-title">Hourly</h3><span class="chart-title-date">{{ dayOptions[dayIndex] }}</span>
-        <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType] || config.icon"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
+        <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType]"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
       </div>
       <div class="day-nav">
         <div class="day-btn-group" ref="dropdownRef">

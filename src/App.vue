@@ -1,17 +1,43 @@
 <template>
   <div class="app-shell">
-    <!-- Sticky location bar — always visible -->
-    <StickyLocationBar
-      :location-name="locationName"
-      :locations-open="panelOpen"
-      :settings-open="settingsOpen"
-      :blurred="panelOpen || settingsOpen"
-      @open-locations="panelOpen = !panelOpen; settingsOpen = false"
-      @open-settings="settingsOpen = !settingsOpen; panelOpen = false"
-    />
+    <!-- Sticky top bar — location name + action buttons, always visible above scroll -->
+    <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: panelOpen || settingsOpen, scrolled: topBarScrolled }">
+        <button
+          data-locations-btn
+          class="scene-top-btn"
+          :class="{ active: panelOpen }"
+          :disabled="conditionsOpen"
+          @click="panelOpen = !panelOpen; settingsOpen = false"
+          title="Saved locations"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </button>
+      <span class="scene-top-location">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
+        <button
+          data-settings-btn
+          class="scene-top-btn"
+          data-tut="settings"
+          :class="{ active: settingsOpen }"
+          :disabled="conditionsOpen"
+          @click="settingsOpen = !settingsOpen; panelOpen = false"
+          title="Preferences"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+            <circle cx="10" cy="6" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+    </div>
 
     <!-- Scrollable content area -->
-    <div class="scroll-root" :class="{ blurred: panelOpen || settingsOpen }">
+    <div class="scroll-root" ref="scrollRootEl" :class="{ blurred: panelOpen || settingsOpen }">
 
       <!-- Offline -->
       <div v-if="isOffline && !weatherData" class="offline-card">
@@ -47,6 +73,15 @@
       <template v-else-if="weatherData">
         <!-- Scene block — scrolls away as user scrolls down -->
         <div class="scene-block" :style="{ '--grass-color': grassColor }">
+          <SceneConditionsOverlay
+            v-if="mergedCurrent"
+            :data="mergedCurrent"
+            :daily="weatherData?.daily ?? null"
+            :unit-prefs="unitPrefs"
+            :blocked="panelOpen || settingsOpen"
+            @panel-change="conditionsOpen = $event"
+          />
+
           <WeatherScene
             @grass-color="grassColor = $event"
             :weather-code="mergedCurrent.weather_code"
@@ -140,11 +175,13 @@
                 :loading="loading"
                 :can-manual-refresh="canManualRefresh"
                 :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
+                :daily-forecast-layout="dailyForecastLayout"
                 @select="activeDataType = $event"
                 @day-selected="selectedDay = $event"
                 @open-data-types="settingsPanel?.openDataTypesModal()"
                 @open-model-modal="settingsPanel?.openModelModal()"
                 @refresh="loadWeather(false, true)"
+                @open-card-settings="cardSettingsType = $event"
               />
             </div>
           </Transition>
@@ -168,6 +205,14 @@
       :is-open="settingsOpen"
       @close="settingsOpen = false"
     />
+
+    <transition name="card-sheet">
+      <CardSettingsSheet
+        v-if="cardSettingsType"
+        :card-type="cardSettingsType"
+        @close="cardSettingsType = null"
+      />
+    </transition>
 
     <!-- PWS station picker modal -->
     <transition name="modal-fade">
@@ -210,12 +255,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, shallowReactive } from 'vue'
-import WeatherScene      from './components/WeatherScene.vue'
-import StickyLocationBar from './components/StickyLocationBar.vue'
-import CardRenderer      from './components/CardRenderer.vue'
+import WeatherScene               from './components/WeatherScene.vue'
+import SceneConditionsOverlay     from './components/SceneConditionsOverlay.vue'
+import CardRenderer               from './components/CardRenderer.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
+import CardSettingsSheet from './components/CardSettingsSheet.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
@@ -228,10 +274,12 @@ import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composabl
 const {
   timeFormat, showSim,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
+  dailyForecastLayout,
 } = useSettings()
 
 // ── Card stack ────────────────────────────────────────────────────────────────
-const enabledCards = computed(() => cardConfig.value.filter(c => c.enabled))
+const enabledCards      = computed(() => cardConfig.value.filter(c => c.enabled))
+const cardSettingsType  = ref(null)
 
 // ── Sim panel state (moved from CurrentConditions) ────────────────────────────
 const simTimeOfDays = [
@@ -316,11 +364,14 @@ const savedLocations     = ref(loadSavedLocations())
 const panelOpen          = ref(false)
 const tutSearching       = ref(false)
 const tutPendingLocation = ref(false)
-const settingsOpen   = ref(false)
+const settingsOpen    = ref(false)
+const conditionsOpen  = ref(false)
 const settingsPanel  = ref(null)
 const pwsPickerLoc   = ref(null)
 const pwsData            = ref(null)
 const grassColor         = ref('#43A047')
+const scrollRootEl       = ref(null)
+const topBarScrolled     = ref(false)
 const locationName       = ref('')
 const isOffline          = ref(!navigator.onLine)
 const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
@@ -662,6 +713,7 @@ let refreshTimer = null
 onMounted(() => {
   autoTimer    = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
   refreshTimer = setInterval(() => { tickNow.value = Date.now(); if (location.value && isStale()) loadWeather(true, true) }, 30_000)
+  scrollRootEl.value?.addEventListener('scroll', onScrollRoot, { passive: true })
 
   if (isGeoActive.value) {
     loading.value = true
@@ -673,6 +725,8 @@ onMounted(() => {
     )
   }
 })
+
+function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 200 }
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)
@@ -700,6 +754,7 @@ onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick)
   window.removeEventListener('online',  onOnline)
   window.removeEventListener('offline', onOffline)
+  scrollRootEl.value?.removeEventListener('scroll', onScrollRoot)
 })
 
 // Restore last active location on load
@@ -726,6 +781,7 @@ if (!isGeoActive.value) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* ── Scroll container ────────────────────────────────────────────────────── */
@@ -742,9 +798,71 @@ if (!isGeoActive.value) {
 /* ── Scene block ─────────────────────────────────────────────────────────── */
 .scene-block {
   position: relative;
-  height: clamp(200px, 45vw, 320px);
+  height: 300px;
   overflow: hidden;
 }
+
+.scene-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  pointer-events: none;
+  transition: filter 0.2s, background 0.25s, backdrop-filter 0.25s;
+}
+.scene-top-bar.scrolled {
+  background: rgba(10, 18, 32, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.scene-top-bar.blurred {
+  filter: blur(2px);
+  pointer-events: none;
+}
+.scene-top-location {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  letter-spacing: -0.01em;
+  max-width: calc(100% - 120px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.scene-top-btn {
+  pointer-events: all;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  width: 38px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.scene-top-btn:hover { background: rgba(0,0,0,0.38); }
+.scene-top-btn.active {
+  background: rgba(56,189,248,0.25);
+  border-color: rgba(56,189,248,0.6);
+  color: rgb(56,189,248);
+}
+.scene-top-btn.active:hover { background: rgba(56,189,248,0.35); }
 
 /* ── Card stack ──────────────────────────────────────────────────────────── */
 .card-stack {
