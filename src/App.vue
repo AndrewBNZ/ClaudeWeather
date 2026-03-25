@@ -176,8 +176,11 @@
                 :can-manual-refresh="canManualRefresh"
                 :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
                 :daily-forecast-layout="dailyForecastLayout"
+                :hourly-forecast-layout="hourlyForecastLayout"
+                :forecast-data-point="forecastDataPoint"
                 @select="activeDataType = $event"
                 @day-selected="selectedDay = $event"
+                @forecast-data-point="forecastDataPoint = $event"
                 @open-data-types="settingsPanel?.openDataTypesModal()"
                 @open-model-modal="settingsPanel?.openModelModal()"
                 @refresh="loadWeather(false, true)"
@@ -274,7 +277,7 @@ import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composabl
 const {
   timeFormat, showSim,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-  dailyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout,
 } = useSettings()
 
 // ── Card stack ────────────────────────────────────────────────────────────────
@@ -377,6 +380,7 @@ const isOffline          = ref(!navigator.onLine)
 const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location           = ref(null)
 const selectedDay        = ref(0)
+const forecastDataPoint  = ref(null)
 const weatherData        = ref(null)
 const silentRefresh      = ref(false)
 const loading            = ref(false)
@@ -726,7 +730,7 @@ onMounted(() => {
   }
 })
 
-function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 200 }
+function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 50 }
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)

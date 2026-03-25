@@ -167,7 +167,7 @@ function fmtWind(v) {
 }
 function fmtPrecip(v) {
   if (!v || v < 0.05) return null
-  return DATA_TYPES.rain.getUnit(props.unitPrefs) === 'in'
+  return DATA_TYPES.rainAmount.getUnit(props.unitPrefs) === 'in'
     ? `${(v * 0.0393701).toFixed(2)}`
     : `${v.toFixed(1)}`
 }

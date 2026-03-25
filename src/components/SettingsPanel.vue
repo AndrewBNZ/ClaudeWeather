@@ -76,11 +76,35 @@
         <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'layout' || subPanel }">
           <div class="setting-row">
             <div>
+              <div class="setting-label">Current Conditions</div>
+              <div class="setting-hint">Configure the scene overlay data points</div>
+            </div>
+            <button class="setting-action-btn" @click="subPanel = 'sceneConditions'">Edit →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Hourly Forecast</div>
+              <div class="setting-hint">Configure the hourly forecast card</div>
+            </div>
+            <button class="setting-action-btn" @click="subPanel = 'hourlyForecast'">Edit →</button>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Daily Forecast</div>
               <div class="setting-hint">Configure the daily forecast card</div>
             </div>
             <button class="setting-action-btn" @click="subPanel = 'dailyForecast'">Edit →</button>
           </div>
+        </div>
+
+        <!-- Current Conditions layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'sceneConditions' }">
+          <SceneConditionsSettings />
+        </div>
+
+        <!-- Hourly Forecast layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'hourlyForecast' }">
+          <HourlyForecastSettings />
         </div>
 
         <!-- Daily Forecast layout sub-panel -->
@@ -227,7 +251,9 @@ import { useSettings } from '../composables/useSettings.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
 import QrBackupModal       from './QrBackupModal.vue'
 import QrRestoreModal      from './QrRestoreModal.vue'
-import DailyForecastSettings from './settings/DailyForecastSettings.vue'
+import DailyForecastSettings    from './settings/DailyForecastSettings.vue'
+import HourlyForecastSettings  from './settings/HourlyForecastSettings.vue'
+import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
 import DataTypesModal      from './settings/DataTypesModal.vue'
 import UnitsModal          from './settings/UnitsModal.vue'
 import ForecastModelModal  from './settings/ForecastModelModal.vue'
@@ -250,7 +276,7 @@ const {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { dailyForecast: 'Daily Forecast' }
+const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast' }
 const subPanelTitle  = computed(() => subPanelTitles[subPanel.value] ?? '')
 const dropdownStyle  = ref({})
 
@@ -730,7 +756,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   align-items: center;
   padding: 0 20px;
   gap: 10px;
-  margin-bottom: -4px;
+  margin-bottom: 4px;
 }
 .other-pts-header-spacer { flex: 1; }
 .other-pts-col-lbl {
@@ -741,6 +767,18 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+.other-pts-col-divider {
+  display: block;
+  width: 1px;
+  height: 24px;
+  background: var(--tile-border);
+  flex-shrink: 0;
+}
+.other-pts-drag-hint {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-style: italic;
 }
 .toggle-switch-placeholder { width: 36px; flex-shrink: 0; }
 
@@ -760,6 +798,9 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 .check-btn::after {
   content: '';
   position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 20px;
   height: 20px;
   border-radius: 5px;

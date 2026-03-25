@@ -6,9 +6,7 @@
         <button class="panel-close" @click="$emit('close')">✕</button>
       </div>
       <div class="card-sheet-body">
-        <Suspense>
-          <component :is="settingsComponent" />
-        </Suspense>
+        <component :is="settingsComponent" />
       </div>
     </div>
   </div>

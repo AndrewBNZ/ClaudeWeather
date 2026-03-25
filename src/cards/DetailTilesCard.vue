@@ -129,7 +129,7 @@ const allTiles = computed(() => {
     return { type: cfg.id, iconHtml: TILE_ICONS[typeId], label: cfg.label, color: cfg.color, value, ...extra }
   }
   return {
-    rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain,       pwsSource: true }),
+    rain:       { type: 'rain', iconHtml: TILE_ICONS.rain, label: DATA_TYPES.rainAmount.label, color: DATA_TYPES.rainAmount.color, value: `${fmt(d.precipitation, 2)} ${DATA_TYPES.rainAmount.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, pwsSource: true },
     wind:       tile('wind',       `${fmt(d.wind_speed_10m, 1)} ${DATA_TYPES.wind.getUnit(u)}`, { pwsSource: true }),
     feelsLike:  tile('feelsLike',  `${fmt(d.apparent_temperature, 1)}${tempUnit.value}`,         { iconHtml: TILE_ICONS.feelsLike,  pwsSource: true }),
     humidity:   tile('humidity',   `${fmt(d.relative_humidity_2m, 0)}%`,                         { iconHtml: TILE_ICONS.humidity,   pwsSource: true }),

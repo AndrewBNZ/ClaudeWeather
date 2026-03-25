@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-overlay" @click="!blocked && (showPanel = true)">
+  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick">
     <div class="sc-inner">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
@@ -13,23 +13,20 @@
         </div>
       </div>
 
-      <!-- Right: condition + rain + wind -->
+      <!-- Right: configurable slots -->
       <div class="sc-right">
-        <div class="sc-right-item">{{ info.label }}</div>
-        <div class="sc-data-grid">
-          <template v-if="data.precipitation != null || data.precipitation_probability != null">
-            <span class="sc-tile-icon" v-html="rainIcon"></span>
-            <span class="sc-data-val">{{ data.precipitation != null ? fmt(data.precipitation, 1) : fmt(data.precipitation_probability, 0) }}</span>
-            <span class="sc-data-unit">{{ data.precipitation != null ? rainUnit : '%' }}</span>
-            <span></span>
-          </template>
-          <template v-if="data.wind_speed_10m != null">
-            <span class="sc-tile-icon" v-html="windIcon"></span>
-            <span class="sc-data-val">{{ fmt(data.wind_speed_10m, 0) }}</span>
-            <span class="sc-data-unit">{{ windUnit }}</span>
-            <svg v-if="data.wind_direction_10m != null" class="sc-wind-arrow" width="13" height="13" viewBox="0 0 20 20" :style="{ transform: `rotate(${data.wind_direction_10m}deg)` }">
-              <polygon points="10,2 14,16 10,13 6,16" fill="currentColor"/>
+        <div v-if="showConditionSlot" class="sc-right-item">{{ info.label }}</div>
+        <div v-if="dataSlots.length" class="sc-data-grid">
+          <template v-for="slot in dataSlots" :key="slot.type">
+            <span class="sc-tile-icon" v-html="slot.icon"></span>
+            <span class="sc-data-val">{{ slot.value }}</span>
+            <span class="sc-data-unit">{{ slot.unit }}</span>
+            <svg v-if="slot.type === 'wind' && data.wind_direction_10m != null" class="sc-wind-arrow" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                 :style="{ transform: `rotate(${data.wind_direction_10m + 180}deg)`, transformOrigin: '50% 50%' }">
+              <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <polygon points="7,2 4,7 10,7" fill="currentColor"/>
             </svg>
+            <span v-else-if="slot.type !== 'wind'"></span>
             <span v-else></span>
           </template>
         </div>
@@ -38,9 +35,24 @@
   </div>
 
   <Teleport to="body">
+    <div v-if="showSettingsPanel" class="sc-sheet-backdrop" @click="showSettingsPanel = false" />
+    <Transition name="sheet-slide">
+      <div v-if="showSettingsPanel" class="sc-sheet">
+        <div class="cond-header">
+          <span class="cond-title">Current Conditions</span>
+          <button class="cond-close" @click="showSettingsPanel = false">✕</button>
+        </div>
+        <div class="cond-scroll">
+          <SceneConditionsSettings />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <Teleport to="body">
     <div v-if="showPanel" class="cond-backdrop" @click="showPanel = false" />
-    <Transition name="cond-slide">
-      <div v-if="showPanel" class="cond-panel" :style="panelStyle">
+    <Transition name="sheet-slide">
+      <div v-if="showPanel" class="cond-panel">
         <div class="cond-header">
           <span class="cond-title">Current Conditions</span>
           <button class="cond-close" @click="showPanel = false">✕</button>
@@ -73,6 +85,7 @@ import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { useSettings } from '../composables/useSettings.js'
+import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
 
 const props = defineProps({
   data:      { type: Object, required: true },
@@ -83,43 +96,67 @@ const props = defineProps({
 
 const emit = defineEmits(['panel-change'])
 
-const { timeFormat } = useSettings()
+const { timeFormat, sceneOverlayLayout } = useSettings()
 
-const showPanel  = ref(false)
-const panelStyle = ref({})
+const showPanel         = ref(false)
+const showSettingsPanel = ref(false)
 
-watch(showPanel, (open) => {
-  emit('panel-change', open)
-  if (!open) return
-  const btn  = document.querySelector('[data-settings-btn]')
-  if (!btn) return
-  const rect     = btn.getBoundingClientRect()
-  const card     = document.querySelector('.conditions')
-  const cardRect = card?.getBoundingClientRect()
-  const top      = rect.bottom + 6
-  const maxHeight = `${window.innerHeight - top - 14}px`
-  if (cardRect) {
-    panelStyle.value = {
-      top:       `${top}px`,
-      left:      `${cardRect.left + 8}px`,
-      right:     `${window.innerWidth - cardRect.right + 8}px`,
-      maxHeight,
-    }
-  } else {
-    const panelWidth = 320
-    const rightEdge  = Math.min(rect.right, window.innerWidth - 8)
-    const leftEdge   = Math.max(rightEdge - panelWidth, 8)
-    panelStyle.value = { top: `${top}px`, left: `${leftEdge}px`, width: `${panelWidth}px`, maxHeight }
-  }
-})
+// ── Tap-and-hold ──────────────────────────────────────────────────────────────
+let holdTimer = null
+let holdFired = false
+
+function onPointerDown() {
+  if (props.blocked) return
+  holdFired = false
+  holdTimer = setTimeout(() => {
+    holdFired = true
+    navigator.vibrate?.(30)
+    showSettingsPanel.value = true
+  }, 500)
+}
+
+function onPointerUp() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null }
+}
+
+function onPointerCancel() {
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null }
+}
+
+function onClick() {
+  if (!holdFired && !props.blocked) showPanel.value = true
+}
+
+
+watch(showPanel, (open) => emit('panel-change', open))
 const info      = computed(() => getWeatherInfo(props.data.weather_code))
-const rainIcon  = TILE_ICONS.rain
-const windIcon  = TILE_ICONS.wind
 const tempUnit  = computed(() => DATA_TYPES.temperature.getUnit(props.unitPrefs))
-const rainUnit  = computed(() => DATA_TYPES.rain.getUnit(props.unitPrefs))
-const windUnit  = computed(() => DATA_TYPES.wind.getUnit(props.unitPrefs))
 const todayHigh = computed(() => props.daily?.temperature_2m_max?.[0] ?? null)
 const todayLow  = computed(() => props.daily?.temperature_2m_min?.[0] ?? null)
+
+// ── Slot rendering ────────────────────────────────────────────────────────────
+const showConditionSlot = computed(() => sceneOverlayLayout.value.slots.includes('condition'))
+
+const dataSlots = computed(() => {
+  const d  = props.data
+  const up = props.unitPrefs
+  return sceneOverlayLayout.value.slots
+    .filter(s => s !== 'condition' && s !== 'none')
+    .map(type => {
+      const cfg = DATA_TYPES[type]
+      if (!cfg) return null
+      const icon = TILE_ICONS[cfg.iconKey ?? type]
+      let value = '–'
+      if (cfg.hourlyKey && d[cfg.hourlyKey] != null) {
+        const raw = cfg.scale ? cfg.scale(d[cfg.hourlyKey], up) : d[cfg.hourlyKey]
+        const dec = cfg.getDecimals ? cfg.getDecimals(up) : (cfg.decimals ?? 0)
+        value = Number(raw).toFixed(dec)
+      }
+      const unit = cfg.getUnit ? cfg.getUnit(up) : ''
+      return { type, icon, value, unit }
+    })
+    .filter(Boolean)
+})
 
 function fmt(v, decimals) {
   if (v == null) return '–'
@@ -198,7 +235,7 @@ const tiles = computed(() => {
       id: 'rain', label: 'Precipitation',
       icon: TILE_ICONS.rain, color: '#3b82f6',
       value: fmt(d.precipitation, 1),
-      unit: DATA_TYPES.rain.getUnit(up),
+      unit: DATA_TYPES.rainAmount.getUnit(up),
       sub: d.precipitation_probability != null ? `${fmt(d.precipitation_probability, 0)}% chance` : null,
     },
     {
@@ -399,30 +436,34 @@ const tiles = computed(() => {
   position: fixed;
   inset: 0;
   z-index: 249;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-/* ── Conditions panel ───────────────────────────────────────────────────── */
+/* ── Conditions panel (bottom sheet) ───────────────────────────────────── */
 .cond-panel {
   position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 250;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
+  max-height: 80vh;
   overflow: hidden;
 }
 
-@media (max-width: 599px) {
-  .cond-panel {
-    left: 8px !important;
-    right: 8px !important;
-    bottom: 8px !important;
-    max-height: none !important;
-    width: auto !important;
-    border-radius: 12px !important;
-  }
+.cond-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-border);
+  margin: 10px auto 0;
+  flex-shrink: 0;
 }
 
 .cond-header {
@@ -537,14 +578,46 @@ const tiles = computed(() => {
   margin-top: 2px;
 }
 
-/* ── Transition ─────────────────────────────────────────────────────────── */
-.cond-slide-enter-active,
-.cond-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+/* ── Bottom sheet transition (shared) ───────────────────────────────────── */
+.sc-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 249;
+  background: rgba(0, 0, 0, 0.4);
 }
-.cond-slide-enter-from,
-.cond-slide-leave-to {
-  opacity: 0;
-  transform: translateY(14px);
+
+.sc-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 250;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.sc-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-border);
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+.sheet-slide-enter-active,
+.sheet-slide-leave-active {
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.sheet-slide-enter-from,
+.sheet-slide-leave-to {
+  transform: translateY(100%);
 }
 </style>

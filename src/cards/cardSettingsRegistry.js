@@ -7,4 +7,8 @@ export const CARD_SETTINGS_REGISTRY = {
     title:     'Daily Forecast',
     component: defineAsyncComponent(() => import('../components/settings/DailyForecastSettings.vue')),
   },
+  combinedHourly: {
+    title:     'Hourly Forecast',
+    component: defineAsyncComponent(() => import('../components/settings/HourlyForecastSettings.vue')),
+  },
 }

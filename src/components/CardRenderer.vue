@@ -1,15 +1,10 @@
 <template>
   <div v-bind="pressHandlers">
-    <Suspense>
-      <component
-        :is="cardComponent"
-        v-bind="cardProps"
-        v-on="cardEvents"
-      />
-      <template #fallback>
-        <div class="card card-loading-placeholder"></div>
-      </template>
-    </Suspense>
+    <component
+      :is="cardComponent"
+      v-bind="cardProps"
+      v-on="cardEvents"
+    />
   </div>
 </template>
 
@@ -42,13 +37,15 @@ const props = defineProps({
   loading:      { type: Boolean, default: false },
   canManualRefresh: { type: Boolean, default: true },
   modelLabel:          { type: String,  default: '' },
-  dailyForecastLayout: { type: Object,  default: null },
+  dailyForecastLayout:  { type: Object,  default: null },
+  hourlyForecastLayout: { type: Object,  default: null },
+  forecastDataPoint:    { type: String,  default: null },
 })
 
 const emit = defineEmits([
   'select', 'grass-color', 'open-locations', 'open-settings',
   'open-data-types', 'open-model-modal', 'refresh', 'day-selected',
-  'open-card-settings',
+  'open-card-settings', 'forecast-data-point',
 ])
 
 const cardComponent = computed(() => CARD_REGISTRY[props.cardType])
@@ -76,7 +73,9 @@ const cardProps = computed(() => ({
   loading:        props.loading,
   canManualRefresh: props.canManualRefresh,
   modelLabel:          props.modelLabel,
-  dailyForecastLayout: props.dailyForecastLayout,
+  dailyForecastLayout:  props.dailyForecastLayout,
+  hourlyForecastLayout: props.hourlyForecastLayout,
+  forecastDataPoint:    props.forecastDataPoint,
 }))
 
 const cardEvents = computed(() => ({
@@ -88,6 +87,7 @@ const cardEvents = computed(() => ({
   'open-model-modal':() => emit('open-model-modal'),
   refresh:          ()  => emit('refresh'),
   'day-selected':   (v) => emit('day-selected', v),
+  'forecast-data-point': (v) => emit('forecast-data-point', v),
 }))
 
 // Long-press (touch) + right-click opens card settings when available
@@ -95,10 +95,3 @@ const pressHandlers = useCardPress(() => {
   if (CARD_SETTINGS_REGISTRY[props.cardType]) emit('open-card-settings', props.cardType)
 })
 </script>
-
-<style>
-.card-loading-placeholder {
-  min-height: 80px;
-  opacity: 0.3;
-}
-</style>
