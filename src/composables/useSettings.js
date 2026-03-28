@@ -99,8 +99,8 @@ export const CARD_META = {
 }
 
 const DEFAULT_CARDS = [
-  { type: 'combinedHourly', enabled: true },
   { type: 'dailyForecast',  enabled: true },
+  { type: 'combinedHourly', enabled: true },
   { type: 'sunriseMoon',    enabled: true },
   { type: 'radar',          enabled: true },
 ]
