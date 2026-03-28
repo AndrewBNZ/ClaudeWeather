@@ -1,11 +1,9 @@
 <template>
-  <div v-bind="pressHandlers">
-    <component
-      :is="cardComponent"
-      v-bind="cardProps"
-      v-on="cardEvents"
-    />
-  </div>
+  <component
+    :is="cardComponent"
+    v-bind="{ ...cardProps, ...pressHandlers }"
+    v-on="cardEvents"
+  />
 </template>
 
 <script setup>

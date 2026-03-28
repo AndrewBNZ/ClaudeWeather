@@ -177,7 +177,7 @@ onUnmounted(() => {
 }
 
 .radar-title {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
   display: flex;

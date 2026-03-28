@@ -422,11 +422,11 @@ function barStyleSimple(i) {
 
 <style scoped>
 .daily-card {
-  padding: 16px 16px 14px;
+  padding: 12px 16px;
 }
 
 .daily-header {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .daily-title {
@@ -455,7 +455,7 @@ function barStyleSimple(i) {
   border: 1px solid var(--card-border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
@@ -566,7 +566,7 @@ function barStyleSimple(i) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   text-align: center;
@@ -601,7 +601,7 @@ function barStyleSimple(i) {
 }
 
 .t-hi {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text);
   line-height: 1.2;
@@ -612,7 +612,7 @@ function barStyleSimple(i) {
   gap: 2px;
 }
 .t-lo {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   line-height: 1.2;
 }
@@ -652,7 +652,7 @@ function barStyleSimple(i) {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   white-space: nowrap;
 }

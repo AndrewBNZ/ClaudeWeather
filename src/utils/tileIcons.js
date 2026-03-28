@@ -2,7 +2,7 @@
 // Sized via CSS per context — all use viewBox="0 0 20 20".
 export const TILE_ICONS = {
   temperature: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#f97316" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 13V6a2 2 0 0 0-4 0v7a3.5 3.5 0 1 0 4 0z"/>
+    <path d="M10 11V4a2 2 0 0 0-4 0v7a3.5 3.5 0 1 0 4 0z"/>
   </svg>`,
   rain: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5 13a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 15.6 8H16a2.5 2.5 0 0 1 0 5"/>
@@ -15,9 +15,9 @@ export const TILE_ICONS = {
     <path d="M3 15c2-2 4-2 5 0"/>
   </svg>`,
   feelsLike: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M10 13V7a2 2 0 0 0-4 0v6a3.5 3.5 0 1 0 4 0z"/>
-    <line x1="10" y1="9" x2="12.5" y2="9"/>
-    <line x1="10" y1="11.5" x2="13.5" y2="11.5"/>
+    <path d="M10 11V5a2 2 0 0 0-4 0v6a3.5 3.5 0 1 0 4 0z"/>
+    <line x1="10" y1="7" x2="12.5" y2="7"/>
+    <line x1="10" y1="9.5" x2="13.5" y2="9.5"/>
   </svg>`,
   humidity: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#14b8a6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 3C10 3 3.5 9.5 3.5 13a6.5 6.5 0 0 0 13 0C16.5 9.5 10 3 10 3z"/>

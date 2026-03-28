@@ -166,7 +166,7 @@ function selectDataPoint(type) {
 }
 
 const visibleOtherPoints = computed(() => {
-  const mainType = activeDataPoint.value
+  const mainType = layout.value.mainDataPoint
   return layout.value.otherDataPoints?.filter(p => p.enabled && p.type !== mainType) ?? []
 })
 
@@ -390,14 +390,14 @@ watch(() => props.selectedDay, (d) => {
 
 <style scoped>
 .hourly-forecast-card {
-  padding: 0;
+  padding: 12px 0;
   overflow: hidden;
 }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 
 .hf-header {
-  padding: 16px 16px 12px;
+  padding: 0 16px 10px;
 }
 
 .hf-title {
@@ -427,7 +427,7 @@ watch(() => props.selectedDay, (d) => {
   border: 1px solid var(--card-border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
@@ -463,7 +463,7 @@ watch(() => props.selectedDay, (d) => {
   position: absolute;
   top: 1px;
   white-space: nowrap;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-faint);
 }
@@ -473,7 +473,7 @@ watch(() => props.selectedDay, (d) => {
   overflow-y: hidden;
   scrollbar-width: none;
   padding-top: 18px;
-  padding-bottom: 14px;
+  padding-bottom: 0;
 }
 .hf-scroll::-webkit-scrollbar { display: none; }
 
@@ -527,7 +527,7 @@ watch(() => props.selectedDay, (d) => {
 }
 
 
-.hf-emoji { font-size: 16px; line-height: 1; }
+.hf-emoji { font-size: 20px; line-height: 1; }
 
 .hf-bar-track {
   position: relative;
@@ -548,7 +548,7 @@ watch(() => props.selectedDay, (d) => {
 }
 
 .hf-val-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -563,12 +563,12 @@ watch(() => props.selectedDay, (d) => {
 .hf-cell {
   height: 16px;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: var(--text-muted);
 }
 
 .hf-row-time .hf-cell {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   height: 26px;
@@ -587,10 +587,10 @@ watch(() => props.selectedDay, (d) => {
   flex-shrink: 0;
 }
 .hf-wind-arrow svg { width: 10px; height: 10px; }
-.hf-wind-speed { font-size: 0.68rem; }
+.hf-wind-speed { font-size: 0.78rem; }
 
 /* Generic row: inherits inline :style color */
-.hf-row-generic .hf-cell { font-size: 0.7rem; }
+.hf-row-generic .hf-cell { font-size: 0.8rem; }
 
 /* ── Current hour highlight ──────────────────────────────────────────── */
 .hf-col-current .hf-val-label { color: var(--text); }
@@ -602,12 +602,12 @@ watch(() => props.selectedDay, (d) => {
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
-  .hf-header { padding: 8px 10px 10px; }
+  .hf-header { padding: 0 10px 10px; }
   .hf-picker { padding: 0 10px 8px; }
 }
 
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
-  .hf-header { padding: 8px 10px 8px; }
+  .hf-header { padding: 0 10px 8px; }
   .hf-picker { padding: 0 10px 6px; }
 }
 </style>

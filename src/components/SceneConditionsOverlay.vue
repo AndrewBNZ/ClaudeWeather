@@ -21,7 +21,7 @@
             <span class="sc-tile-icon" v-html="slot.icon"></span>
             <span class="sc-data-val">{{ slot.value }}</span>
             <span class="sc-data-unit">{{ slot.unit }}</span>
-            <svg v-if="slot.type === 'wind' && data.wind_direction_10m != null" class="sc-wind-arrow" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"
+            <svg v-if="slot.type === 'wind' && data.wind_direction_10m != null" class="sc-wind-arrow" width="17" height="17" viewBox="0 0 14 14" fill="none" aria-hidden="true"
                  :style="{ transform: `rotate(${data.wind_direction_10m + 180}deg)`, transformOrigin: '50% 50%' }">
               <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
               <polygon points="7,2 4,7 10,7" fill="currentColor"/>
@@ -389,9 +389,9 @@ const tiles = computed(() => {
 
 .sc-data-grid {
   display: grid;
-  grid-template-columns: 16px 3ch auto auto;
+  grid-template-columns: 20px 3ch auto auto;
   align-items: center;
-  gap: 3px 5px;
+  gap: 7px 5px;
   font-size: 0.85rem;
   font-weight: 500;
   color: rgba(255,255,255,0.85);
@@ -416,13 +416,13 @@ const tiles = computed(() => {
 .sc-tile-icon {
   display: inline-flex;
   align-items: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 .sc-tile-icon :deep(svg) {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .sc-wind-arrow {

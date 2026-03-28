@@ -15,7 +15,10 @@
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
         </button>
-      <span class="scene-top-location">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
+      <div class="scene-top-location">
+          <span class="scene-top-name">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
+          <span v-if="weatherData && localDateTime" class="scene-top-datetime">{{ localDateTime }}</span>
+        </div>
         <button
           data-settings-btn
           class="scene-top-btn"
@@ -395,6 +398,22 @@ const updatedAt = computed(() =>
     ? fetchedAt.value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: timeFormat.value === '12h' }).toLowerCase()
     : ''
 )
+
+const localDateTime = computed(() => {
+  if (!weatherData.value) return ''
+  const offsetMs = (weatherData.value.utc_offset_seconds ?? 0) * 1000
+  const d = new Date(tickNow.value + offsetMs)
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const dow = days[d.getUTCDay()]
+  const date = d.getUTCDate()
+  const mon  = months[d.getUTCMonth()]
+  const h = d.getUTCHours()
+  const m = String(d.getUTCMinutes()).padStart(2,'0')
+  if (timeFormat.value === '24h') return `${dow} ${date} ${mon} · ${String(h).padStart(2,'0')}:${m}`
+  const ampm = h >= 12 ? 'pm' : 'am'
+  return `${dow} ${date} ${mon} · ${h % 12 || 12}:${m} ${ampm}`
+})
 
 const activePwsStation = computed(() => {
   if (!location.value) return null
@@ -831,16 +850,40 @@ if (!isGeoActive.value) {
 .scene-top-location {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 1.2rem;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: calc(100% - 120px);
+  pointer-events: none;
+  text-align: center;
+}
+.scene-top-name {
+  display: block;
+  font-size: 1.3rem;
   font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,0.45);
   letter-spacing: -0.01em;
-  max-width: calc(100% - 120px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+}
+.scene-top-datetime {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: opacity 0.2s;
+}
+.scene-top-bar.scrolled .scene-top-datetime {
+  opacity: 0;
   pointer-events: none;
 }
 .scene-top-btn {
@@ -870,7 +913,7 @@ if (!isGeoActive.value) {
 
 /* ── Card stack ──────────────────────────────────────────────────────────── */
 .card-stack {
-  padding: 12px 12px 40px;
+  padding: 12px;
 }
 
 .card-stack-inner {
