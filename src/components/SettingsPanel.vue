@@ -452,8 +452,9 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   pointer-events: none;
 }
 
-.setting-row--draggable { cursor: default; }
+.setting-row--draggable { cursor: default; gap: 10px; }
 .setting-row--draggable .tile-drag-handle { cursor: grab; }
+.setting-row--draggable > div:not(.setting-row-controls) { flex: 1; min-width: 0; }
 
 .setting-row {
   display: flex;
