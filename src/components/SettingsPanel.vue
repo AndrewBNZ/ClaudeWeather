@@ -267,10 +267,8 @@ const {
 
 const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast' }
 const CARD_HINTS = {
-  detailTiles:    'Weather detail tiles',
   combinedHourly: 'Configure the hourly forecast card',
   dailyForecast:  'Configure the daily forecast card',
-  hourlyStrip:    'Compact hourly temperature strip',
   sunriseMoon:    'Sunrise, sunset and moon phase',
   radar:          'Radar map',
 }

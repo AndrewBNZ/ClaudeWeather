@@ -92,19 +92,15 @@ export const TILE_META = {
 }
 
 export const CARD_META = {
-  detailTiles:    { icon: '📊', label: 'Weather Details' },
   combinedHourly: { icon: '🕐', label: 'Hourly Forecast' },
   dailyForecast:  { icon: '📅', label: 'Daily Forecast' },
-  hourlyStrip:    { icon: '⏱️', label: 'Hourly Strip' },
   sunriseMoon:    { icon: '🌙', label: 'Sunrise & Moon' },
   radar:          { icon: '🛰️', label: 'Radar' },
 }
 
 const DEFAULT_CARDS = [
-  { type: 'detailTiles',    enabled: true },
   { type: 'combinedHourly', enabled: true },
   { type: 'dailyForecast',  enabled: true },
-  { type: 'hourlyStrip',    enabled: true },
   { type: 'sunriseMoon',    enabled: true },
   { type: 'radar',          enabled: true },
 ]
