@@ -40,6 +40,7 @@
             :key="date"
             class="day-col"
             :class="{ 'is-selected': i === selectedDay }"
+            :ref="el => { if (el) dayColRefs[i] = el }"
             @click="emit('day-selected', i)"
           >
             <div class="day-lbl">{{ dayLabel(date) }}</div>
@@ -132,7 +133,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES, DATA_TYPE_LIST, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
@@ -151,6 +152,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['day-selected', 'forecast-data-point'])
+
+const dayColRefs = ref([])
 
 // ── Layout config (with fallback) ────────────────────────────────────────────
 
@@ -180,6 +183,12 @@ const pickerOptions = computed(() => {
 const activeDataPoint = ref(props.forecastDataPoint ?? layout.value.mainDataPoint)
 watch(() => layout.value.mainDataPoint, (v) => { activeDataPoint.value = v })
 watch(() => props.forecastDataPoint, (v) => { if (v) activeDataPoint.value = v })
+
+watch(() => props.selectedDay, (i) => {
+  nextTick(() => {
+    dayColRefs.value[i]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+  })
+})
 
 function selectDataPoint(type) {
   activeDataPoint.value = type
