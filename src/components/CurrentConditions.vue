@@ -159,7 +159,6 @@
                 </svg>
               </span>
               <span v-else-if="item.iconHtml" class="detail-icon" v-html="item.iconHtml"></span>
-              <span v-else class="detail-icon">{{ item.icon }}</span>
               <div>
                 <div class="detail-label">{{ item.label }}</div>
                 <div class="detail-value">
@@ -367,7 +366,7 @@ const allTiles = computed(() => {
   const u = props.unitPrefs
   function tile(typeId, value, extra = {}) {
     const cfg = DATA_TYPES[typeId]
-    return { type: cfg.id, icon: cfg.icon, label: cfg.label, color: cfg.color, value, ...extra }
+    return { type: cfg.id, iconHtml: TILE_ICONS[typeId], label: cfg.label, color: cfg.color, value, ...extra }
   }
   return {
     rain:       tile('rain',       `${fmt(d.precipitation, 2)} ${DATA_TYPES.rain.getUnit(u)}${d.precipitation_probability != null ? ' · ' + d.precipitation_probability + '%' : ''}`, { iconHtml: TILE_ICONS.rain,       pwsSource: true }),

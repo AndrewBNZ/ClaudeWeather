@@ -1,14 +1,33 @@
 <template>
   <div class="app-shell">
-    <header v-if="!weatherData" class="header">
-      <div class="header-right">
-        <button data-locations-btn class="locations-btn" :class="{ active: panelOpen }" @click="panelOpen = !panelOpen; settingsOpen = false" title="Saved locations">
+    <!-- Sticky top bar — location name + action buttons, always visible above scroll -->
+    <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: panelOpen || settingsOpen, scrolled: topBarScrolled }">
+        <button
+          data-locations-btn
+          class="scene-top-btn"
+          :class="{ active: panelOpen }"
+          :disabled="conditionsOpen"
+          @click="panelOpen = !panelOpen; settingsOpen = false"
+          title="Saved locations"
+        >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
         </button>
-        <button data-settings-btn class="settings-btn" data-tut="settings" :class="{ active: settingsOpen }" @click="settingsOpen = !settingsOpen; panelOpen = false" title="Preferences">
+      <div class="scene-top-location">
+          <span class="scene-top-name">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
+          <span v-if="weatherData && localDateTime" class="scene-top-datetime">{{ localDateTime }}</span>
+        </div>
+        <button
+          data-settings-btn
+          class="scene-top-btn"
+          data-tut="settings"
+          :class="{ active: settingsOpen }"
+          :disabled="conditionsOpen"
+          @click="settingsOpen = !settingsOpen; panelOpen = false"
+          title="Preferences"
+        >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
@@ -18,10 +37,11 @@
             <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
           </svg>
         </button>
-      </div>
-    </header>
+    </div>
 
-    <main class="main">
+    <!-- Scrollable content area -->
+    <div class="scroll-root" ref="scrollRootEl" :class="{ blurred: panelOpen || settingsOpen }">
+
       <!-- Offline -->
       <div v-if="isOffline && !weatherData" class="offline-card">
         <span class="offline-icon">📡</span>
@@ -52,140 +72,153 @@
         <button class="retry-btn" @click="loadWeather(false, true)">Try again</button>
       </div>
 
-      <!-- Main content -->
-      <Transition v-else-if="weatherData" name="weather-fade" appear>
-        <div class="weather-layout">
-          <aside class="layout-left" :style="{ '--grass-color': grassColor }">
-            <CurrentConditions
-              :data="mergedCurrent"
-              :pws-name="activePwsStation?.name ?? null"
-              :pws-data-active="!!(pwsData || tempestData)"
-              :daily="weatherData.daily"
-              :selected-day="selectedDay"
-              :unit-prefs="unitPrefs"
-              :active-type="activeDataType"
-              :location-name="locationName"
-              :lat="location?.lat ?? 0"
-              :utc-offset="weatherData.utc_offset_seconds ?? 0"
-              :time-format="timeFormat"
-              :show-sim="showSim"
-              :show-fireworks="showFireworks"
-              :tile-config="tileConfig"
-              :updated-at="updatedAt"
-              :fetched-at="fetchedAt?.getTime() ?? null"
-              :stale-ms="STALE_MS"
-              :loading="loading"
-              :can-manual-refresh="canManualRefresh"
-              :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
-              :blurred="panelOpen || settingsOpen"
-              :locations-open="panelOpen"
-              :settings-open="settingsOpen"
-              @select="activeDataType = $event"
-              @grass-color="grassColor = $event"
-              @open-locations="panelOpen = !panelOpen; settingsOpen = false"
-              @open-settings="settingsOpen = !settingsOpen; panelOpen = false"
-              @open-data-types="settingsPanel?.openDataTypesModal()"
-              @open-model-modal="settingsPanel?.openModelModal()"
-              @refresh="loadWeather(false, true)"
-            />
-          </aside>
-          <div class="layout-right">
-            <Transition name="chart-switch" mode="out-in">
-            <div :key="activeDataType === 'radar' ? 'radar' : 'charts'" class="layout-charts-inner">
-            <template v-if="activeDataType === 'radar'">
-              <div class="layout-chart">
-                <RadarMap
-                  :lat="location.lat"
-                  :lng="location.lon"
-                  :theme="resolvedTheme"
-                  :time-format="timeFormat"
-                />
+      <!-- Main weather content -->
+      <template v-else-if="weatherData">
+        <!-- Scene block — scrolls away as user scrolls down -->
+        <div class="scene-block" :style="{ '--grass-color': grassColor }">
+          <SceneConditionsOverlay
+            v-if="mergedCurrent"
+            :data="mergedCurrent"
+            :daily="weatherData?.daily ?? null"
+            :unit-prefs="unitPrefs"
+            :blocked="panelOpen || settingsOpen"
+            @panel-change="conditionsOpen = $event"
+          />
+
+          <WeatherScene
+            @grass-color="grassColor = $event"
+            :weather-code="mergedCurrent.weather_code"
+            :wind-speed="mergedCurrent.wind_speed_10m"
+            :cloud-cover="mergedCurrent.cloud_cover"
+            :sunrise="todaySunrise"
+            :sunset="todaySunset"
+            :modal-sunrise="selectedSunrise"
+            :modal-sunset="selectedSunset"
+            :lat="location?.lat ?? 0"
+            :utc-offset="weatherData.utc_offset_seconds ?? 0"
+            :preview-tod="previewTod"
+            :preview-weather="previewWeather"
+            :preview-wind="previewWind"
+            :show-fireworks="showFireworks || fireworksPreview"
+            :shooting-star-trigger="shootingStarTrigger"
+            :force-birds="simBirds"
+            :force-aurora="simAurora"
+            :force-fog="simFog"
+          />
+
+          <!-- Sim panel overlay — shown when simulator is enabled -->
+          <div v-if="showSim" class="sim-bar">
+            <div v-if="simExpanded" class="sim-panel">
+              <div class="sim-header">
+                <div class="sim-title">Weather Simulator</div>
+                <button class="sim-reset" :style="{ visibility: hasSimPreview ? 'visible' : 'hidden' }" @click="resetSim">↺ Reset</button>
               </div>
-            </template>
-            <template v-else-if="hourlyFirst">
-              <div class="layout-chart">
-                <HourlyChart
-                  :hourly="weatherData.hourly"
-                  :daily="weatherData.daily"
-                  :active-type="activeDataType"
-                  :unit-prefs="unitPrefs"
-                  :day-index="selectedDay"
-                  :theme="resolvedTheme"
-                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
-                  :time-format="timeFormat"
-                  :silent-refresh="silentRefresh"
-                  @select-day="selectedDay = $event"
-                  @open-units-modal="settingsPanel?.openUnitsModal()"
-                />
+              <div class="sim-row">
+                <span class="sim-row-label">Time</span>
+                <button v-for="t in simTimeOfDays" :key="t.tod"
+                  class="sim-btn" :class="{ active: previewTod === t.tod }"
+                  @click="previewTod = previewTod === t.tod ? null : t.tod"
+                  :title="t.label">{{ t.emoji }}</button>
               </div>
-              <div class="layout-chart">
-                <DailyChart
-                  :daily="weatherData.daily"
-                  :hourly="weatherData.hourly"
-                  :active-type="activeDataType"
-                  :unit-prefs="unitPrefs"
-                  :selected-day="selectedDay"
-                  :theme="resolvedTheme"
-                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
-                  :show-summary="showDailySummary"
-                  :silent-refresh="silentRefresh"
-                  @day-selected="selectedDay = $event"
-                  @open-units-modal="settingsPanel?.openUnitsModal()"
-                />
+              <div class="sim-row">
+                <span class="sim-row-label">Weather</span>
+                <button v-for="w in simWeatherPreviews" :key="w.group"
+                  class="sim-btn" :class="{ active: previewWeather === w.group }"
+                  @click="previewWeather = previewWeather === w.group ? null : w.group"
+                  :title="w.label">{{ w.emoji }}</button>
               </div>
-            </template>
-            <template v-else>
-              <div class="layout-chart">
-                <DailyChart
-                  :daily="weatherData.daily"
-                  :hourly="weatherData.hourly"
-                  :active-type="activeDataType"
-                  :unit-prefs="unitPrefs"
-                  :selected-day="selectedDay"
-                  :theme="resolvedTheme"
-                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
-                  :show-summary="showDailySummary"
-                  :silent-refresh="silentRefresh"
-                  @day-selected="selectedDay = $event"
-                  @open-units-modal="settingsPanel?.openUnitsModal()"
-                />
+              <div class="sim-row">
+                <span class="sim-row-label">Wind</span>
+                <button v-for="wl in simWindLevels" :key="wl.label"
+                  class="sim-btn" :class="{ active: previewWind === wl.speed }"
+                  @click="previewWind = previewWind === wl.speed ? null : wl.speed"
+                  :title="wl.speed === 0 ? `${wl.label} (0 km/h)` : `${wl.label} (${wl.speed} km/h)`">{{ wl.emoji }}</button>
               </div>
-              <div class="layout-chart">
-                <HourlyChart
-                  :hourly="weatherData.hourly"
-                  :daily="weatherData.daily"
-                  :active-type="activeDataType"
-                  :unit-prefs="unitPrefs"
-                  :day-index="selectedDay"
-                  :theme="resolvedTheme"
-                  :utc-offset="weatherData.utc_offset_seconds ?? 0"
-                  :time-format="timeFormat"
-                  :silent-refresh="silentRefresh"
-                  @select-day="selectedDay = $event"
-                  @open-units-modal="settingsPanel?.openUnitsModal()"
-                />
+              <div class="sim-row">
+                <span class="sim-row-label">Effects</span>
+                <button class="sim-btn" :class="{ active: fireworksPreview }" title="Fireworks" @click="triggerFireworksPreview">🎆</button>
+                <button class="sim-btn" title="Shooting star" @click="triggerShootingStar">🌠</button>
+                <button class="sim-btn" :class="{ active: simBirds }"  title="Birds"   @click="simBirds  = !simBirds">🐦</button>
+                <button class="sim-btn" :class="{ active: simAurora }" title="Aurora"  @click="simAurora = !simAurora">🌌</button>
+                <button class="sim-btn" :class="{ active: simFog }"    title="Fog"     @click="simFog    = !simFog">🌫️</button>
               </div>
-            </template>
             </div>
-            </Transition>
-            <div class="data-footer">
-              Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-              · <button class="footer-model-btn" @click="settingsPanel?.openModelModal()">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
-              <template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
-              <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
-                <span :class="{ spinning: loading }">↻</span>
-              </button>
-            </div>
+            <button class="sim-toggle" :class="{ 'sim-active': hasSimPreview, 'sim-open': simExpanded }" title="Weather Simulator" @click="simExpanded = !simExpanded">
+              {{ simExpanded ? '▾' : '▴' }}
+            </button>
           </div>
         </div>
-      </Transition>
-    </main>
+
+        <!-- Card stack -->
+        <div class="card-stack">
+          <Transition name="weather-fade" appear>
+            <div class="card-stack-inner">
+              <CardRenderer
+                v-for="card in enabledCards"
+                :key="card.type"
+                :card-type="card.type"
+                :weather="weatherData"
+                :merged-current="mergedCurrent"
+                :unit-prefs="unitPrefs"
+                :selected-day="selectedDay"
+                :utc-offset="weatherData.utc_offset_seconds ?? 0"
+                :theme="resolvedTheme"
+                :time-format="timeFormat"
+                :active-type="activeDataType"
+                :tile-config="tileConfig"
+                :show-sim="showSim"
+                :show-fireworks="showFireworks"
+                :lat="location?.lat ?? 0"
+                :lng="location?.lon ?? 0"
+                :pws-name="activePwsStation?.name ?? null"
+                :pws-data-active="!!(pwsData || tempestData)"
+                :updated-at="updatedAt"
+                :fetched-at="fetchedAt?.getTime() ?? null"
+                :stale-ms="STALE_MS"
+                :loading="loading"
+                :can-manual-refresh="canManualRefresh"
+                :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
+                :daily-forecast-layout="dailyForecastLayout"
+                :hourly-forecast-layout="hourlyForecastLayout"
+                :forecast-data-point="forecastDataPoint"
+                @select="activeDataType = $event"
+                @day-selected="selectedDay = $event"
+                @forecast-data-point="forecastDataPoint = $event"
+                @open-data-types="settingsPanel?.openDataTypesModal()"
+                @open-model-modal="settingsPanel?.openModelModal()"
+                @refresh="loadWeather(false, true)"
+                @open-card-settings="cardSettingsType = $event"
+              />
+            </div>
+          </Transition>
+        </div>
+
+        <!-- Data footer -->
+        <div class="data-footer">
+          Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+          · <button class="footer-model-btn" @click="settingsPanel?.openModelModal()">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
+          <template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
+          <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
+            <span :class="{ spinning: loading }">↻</span>
+          </button>
+        </div>
+      </template>
+
+    </div>
 
     <SettingsPanel
       ref="settingsPanel"
       :is-open="settingsOpen"
       @close="settingsOpen = false"
     />
+
+    <transition name="card-sheet">
+      <CardSettingsSheet
+        v-if="cardSettingsType"
+        :card-type="cardSettingsType"
+        @close="cardSettingsType = null"
+      />
+    </transition>
 
     <!-- PWS station picker modal -->
     <transition name="modal-fade">
@@ -228,13 +261,13 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, shallowReactive } from 'vue'
-import CurrentConditions from './components/CurrentConditions.vue'
-import HourlyChart       from './components/HourlyChart.vue'
-import DailyChart        from './components/DailyChart.vue'
-import RadarMap          from './components/RadarMap.vue'
+import WeatherScene               from './components/WeatherScene.vue'
+import SceneConditionsOverlay     from './components/SceneConditionsOverlay.vue'
+import CardRenderer               from './components/CardRenderer.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
+import CardSettingsSheet from './components/CardSettingsSheet.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
@@ -245,9 +278,63 @@ import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
 
 const {
-  timeFormat, hourlyFirst, showSim, showDailySummary,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
+  timeFormat, showSim,
+  tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
+  dailyForecastLayout, hourlyForecastLayout,
 } = useSettings()
+
+// ── Card stack ────────────────────────────────────────────────────────────────
+const enabledCards      = computed(() => cardConfig.value.filter(c => c.enabled))
+const cardSettingsType  = ref(null)
+
+// ── Sim panel state (moved from CurrentConditions) ────────────────────────────
+const simTimeOfDays = [
+  { emoji: '🌅', label: 'Sunrise', tod: 'sunrise'  },
+  { emoji: '☀️', label: 'Day',     tod: 'day'      },
+  { emoji: '🌇', label: 'Sunset',  tod: 'sunset'   },
+  { emoji: '🌙', label: 'Night',   tod: 'night'    },
+]
+const simWeatherPreviews = [
+  { emoji: '✨',  label: 'Clear',         group: 'clear'  },
+  { emoji: '⛅',  label: 'Partly cloudy', group: 'partly' },
+  { emoji: '☁️',  label: 'Cloudy',        group: 'cloudy' },
+  { emoji: '🌧️', label: 'Rain',           group: 'rain'   },
+  { emoji: '🌨️', label: 'Snow',           group: 'snow'   },
+  { emoji: '⛈️', label: 'Storm',          group: 'storm'  },
+]
+const simWindLevels = [
+  { emoji: '🍃', label: 'Calm',   speed: 0  },
+  { emoji: '🌬️', label: 'Breeze', speed: 15 },
+  { emoji: '💨', label: 'Windy',  speed: 35 },
+  { emoji: '🌪️', label: 'Storm',  speed: 75 },
+]
+const simExpanded    = ref(false)
+const previewTod     = ref(null)
+const previewWeather = ref(null)
+const previewWind    = ref(null)
+const simBirds       = ref(false)
+const simAurora      = ref(false)
+const simFog         = ref(false)
+const hasSimPreview  = computed(() =>
+  previewTod.value !== null || previewWeather.value !== null || previewWind.value !== null ||
+  simBirds.value || simAurora.value || simFog.value
+)
+function resetSim() {
+  previewTod.value = null; previewWeather.value = null; previewWind.value = null
+  simBirds.value = false; simAurora.value = false; simFog.value = false
+}
+watch(showSim, (val) => { if (val) simExpanded.value = true; else resetSim() })
+
+const fireworksPreview = ref(false)
+let fwPreviewTimer = null
+function triggerFireworksPreview() {
+  if (fwPreviewTimer) clearTimeout(fwPreviewTimer)
+  fireworksPreview.value = true
+  fwPreviewTimer = setTimeout(() => { fireworksPreview.value = false }, 5000)
+}
+
+const shootingStarTrigger = ref(0)
+function triggerShootingStar() { shootingStarTrigger.value++ }
 
 // ── Persistence keys (location / tutorial only) ───────────────────────────────
 const P = APP_STORAGE_PREFIX
@@ -283,16 +370,20 @@ const savedLocations     = ref(loadSavedLocations())
 const panelOpen          = ref(false)
 const tutSearching       = ref(false)
 const tutPendingLocation = ref(false)
-const settingsOpen   = ref(false)
+const settingsOpen    = ref(false)
+const conditionsOpen  = ref(false)
 const settingsPanel  = ref(null)
 const pwsPickerLoc   = ref(null)
 const pwsData            = ref(null)
 const grassColor         = ref('#43A047')
+const scrollRootEl       = ref(null)
+const topBarScrolled     = ref(false)
 const locationName       = ref('')
 const isOffline          = ref(!navigator.onLine)
 const isGeoActive        = ref(localStorage.getItem(GEO_ACTIVE_KEY) === 'true')
 const location           = ref(null)
 const selectedDay        = ref(0)
+const forecastDataPoint  = ref(null)
 const weatherData        = ref(null)
 const silentRefresh      = ref(false)
 const loading            = ref(false)
@@ -308,6 +399,22 @@ const updatedAt = computed(() =>
     : ''
 )
 
+const localDateTime = computed(() => {
+  if (!weatherData.value) return ''
+  const offsetMs = (weatherData.value.utc_offset_seconds ?? 0) * 1000
+  const d = new Date(tickNow.value + offsetMs)
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  const dow = days[d.getUTCDay()]
+  const date = d.getUTCDate()
+  const mon  = months[d.getUTCMonth()]
+  const h = d.getUTCHours()
+  const m = String(d.getUTCMinutes()).padStart(2,'0')
+  if (timeFormat.value === '24h') return `${dow} ${date} ${mon} · ${String(h).padStart(2,'0')}:${m}`
+  const ampm = h >= 12 ? 'pm' : 'am'
+  return `${dow} ${date} ${mon} · ${h % 12 || 12}:${m} ${ampm}`
+})
+
 const activePwsStation = computed(() => {
   if (!location.value) return null
   const loc = savedLocations.value.find(l => l.lat === location.value.lat && l.lon === location.value.lon)
@@ -319,6 +426,12 @@ const activeTempestStation = computed(() => {
   const s = activePwsStation.value
   return s?.type === 'tempest' ? s : null
 })
+
+// ── Sunrise/sunset for WeatherScene ───────────────────────────────────────────
+const todaySunrise    = computed(() => weatherData.value?.daily?.sunrise?.[0] ?? null)
+const todaySunset     = computed(() => weatherData.value?.daily?.sunset?.[0] ?? null)
+const selectedSunrise = computed(() => weatherData.value?.daily?.sunrise?.[selectedDay.value] ?? null)
+const selectedSunset  = computed(() => weatherData.value?.daily?.sunset?.[selectedDay.value] ?? null)
 
 // ── Tutorial ──────────────────────────────────────────────────────────────────
 const tutorialStep = ref(
@@ -623,6 +736,7 @@ let refreshTimer = null
 onMounted(() => {
   autoTimer    = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
   refreshTimer = setInterval(() => { tickNow.value = Date.now(); if (location.value && isStale()) loadWeather(true, true) }, 30_000)
+  scrollRootEl.value?.addEventListener('scroll', onScrollRoot, { passive: true })
 
   if (isGeoActive.value) {
     loading.value = true
@@ -634,6 +748,8 @@ onMounted(() => {
     )
   }
 })
+
+function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 50 }
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)
@@ -661,6 +777,7 @@ onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick)
   window.removeEventListener('online',  onOnline)
   window.removeEventListener('offline', onOffline)
+  scrollRootEl.value?.removeEventListener('scroll', onScrollRoot)
 })
 
 // Restore last active location on load
@@ -683,34 +800,238 @@ if (!isGeoActive.value) {
 <style>
 /* ── Global layout ───────────────────────────────────────────────────────── */
 .app-shell {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  background: var(--header-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--header-border);
+  overflow: hidden;
   position: relative;
-  z-index: 201;
 }
 
-.header-right {
+/* ── Scroll container ────────────────────────────────────────────────────── */
+.scroll-root {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  transition: filter 0.2s;
+}
+.scroll-root::-webkit-scrollbar { display: none; }
+.scroll-root.blurred { filter: blur(2px); pointer-events: none; }
+
+/* ── Scene block ─────────────────────────────────────────────────────────── */
+.scene-block {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+}
+
+.scene-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 14px;
+  pointer-events: none;
+  transition: filter 0.2s, background 0.25s, backdrop-filter 0.25s;
+}
+.scene-top-bar.scrolled {
+  background: rgba(10, 18, 32, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.scene-top-bar.blurred {
+  filter: blur(2px);
+  pointer-events: none;
+}
+.scene-top-location {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: calc(100% - 120px);
+  pointer-events: none;
+  text-align: center;
+}
+.scene-top-name {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.scene-top-datetime {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: opacity 0.2s;
+}
+.scene-top-bar.scrolled .scene-top-datetime {
+  opacity: 0;
+  pointer-events: none;
+}
+.scene-top-btn {
+  pointer-events: all;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid rgba(255,255,255,0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  width: 38px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.9);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.scene-top-btn:hover { background: rgba(0,0,0,0.38); }
+.scene-top-btn.active {
+  background: rgba(56,189,248,0.25);
+  border-color: rgba(56,189,248,0.6);
+  color: rgb(56,189,248);
+}
+.scene-top-btn.active:hover { background: rgba(56,189,248,0.35); }
+
+/* ── Card stack ──────────────────────────────────────────────────────────── */
+.card-stack {
+  padding: 12px;
 }
 
-.locations-btn, .settings-btn {
-  background: var(--btn-bg);
-  border: 1px solid var(--btn-border);
+.card-stack-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .card-stack { padding: 16px 16px 40px; }
+}
+
+/* ── Sim panel (positioned inside scene-block) ───────────────────────────── */
+.sim-bar {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: all;
+}
+
+.sim-panel {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: rgba(8, 14, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 7px 8px;
   backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  padding-bottom: 3px;
+}
+
+.sim-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sim-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-row-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: 46px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.sim-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+.sim-btn:hover { background: rgba(30, 50, 90, 0.85); border-color: rgba(255,255,255,0.4); }
+.sim-btn.active {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 8px 2px rgba(255, 255, 255, 0.35);
+}
+
+.sim-reset {
+  font-size: 0.72rem;
+  color: #93c5fd;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.sim-reset:hover { background: rgba(56, 130, 246, 0.3); border-color: rgba(147, 197, 253, 0.6); }
+
+.sim-toggle {
+  font-size: 0.92rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
   width: 42px;
   height: 34px;
@@ -718,251 +1039,20 @@ if (!isGeoActive.value) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  font-size: 1.1rem;
   cursor: pointer;
-  transition: background 0.2s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: background 0.2s, border-color 0.2s;
+  line-height: 1;
 }
-.locations-btn:hover, .settings-btn:hover { background: var(--btn-hover); }
-.locations-btn.active, .settings-btn.active {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: var(--accent);
-  color: var(--accent);
+.sim-toggle:hover, .sim-toggle.sim-open { background: rgba(0, 0, 0, 0.5); }
+.sim-toggle.sim-active {
+  border-color: rgba(255, 210, 80, 0.9);
+  animation: sim-pulse 2s ease-in-out infinite;
 }
-.locations-btn.active:hover, .settings-btn.active:hover { background: rgba(56, 189, 248, 0.22); }
-
-/* ── Main ───────────────────────────────────────────────────────────────── */
-.main {
-  flex: 1;
-  max-width: 960px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px 20px 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* ── Two-column layout (tablet / desktop) ───────────────────────────────── */
-.weather-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  flex: 1;
-  min-height: 0;
-}
-
-.layout-right {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.layout-charts-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-@media (max-width: 999px) {
-  .app-shell {
-    height: 100dvh;
-    overflow: hidden;
-  }
-  .main {
-    padding: 0;
-    gap: 10px;
-    max-width: none;
-    overflow: hidden;
-  }
-  .layout-right {
-    gap: 10px;
-    padding: 0 10px;
-  }
-  .weather-layout {
-    display: block;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    scrollbar-width: none;
-  }
-  .weather-layout::-webkit-scrollbar { display: none; }
-  .layout-left {
-    position: sticky;
-    top: 0;
-    z-index: 202;
-  }
-  .layout-left::after {
-    content: '';
-    position: absolute;
-    bottom: -18px;
-    left: 0;
-    right: 0;
-    height: 26px;
-    background: linear-gradient(to bottom, var(--grass-color) 0%, var(--grass-color) 35%, transparent 100%);
-    pointer-events: none;
-  }
-  .layout-right {
-    position: sticky;
-    top: 72px;
-    z-index: 203;
-    margin-top: -18px;
-  }
-  .layout-left .conditions {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    border-top: none;
-    border-bottom: none;
-  }
-}
-
-/* ── Mobile/tablet landscape: side-by-side with scrollable charts ──────── */
-@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
-  html, body, #app {
-    height: 100dvh;
-    overflow: hidden;
-  }
-  .main {
-    padding: 0;
-    gap: 0;
-    max-width: none;
-    overflow: hidden;
-  }
-  .weather-layout {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    height: 100dvh;
-    gap: 0;
-    overflow: hidden;
-  }
-  .layout-left::after {
-    display: none;
-  }
-  .layout-left {
-    position: static;
-    width: 35%;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    margin-left: 0;
-    margin-right: 0;
-  }
-  .layout-left .conditions {
-    flex: 1;
-    border-radius: 0;
-    border: none;
-  }
-  .layout-right {
-    position: static;
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 8px;
-    margin-top: 0;
-    z-index: auto;
-    box-sizing: border-box;
-  }
-  .layout-charts-inner {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    gap: 8px;
-  }
-  .layout-chart {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-card {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-area {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-wrap {
-    flex: 1;
-    min-height: 80px;
-    height: auto !important;
-  }
-  .layout-chart .radar-card {
-    flex: 1;
-    min-height: 0;
-  }
-  .layout-chart .radar-map {
-    flex: 1;
-    min-height: 0;
-    height: auto;
-  }
-}
-
-@media (min-width: 1500px) {
-  .main {
-    max-width: none;
-    padding: 14px;
-  }
-  .weather-layout {
-    flex-direction: row;
-    align-items: stretch;
-    height: calc(100vh - 75px);
-  }
-  .layout-left {
-    width: 33.333%;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-left .conditions { flex: 1; }
-  .layout-right {
-    flex: 1;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .layout-charts-inner {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .layout-chart {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-card {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-area {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  .layout-chart .chart-wrap {
-    flex: 1;
-    min-height: 140px;
-    height: auto !important;
-  }
-  .layout-chart .radar-card { flex: 1; min-height: 0; }
-  .layout-chart .radar-map  { flex: 1; min-height: 0; height: auto; }
+@keyframes sim-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(255, 210, 80, 0.25); border-color: rgba(255, 210, 80, 0.5); }
+  50%       { box-shadow: 0 0 8px 3px rgba(255, 210, 80, 0.55); border-color: rgba(255, 210, 80, 1.0); }
 }
 
 /* ── Empty / Loading / Error states ────────────────────────────────────── */
@@ -1108,8 +1198,7 @@ if (!isGeoActive.value) {
 .data-footer a { color: var(--text-faint); text-decoration: none; }
 .data-footer a:hover { color: var(--text-muted); }
 .footer-model-btn { background: none; border: none; padding: 0; font: inherit; font-size: inherit; color: var(--text-faint); cursor: pointer; }
-.footer-model-btn:hover { color: var(--text-muted); }@media (min-width: 1500px) { .data-footer { display: none; } }
-@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) { .data-footer { display: none; } }
+.footer-model-btn:hover { color: var(--text-muted); }
 
 .refresh-btn {
   background: none;

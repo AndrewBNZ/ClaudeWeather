@@ -349,4 +349,15 @@ function geoLocate() {
   opacity: 0;
   transform: scale(0.95) translateY(-6px);
 }
+
+@media (max-width: 599px) {
+  .dropdown {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    max-height: none !important;
+    width: auto !important;
+    border-radius: 12px !important;
+  }
+}
 </style>

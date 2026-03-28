@@ -2,7 +2,7 @@
   <div class="chart-card card" data-chart="daily">
     <div class="chart-header">
       <h3 class="chart-title">Daily</h3>
-      <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType] || config.icon"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
+      <span class="chart-subtitle"><span class="chart-icon" v-html="TILE_ICONS[props.activeType]"></span> {{ config.label }}<span v-if="unitLabel" class="chart-unit" @click="emit('open-units-modal')">{{ unitLabel }}</span></span>
     </div>
     <div class="chart-wrap" ref="wrapRef">
       <div class="chart-scroll-inner" ref="scrollInnerRef" style="cursor: pointer">

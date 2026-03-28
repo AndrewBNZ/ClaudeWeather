@@ -6,11 +6,17 @@
         <span class="settings-panel-title">Preferences</span>
         <button class="settings-tab-close" @click="$emit('close')">✕</button>
       </div>
-      <div class="settings-tabs">
-        <button :class="['settings-tab', { active: tab === 'display' }]" @click="tab = 'display'">Display</button>
-        <button :class="['settings-tab', { active: tab === 'data' }]"    @click="tab = 'data'">Data</button>
-        <!-- Backup tab hidden until QR reliability is resolved -->
-        <!-- <button :class="['settings-tab', { active: tab === 'backup' }]"  @click="tab = 'backup'">Backup</button> -->
+      <div v-if="!subPanel" class="settings-tabs">
+        <button :class="['settings-tab', { active: tab === 'display' }]"  @click="tab = 'display'">Display</button>
+        <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="tab = 'layout'">Layout</button>
+        <button :class="['settings-tab', { active: tab === 'data' }]"     @click="tab = 'data'">Data</button>
+      </div>
+      <div v-else class="sub-panel-nav">
+        <button class="sub-panel-back" @click="subPanel = null; tab = 'layout'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <span class="sub-panel-title-bar">{{ subPanelTitle }}</span>
       </div>
       <div class="settings-body">
         <!-- Display tab -->
@@ -66,6 +72,46 @@
           </div>
         </div>
 
+        <!-- Layout tab -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'layout' || subPanel }">
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Current Conditions</div>
+              <div class="setting-hint">Configure the scene overlay data points</div>
+            </div>
+            <button class="setting-action-btn" @click="subPanel = 'sceneConditions'">Edit →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Hourly Forecast</div>
+              <div class="setting-hint">Configure the hourly forecast card</div>
+            </div>
+            <button class="setting-action-btn" @click="subPanel = 'hourlyForecast'">Edit →</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Daily Forecast</div>
+              <div class="setting-hint">Configure the daily forecast card</div>
+            </div>
+            <button class="setting-action-btn" @click="subPanel = 'dailyForecast'">Edit →</button>
+          </div>
+        </div>
+
+        <!-- Current Conditions layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'sceneConditions' }">
+          <SceneConditionsSettings />
+        </div>
+
+        <!-- Hourly Forecast layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'hourlyForecast' }">
+          <HourlyForecastSettings />
+        </div>
+
+        <!-- Daily Forecast layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'dailyForecast' }">
+          <DailyForecastSettings />
+        </div>
+
         <!-- Data tab -->
         <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'data' }">
           <div class="setting-row">
@@ -98,7 +144,7 @@
               <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
             </div>
             <div class="setting-row-controls">
-              <button v-if="pwsEnabled" class="setting-action-btn" @click="openPwsKeyModal">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
+              <button v-if="pwsEnabled" class="setting-action-btn" @click="pwsKeyModalOpen = true">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
               <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
                 <span class="toggle-thumb" />
               </button>
@@ -110,7 +156,7 @@
               <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
             </div>
             <div class="setting-row-controls">
-              <button v-if="tempestEnabled" class="setting-action-btn" @click="openTempestTokenModal">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
+              <button v-if="tempestEnabled" class="setting-action-btn" @click="tempestTokenModalOpen = true">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
               <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
                 <span class="toggle-thumb" />
               </button>
@@ -158,84 +204,12 @@
 
   <!-- Units modal -->
   <transition name="modal-fade">
-    <div v-if="unitsModalOpen" class="modal-overlay" @click.self="unitsModalOpen = false">
-      <div class="modal-dialog modal-dialog--wide">
-        <div class="modal-header">
-          <span class="panel-title">Units</span>
-          <button class="panel-close" @click="unitsModalOpen = false">✕</button>
-        </div>
-        <div class="units-modal-body">
-          <div v-for="group in UNIT_OPTIONS" :key="group.key" class="unit-group">
-            <div class="unit-group-label"><span class="unit-group-icon" v-html="TILE_ICONS[group.iconKey]"></span>{{ group.label }}</div>
-            <div class="unit-group-pills">
-              <button
-                v-for="opt in group.options"
-                :key="opt.value"
-                class="unit-modal-pill"
-                :class="{ active: unitPrefs[group.key] === opt.value }"
-                @click="unitPrefs = { ...unitPrefs, [group.key]: opt.value }"
-              >{{ opt.label }}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <UnitsModal v-if="unitsModalOpen" @close="unitsModalOpen = false" />
   </transition>
 
   <!-- Data Types modal -->
   <transition name="modal-fade">
-    <div v-if="dataTypesModalOpen" class="modal-overlay" @click.self="dataTypesModalOpen = false">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <span class="panel-title">Weather Details</span>
-          <button class="panel-close" @click="dataTypesModalOpen = false">✕</button>
-        </div>
-        <div class="modal-bulk-actions">
-          <button class="modal-bulk-btn" @click="setAllTiles(true)">All On</button>
-          <button class="modal-bulk-btn" @click="setAllTiles(false)">All Off</button>
-          <button class="modal-bulk-btn" @click="addPageBreak(tileConfig.length - 1)">+ Page</button>
-        </div>
-        <p class="modal-hint">Drag to reorder · tap to show/hide</p>
-        <div class="tile-list">
-          <template v-for="(tile, i) in tileConfig" :key="`${tile.type}-${i}`">
-            <!-- Page break divider -->
-            <div v-if="tile.type === 'pageBreak'"
-              :data-tile-idx="i"
-              class="tile-row tile-page-break"
-              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
-              draggable="true"
-              @dragstart="onTileDragStart($event, i)"
-              @dragover="onTileDragOver($event, i)"
-              @dragend="onTileDragEnd"
-              @drop="onTileDrop($event, i)"
-              @touchstart.passive="onTileTouchStart($event, i)"
-            >
-              <span class="tile-drag-handle">⠿</span>
-              <span class="page-break-label">— Page {{ tileConfig.slice(0, i).filter(t => t.type === 'pageBreak').length + 2 }}</span>
-              <button class="page-break-remove" @click.stop="removePageBreak(i)" title="Remove page break">✕</button>
-            </div>
-            <!-- Regular tile -->
-            <div v-else
-              :data-tile-idx="i"
-              class="tile-row"
-              :class="{ 'tile-dragging': tileDragIndex === i, 'tile-drag-over': tileDragOver === i && tileDragIndex !== i }"
-              draggable="true"
-              @dragstart="onTileDragStart($event, i)"
-              @dragover="onTileDragOver($event, i)"
-              @dragend="onTileDragEnd"
-              @drop="onTileDrop($event, i)"
-              @touchstart.passive="onTileTouchStart($event, i)"
-            >
-              <span class="tile-drag-handle">⠿</span>
-              <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[tile.type]"></span>{{ TILE_META[tile.type].label }}</span>
-              <button class="toggle-switch" :class="{ on: tile.enabled }" @click.stop="toggleTile(i)">
-                <span class="toggle-thumb" />
-              </button>
-            </div>
-          </template>
-        </div>
-      </div>
-    </div>
+    <DataTypesModal v-if="dataTypesModalOpen" @close="dataTypesModalOpen = false" />
   </transition>
 
   <!-- Reset confirmation modal -->
@@ -255,133 +229,80 @@
     </div>
   </transition>
 
-  <!-- Forecast model info modal -->
+  <!-- Forecast model modal -->
   <transition name="modal-fade">
-    <div v-if="modelInfoOpen" class="modal-overlay" @click.self="modelInfoOpen = false">
-      <div class="modal-dialog modal-dialog--wide">
-        <div class="modal-header">
-          <span class="panel-title">Forecast model</span>
-          <button class="panel-close" @click="modelInfoOpen = false">✕</button>
-        </div>
-        <p class="modal-hint">You may need to experiment to find the best model for your location.<br/>If unsure, select Auto, or ECMWF.</p>
-        <div class="model-list">
-          <button
-            v-for="m in OPEN_METEO_MODELS"
-            :key="m.value"
-            class="model-list-item"
-            :class="{ active: openMeteoModel === m.value }"
-            @click="openMeteoModel = m.value; modelInfoOpen = false"
-          >
-            <div class="model-list-name">{{ m.label }}</div>
-            <div class="model-list-hint">{{ m.hint }}</div>
-          </button>
-        </div>
-      </div>
-    </div>
+    <ForecastModelModal v-if="modelInfoOpen" @close="modelInfoOpen = false" />
   </transition>
 
   <!-- Tempest token modal -->
   <transition name="modal-fade">
-    <div v-if="tempestTokenModalOpen" class="modal-overlay" @click.self="tempestTokenModalOpen = false">
-      <div class="modal-dialog modal-dialog--wide">
-        <div class="modal-header">
-          <span class="panel-title">Tempest PWS</span>
-          <button class="panel-close" @click="tempestTokenModalOpen = false">✕</button>
-        </div>
-        <div class="modal-body pws-key-body">
-          <div class="pws-key-about">
-            <p>Replace current conditions with real local readings from your Tempest weather stations. Stations are linked per location in the Locations panel.</p>
-            <p>You can only see data from your own stations. Requires an access token, which are available for free to Tempest owners.</p>
-            <p>Generate a token in the Tempest app → <em>Settings → Data Authorizations → Create Token</em>, or at <strong>tempestwx.com</strong>.</p>
-          </div>
-          <input v-model="tempestTokenInput" class="pws-key-input" type="text" placeholder="Paste your personal access token" spellcheck="false" autocomplete="off" @keyup.enter="saveTempestToken" />
-          <div class="pws-key-hint">Token stored on this device only.<br/>Station data will live-stream to the app when open.</div>
-          <div class="pws-key-actions">
-            <button v-if="tempestToken" class="setting-action-btn setting-action-btn--danger" @click="clearTempestToken">Remove</button>
-            <button class="setting-action-btn" @click="saveTempestToken" :disabled="!tempestTokenInput.trim()">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <TempestTokenModal v-if="tempestTokenModalOpen" @close="tempestTokenModalOpen = false" />
   </transition>
 
   <!-- PWS API key modal -->
   <transition name="modal-fade">
-    <div v-if="pwsKeyModalOpen" class="modal-overlay" @click.self="pwsKeyModalOpen = false">
-      <div class="modal-dialog modal-dialog--wide">
-        <div class="modal-header">
-          <span class="panel-title">Weather Underground PWS</span>
-          <button class="panel-close" @click="pwsKeyModalOpen = false">✕</button>
-        </div>
-        <div class="modal-body pws-key-body">
-          <div class="pws-key-about">
-            <p>Replace current conditions with real local readings from Weather Underground stations. Stations are linked per location in the Locations panel.</p>
-            <p>Requires an API key, which are available for free to weather station owners who are actively uploading their data to WU.</p>
-            <p>Sign in at <strong>wunderground.com</strong> → <em>My Profile → Member Settings → API Keys</em>.</p>
-          </div>
-          <input v-model="pwsKeyInput" class="pws-key-input" type="text" placeholder="Paste your WU API key" spellcheck="false" autocomplete="off" @keyup.enter="savePwsKey" />
-          <div class="pws-key-hint">API key stored on this device only.<br/>Station data will refresh every 5 mins when the app is open.</div>
-          <div class="pws-key-actions">
-            <button v-if="pwsApiKey" class="setting-action-btn setting-action-btn--danger" @click="clearPwsKey">Remove</button>
-            <button class="setting-action-btn" @click="savePwsKey" :disabled="!pwsKeyInput.trim()">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PwsKeyModal v-if="pwsKeyModalOpen" @close="pwsKeyModalOpen = false" />
   </transition>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useSettings, UNIT_OPTIONS, TILE_META } from '../composables/useSettings.js'
-import { TILE_ICONS } from '../utils/tileIcons.js'
-import { APP_NAME } from '../config.js'
+import { ref, computed, watch } from 'vue'
+import { useSettings } from '../composables/useSettings.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
-import QrBackupModal  from './QrBackupModal.vue'
-import QrRestoreModal from './QrRestoreModal.vue'
+import QrBackupModal       from './QrBackupModal.vue'
+import QrRestoreModal      from './QrRestoreModal.vue'
+import DailyForecastSettings    from './settings/DailyForecastSettings.vue'
+import HourlyForecastSettings  from './settings/HourlyForecastSettings.vue'
+import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
+import DataTypesModal      from './settings/DataTypesModal.vue'
+import UnitsModal          from './settings/UnitsModal.vue'
+import ForecastModelModal  from './settings/ForecastModelModal.vue'
+import PwsKeyModal         from './settings/PwsKeyModal.vue'
+import TempestTokenModal   from './settings/TempestTokenModal.vue'
 
 const props = defineProps({ isOpen: Boolean })
 defineEmits(['close'])
-defineExpose({ openUnitsModal: () => { unitsModalOpen.value = true }, openDataTypesModal: () => { dataTypesModalOpen.value = true }, openModelModal: () => { modelInfoOpen.value = true } })
+defineExpose({
+  openUnitsModal:     () => { unitsModalOpen.value = true },
+  openDataTypesModal: () => { dataTypesModalOpen.value = true },
+  openModelModal:     () => { modelInfoOpen.value = true },
+})
 
 const {
   theme, timeFormat, hourlyFirst, showSim, showDailySummary,
   tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
-  toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
 } = useSettings()
 
 // ── Local state ───────────────────────────────────────────────────────────────
-const tab              = ref('display')
-const dropdownStyle    = ref({})
-const dataTypesModalOpen = ref(false)
-const unitsModalOpen     = ref(false)
-const resetConfirmOpen   = ref(false)
-const modelInfoOpen          = ref(false)
-const pwsKeyModalOpen        = ref(false)
-const tempestTokenModalOpen  = ref(false)
-const qrBackupOpen           = ref(false)
-const qrRestoreOpen          = ref(false)
-const pwsKeyInput            = ref('')
-const tempestTokenInput      = ref('')
-const tileDragIndex      = ref(null)
-const tileDragOver       = ref(null)
-let   tileTouchIdx       = null
-let   tileTouchMoved     = false
+const tab            = ref('display')
+const subPanel       = ref(null)
+const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast' }
+const subPanelTitle  = computed(() => subPanelTitles[subPanel.value] ?? '')
+const dropdownStyle  = ref({})
+
+const dataTypesModalOpen    = ref(false)
+const unitsModalOpen        = ref(false)
+const resetConfirmOpen      = ref(false)
+const modelInfoOpen         = ref(false)
+const pwsKeyModalOpen       = ref(false)
+const tempestTokenModalOpen = ref(false)
+const qrBackupOpen          = ref(false)
+const qrRestoreOpen         = ref(false)
 
 // ── Dropdown positioning ──────────────────────────────────────────────────────
 watch(() => props.isOpen, (open) => {
-  if (!open) return
-  const btn  = document.querySelector('[data-settings-btn]')
+  if (!open) { subPanel.value = null; return }
+  const btn = document.querySelector('[data-settings-btn]')
   if (!btn) return
-  const rect    = btn.getBoundingClientRect()
-  const card    = document.querySelector('.conditions')
+  const rect     = btn.getBoundingClientRect()
+  const card     = document.querySelector('.conditions')
   const cardRect = card?.getBoundingClientRect()
   const maxHeight = `${window.innerHeight - rect.bottom - 14}px`
   if (cardRect) {
     dropdownStyle.value = {
-      top:   `${rect.bottom + 6}px`,
-      left:  `${cardRect.left + 8}px`,
-      right: `${window.innerWidth - cardRect.right + 8}px`,
+      top:      `${rect.bottom + 6}px`,
+      left:     `${cardRect.left + 8}px`,
+      right:    `${window.innerWidth - cardRect.right + 8}px`,
       maxHeight,
     }
   } else {
@@ -392,50 +313,8 @@ watch(() => props.isOpen, (open) => {
   }
 })
 
-// ── PWS key modal ─────────────────────────────────────────────────────────────
-function openPwsKeyModal() { pwsKeyInput.value = pwsApiKey.value; pwsKeyModalOpen.value = true }
-function savePwsKey()      { pwsApiKey.value = pwsKeyInput.value.trim(); pwsKeyModalOpen.value = false }
-function clearPwsKey()     { pwsApiKey.value = ''; pwsKeyModalOpen.value = false }
-
-// ── Tempest token modal ───────────────────────────────────────────────────────
-function openTempestTokenModal() { tempestTokenInput.value = tempestToken.value; tempestTokenModalOpen.value = true }
-function saveTempestToken()      { tempestToken.value = tempestTokenInput.value.trim(); tempestTokenModalOpen.value = false }
-function clearTempestToken()     { tempestToken.value = ''; tempestTokenModalOpen.value = false }
-
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll() { try { localStorage.clear() } catch {}; window.location.reload() }
-
-// ── Tile drag-and-drop ────────────────────────────────────────────────────────
-function onTileDragStart(e, i) { tileDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
-function onTileDragOver(e, i)  { e.preventDefault(); tileDragOver.value = i }
-function onTileDragEnd()       { tileDragIndex.value = null; tileDragOver.value = null }
-function onTileDrop(e, i) {
-  e.preventDefault()
-  if (tileDragIndex.value !== null && tileDragIndex.value !== i) reorderTiles(tileDragIndex.value, i)
-  tileDragIndex.value = null; tileDragOver.value = null
-}
-function onTileTouchStart(e, i) {
-  if (!e.target.closest('.tile-drag-handle')) return
-  tileTouchIdx = i; tileTouchMoved = false; tileDragIndex.value = i
-  document.addEventListener('touchmove', _onTileTouchMove, { passive: false })
-  document.addEventListener('touchend', _onTileTouchEnd)
-}
-function _onTileTouchMove(e) {
-  e.preventDefault()
-  tileTouchMoved = true
-  const touch = e.touches[0]
-  const el    = document.elementFromPoint(touch.clientX, touch.clientY)
-  const row   = el?.closest('[data-tile-idx]')
-  tileDragOver.value = row ? parseInt(row.dataset.tileIdx) : null
-}
-function _onTileTouchEnd() {
-  if (tileTouchMoved && tileTouchIdx !== null && tileDragOver.value !== null && tileTouchIdx !== tileDragOver.value) {
-    reorderTiles(tileTouchIdx, tileDragOver.value)
-  }
-  tileTouchIdx = null; tileTouchMoved = false; tileDragIndex.value = null; tileDragOver.value = null
-  document.removeEventListener('touchmove', _onTileTouchMove)
-  document.removeEventListener('touchend', _onTileTouchEnd)
-}
 </script>
 
 <style>
@@ -871,7 +750,69 @@ function _onTileTouchEnd() {
 .unit-modal-pill:hover:not(.active) { background: var(--btn-hover); color: var(--text); }
 .unit-modal-pill.active { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; }
 
-/* ── Tile list (Data Types modal) ────────────────────────────────────────── */
+/* ── Tile list (Data Types modal & Daily Forecast sub-panel) ─────────────── */
+.other-pts-header {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.other-pts-header-spacer { flex: 1; }
+.other-pts-col-lbl {
+  width: 32px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.other-pts-col-divider {
+  display: block;
+  width: 1px;
+  height: 24px;
+  background: var(--tile-border);
+  flex-shrink: 0;
+}
+.other-pts-drag-hint {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-style: italic;
+}
+.toggle-switch-placeholder { width: 36px; flex-shrink: 0; }
+
+.check-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+}
+.check-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1.5px solid var(--toggle-border);
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.check-btn.on::after { background: #38bdf8; border-color: #38bdf8; }
+.check-btn:disabled { opacity: 0.5; cursor: default; }
+.check-btn svg { position: relative; z-index: 1; width: 10px; height: 10px; color: #fff; }
+.check-btn-placeholder { width: 32px; flex-shrink: 0; }
+
 .tile-list { display: flex; flex-direction: column; }
 .modal-dialog .tile-list { overflow-y: auto; padding-bottom: 8px; }
 .modal-dialog .model-list { overflow-y: auto; }
@@ -930,4 +871,83 @@ function _onTileTouchEnd() {
   transition: color 0.15s, background 0.15s;
 }
 .page-break-remove:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* ── Layout sub-panel nav ────────────────────────────────────────────────── */
+.sub-panel-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 0 6px;
+  border-bottom: 1px solid var(--panel-border);
+  min-height: 44px;
+}
+
+.sub-panel-back {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.sub-panel-back:hover { color: var(--text); background: var(--btn-hover); }
+
+.sub-panel-title-bar {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  padding-right: 60px; /* offset for back btn width */
+}
+
+.data-point-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.data-point-opt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--pill-border);
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.data-point-opt:hover:not(.active) { background: var(--btn-hover); color: var(--text); }
+.data-point-opt.active { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; }
+
+.layout-section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 20px 0;
+}
+
+@media (max-width: 599px) {
+  .settings-dropdown {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    max-height: none !important;
+    width: auto !important;
+    border-radius: 12px !important;
+  }
+}
 </style>

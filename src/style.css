@@ -94,7 +94,7 @@ html, body {
 
 .card {
   background: var(--card);
-  border: 1px solid var(--card-border);
+  border: 0px solid var(--card-border);
   border-radius: var(--radius);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

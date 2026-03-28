@@ -8,7 +8,7 @@
       :style="activeType === dt.id ? { '--btn-color': dt.color } : {}"
       @click="emit('select', dt.id)"
     >
-      <span class="btn-icon">{{ dt.icon }}</span>
+      <span class="btn-icon" v-html="TILE_ICONS[dt.id]"></span>
       <span class="btn-label">{{ dt.label }}</span>
       <span v-if="activeType === dt.id && dt.getUnit(units)" class="btn-unit">{{ dt.getUnit(units) }}</span>
     </button>
@@ -17,6 +17,7 @@
 
 <script setup>
 import { DATA_TYPE_LIST } from '../utils/dataTypes.js'
+import { TILE_ICONS } from '../utils/tileIcons.js'
 
 defineProps({
   activeType: { type: String, required: true },
@@ -62,7 +63,8 @@ const types = DATA_TYPE_LIST
   color: var(--btn-color);
 }
 
-.btn-icon   { font-size: 1rem; }
+.btn-icon { display: flex; align-items: center; }
+.btn-icon :deep(svg) { width: 16px; height: 16px; }
 .btn-label  { font-weight: 600; }
 .btn-unit   { font-size: 0.75rem; opacity: 0.75; }
 </style>

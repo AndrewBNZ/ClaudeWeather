@@ -1058,7 +1058,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 /* ── Sun ──────────────────────────────────────────────────────────────────── */
 .sun {
   position: absolute;
-  top: 68px;
+  top: 20px;
   right: 6%;
   width: 54px;
   height: 54px;
