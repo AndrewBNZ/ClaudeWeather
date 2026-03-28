@@ -162,36 +162,9 @@
           </div>
         </div>
 
-        <!-- Backup tab -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'backup' }">
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Export settings</div>
-              <div class="setting-hint">Share your setup to another device</div>
-            </div>
-            <button class="setting-action-btn" @click="qrBackupOpen = true">Generate QR →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Import settings</div>
-              <div class="setting-hint">Scan or upload a QR code</div>
-            </div>
-            <button class="setting-action-btn" @click="qrRestoreOpen = true">Restore →</button>
-          </div>
-        </div>
       </div>
     </div>
   </Transition>
-
-  <!-- QR Backup modal -->
-  <transition name="modal-fade">
-    <QrBackupModal v-if="qrBackupOpen" @close="qrBackupOpen = false" />
-  </transition>
-
-  <!-- QR Restore modal -->
-  <transition name="modal-fade">
-    <QrRestoreModal v-if="qrRestoreOpen" @close="qrRestoreOpen = false" />
-  </transition>
 
   <!-- Units modal -->
   <transition name="modal-fade">
@@ -240,8 +213,6 @@
 import { ref, computed, watch } from 'vue'
 import { useSettings, CARD_META } from '../composables/useSettings.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
-import QrBackupModal       from './QrBackupModal.vue'
-import QrRestoreModal      from './QrRestoreModal.vue'
 import DailyForecastSettings    from './settings/DailyForecastSettings.vue'
 import HourlyForecastSettings  from './settings/HourlyForecastSettings.vue'
 import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
@@ -323,9 +294,6 @@ const resetConfirmOpen      = ref(false)
 const modelInfoOpen         = ref(false)
 const pwsKeyModalOpen       = ref(false)
 const tempestTokenModalOpen = ref(false)
-const qrBackupOpen          = ref(false)
-const qrRestoreOpen         = ref(false)
-
 // ── Dropdown positioning ──────────────────────────────────────────────────────
 watch(() => props.isOpen, (open) => {
   if (!open) { subPanel.value = null; return }
