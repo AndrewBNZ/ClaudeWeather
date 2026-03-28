@@ -83,17 +83,45 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Hourly Forecast</div>
-              <div class="setting-hint">Configure the hourly forecast card</div>
-            </div>
-            <button class="setting-action-btn" @click="subPanel = 'hourlyForecast'">Edit →</button>
-          </div>
-          <div class="setting-row">
-            <div>
               <div class="setting-label">Daily Forecast</div>
               <div class="setting-hint">Configure the daily forecast card</div>
             </div>
-            <button class="setting-action-btn" @click="subPanel = 'dailyForecast'">Edit →</button>
+            <div class="setting-row-controls">
+              <button v-if="cardEnabled('dailyForecast')" class="setting-action-btn" @click="subPanel = 'dailyForecast'">Edit →</button>
+              <button class="toggle-switch" :class="{ on: cardEnabled('dailyForecast') }" @click="toggleCard('dailyForecast')">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Hourly Forecast</div>
+              <div class="setting-hint">Configure the hourly forecast card</div>
+            </div>
+            <div class="setting-row-controls">
+              <button v-if="cardEnabled('combinedHourly')" class="setting-action-btn" @click="subPanel = 'hourlyForecast'">Edit →</button>
+              <button class="toggle-switch" :class="{ on: cardEnabled('combinedHourly') }" @click="toggleCard('combinedHourly')">
+                <span class="toggle-thumb" />
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Sunrise &amp; Moon</div>
+              <div class="setting-hint">Show sunrise, sunset and moon phase card</div>
+            </div>
+            <button class="toggle-switch" :class="{ on: cardEnabled('sunriseMoon') }" @click="toggleCard('sunriseMoon')">
+              <span class="toggle-thumb" />
+            </button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Radar</div>
+              <div class="setting-hint">Show radar map card</div>
+            </div>
+            <button class="toggle-switch" :class="{ on: cardEnabled('radar') }" @click="toggleCard('radar')">
+              <span class="toggle-thumb" />
+            </button>
           </div>
         </div>
 
@@ -270,8 +298,11 @@ defineExpose({
 
 const {
   theme, timeFormat, hourlyFirst, showSim, showDailySummary,
-  tileConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
+  tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
+  toggleCard,
 } = useSettings()
+
+const cardEnabled = (type) => cardConfig.value.find(c => c.type === type)?.enabled ?? false
 
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
