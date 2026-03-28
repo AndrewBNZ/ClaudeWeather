@@ -831,15 +831,14 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   align-items: center;
   gap: 10px;
   padding: 10px 20px;
-  cursor: grab;
+  cursor: default;
   user-select: none;
   border-top: 1px solid var(--tile-border);
   transition: background 0.15s, opacity 0.15s;
-  touch-action: none;
 }
-.tile-row:active { cursor: grabbing; }
+.tile-row:active { cursor: default; }
 
-.tile-drag-handle { color: var(--text-faint); font-size: 1.1rem; flex-shrink: 0; line-height: 1; }
+.tile-drag-handle { color: var(--text-faint); font-size: 1.1rem; flex-shrink: 0; line-height: 1; cursor: grab; touch-action: none; }
 
 .tile-icon-label {
   flex: 1;
