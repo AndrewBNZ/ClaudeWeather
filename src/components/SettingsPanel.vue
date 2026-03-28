@@ -45,24 +45,6 @@
           </div>
           <div class="setting-row">
             <div>
-              <div class="setting-label">Swap chart display order</div>
-              <div class="setting-hint">{{ hourlyFirst ? 'Hourly on top' : 'Daily on top' }}</div>
-            </div>
-            <button class="toggle-switch" :class="{ on: hourlyFirst }" @click="hourlyFirst = !hourlyFirst">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Daily forecast summary</div>
-              <div class="setting-hint">Show a summary below the daily chart</div>
-            </div>
-            <button class="toggle-switch" :class="{ on: showDailySummary }" @click="showDailySummary = !showDailySummary">
-              <span class="toggle-thumb" />
-            </button>
-          </div>
-          <div class="setting-row">
-            <div>
               <div class="setting-label">Weather simulator</div>
               <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
@@ -297,7 +279,7 @@ defineExpose({
 })
 
 const {
-  theme, timeFormat, hourlyFirst, showSim, showDailySummary,
+  theme, timeFormat, showSim,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleCard,
 } = useSettings()
