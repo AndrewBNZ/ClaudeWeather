@@ -101,12 +101,12 @@ export const CARD_META = {
 }
 
 const DEFAULT_CARDS = [
-  { type: 'detailTiles',    enabled: true  },
-  { type: 'combinedHourly', enabled: true  },
-  { type: 'dailyForecast',  enabled: true  },
-  { type: 'hourlyStrip',    enabled: false },
-  { type: 'sunriseMoon',    enabled: false },
-  { type: 'radar',          enabled: false },
+  { type: 'detailTiles',    enabled: true },
+  { type: 'combinedHourly', enabled: true },
+  { type: 'dailyForecast',  enabled: true },
+  { type: 'hourlyStrip',    enabled: true },
+  { type: 'sunriseMoon',    enabled: true },
+  { type: 'radar',          enabled: true },
 ]
 
 function loadSceneOverlayLayout() {
