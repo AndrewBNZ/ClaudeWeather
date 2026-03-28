@@ -53,7 +53,7 @@
       <div v-else-if="!location && !loading" class="empty-state">
         <div class="empty-icon">🌍</div>
         <p class="empty-title">Where in the world are you?</p>
-        <button class="add-location-btn" @click="panelOpen = true">+ Add a location</button>
+        <button class="add-location-btn" data-locations-btn @click="panelOpen = true">+ Add a location</button>
       </div>
 
       <!-- Loading -->

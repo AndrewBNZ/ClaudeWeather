@@ -55,31 +55,28 @@ const STEPS = [
     autoAdvance: true,
   },
   {
-    target: '.cond-body',
-    icon: '👆',
-    title: 'Tap a tile, see it graphed',
-    desc: 'Temperature, wind, rain, humidity — tap any tile up here and it instantly plots in the charts below. Go on, try a few.',
+    target: '[data-locations-btn]',
+    icon: '📍',
+    title: 'Add more locations',
+    desc: 'Tap here anytime to add more locations or switch between your saved ones.',
   },
   {
-    target: '[data-chart="daily"]',
+    target: '.sc-inner',
+    icon: '🌡️',
+    title: 'Current conditions',
+    desc: 'Tap here for a full breakdown of right now. Tap and hold to configure what\'s shown in this panel.',
+  },
+  {
+    target: '.daily-card',
     icon: '📅',
-    title: 'Pick any day',
-    desc: 'Tap a day in this chart to load its full hourly breakdown. Up to 14 days, always at your fingertips.',
-  },
-  {
-    target: '[data-chart="hourly"]',
-    icon: '👈',
-    title: 'Swipe through the hours',
-    desc: 'Drag the hourly chart to scroll through the day. Hit the arrows at either edge to jump to the next or previous day.',
-    desktopTitle: 'Browse the hours',
-    desktopDesc: 'The day picker at the top-right is another way to switch days — jump to a specific date, step back and forth with the arrows, or snap back to today.',
-    yOffset: -40,
+    title: 'Your daily forecast',
+    desc: 'Tap any day to load its hourly breakdown in the chart below. Tap and hold to configure this card.',
   },
   {
     target: '[data-tut="settings"]',
     icon: '⚙️',
-    title: 'Make it feel like home',
-    desc: 'Pick your theme, set your units, and choose which tiles matter to you. It\'s your weather — set it up just how you like.',
+    title: 'Make it your own',
+    desc: 'Display to set your theme and units, Layout to arrange your cards, Data to control your weather source. It\'s your weather — set it up just how you like.',
   },
 ]
 
@@ -149,11 +146,9 @@ const cardStyle = computed(() => {
   const vh = windowH.value
   const base = { width: `${CARD_W}px` }
 
-  // While the locations panel is open, sit just to the left of the panel
+  // While the locations panel is open, sit at the top of the screen above the panel
   if (props.panelOpen && props.step === 1) {
-    const panelW = Math.min(300, vw * 0.9)
-    const left = Math.max(16, vw - panelW - CARD_W - 16)
-    return { ...base, top: '210px', left: `${left}px` }
+    return { ...base, top: '16px', left: '50%', transform: 'translateX(-50%)' }
   }
 
   if (!spotRect.value) {
