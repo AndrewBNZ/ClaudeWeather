@@ -35,6 +35,13 @@
           </div>
           <div class="setting-row">
             <div>
+              <div class="setting-label">Units</div>
+              <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+            </div>
+            <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Time format</div>
               <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
             </div>
@@ -105,20 +112,6 @@
 
         <!-- Data tab -->
         <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'data' }">
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather details</div>
-              <div class="setting-hint">{{ tileConfig.filter(t => t.type !== 'pageBreak' && t.enabled).length }} of {{ tileConfig.filter(t => t.type !== 'pageBreak').length }} shown</div>
-            </div>
-            <button class="setting-action-btn" @click="dataTypesModalOpen = true">Manage →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Units</div>
-              <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
-            </div>
-            <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
-          </div>
           <div class="setting-row">
             <div>
               <div class="setting-label">Forecast model</div>
@@ -232,7 +225,7 @@ defineExpose({
 
 const {
   theme, timeFormat, showSim,
-  tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
+  cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleCard, reorderCards,
 } = useSettings()
 
