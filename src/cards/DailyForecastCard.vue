@@ -3,16 +3,12 @@
     <div v-if="layout.showTitle" class="daily-header">
       <h3 class="daily-title">Daily Forecast</h3>
     </div>
-    <div v-if="layout.showDataPointPicker" class="dp-picker">
-      <button
-        v-for="opt in pickerOptions"
-        :key="opt.type"
-        class="dp-pill"
-        :class="{ active: activeDataPoint === opt.type }"
-        :style="activeDataPoint === opt.type ? { '--pill-color': DATA_TYPES[opt.type].color } : {}"
-        @click="selectDataPoint(opt.type)"
-      ><span class="dp-pill-icon" v-html="TILE_ICONS[DATA_TYPES[opt.type]?.iconKey ?? opt.type]"></span>{{ opt.label }}</button>
-    </div>
+    <DataPointPicker
+      :show="layout.showDataPointPicker"
+      :options="pickerOptions"
+      :model-value="activeDataPoint"
+      @update:model-value="selectDataPoint"
+    />
 
     <div class="forecast-grid">
       <!-- Sticky left column: icons only -->
@@ -46,7 +42,7 @@
             <div class="day-lbl">{{ dayLabel(date) }}</div>
             <div v-if="layout.showConditions" class="wx-icon">{{ wxEmoji(i) }}</div>
 
-            <div class="temp-wrap">
+            <div class="temp-wrap" :class="{ 'temp-wrap-simple': !FLOATING_BAR_TYPES.has(activeDataPoint) }">
               <!-- Floating bar types (temperature, feelsLike) -->
               <template v-if="FLOATING_BAR_TYPES.has(activeDataPoint)">
                 <span class="t-hi">{{ fmtTemp(mainHi[i]) }}</span>
@@ -138,6 +134,7 @@ import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES, DATA_TYPE_LIST, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
+import DataPointPicker from '../components/DataPointPicker.vue'
 
 // ── Props & emits ───────────────────────────────────────────────────────────
 
@@ -439,44 +436,9 @@ function barStyleSimple(i) {
 }
 
 .daily-title {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-}
-
-/* ── Data point picker ────────────────────────────── */
-.dp-picker {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  margin-bottom: 10px;
-}
-.dp-picker::-webkit-scrollbar { display: none; }
-
-.dp-pill {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-.dp-pill-icon { display: flex; align-items: center; }
-.dp-pill-icon :deep(svg) { width: 13px; height: 13px; }
-
-.dp-pill.active {
-  background: color-mix(in srgb, var(--pill-color) 18%, transparent);
-  border-color: var(--pill-color);
-  color: var(--pill-color);
-  font-weight: 600;
 }
 
 /* ── Forecast grid: sticky labels + scrollable days ── */
@@ -550,7 +512,9 @@ function barStyleSimple(i) {
 
 /* ── Day column ───────────────────────────────────── */
 .day-col {
-  flex: 0 0 calc(100% / 6);
+  flex: 1 0 58px;
+  min-width: 58px;
+  max-width: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -558,7 +522,6 @@ function barStyleSimple(i) {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
-  min-width: 0;
 }
 @media (hover: hover) {
   .day-col:hover {
@@ -575,7 +538,7 @@ function barStyleSimple(i) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-muted);
   text-align: center;
@@ -610,10 +573,13 @@ function barStyleSimple(i) {
 }
 
 .t-hi {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
   line-height: 1.2;
+}
+.temp-wrap-simple {
+  justify-content: flex-start;
 }
 .t-wind-val {
   display: flex;
@@ -621,7 +587,7 @@ function barStyleSimple(i) {
   gap: 2px;
 }
 .t-lo {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.2;
 }
@@ -661,7 +627,7 @@ function barStyleSimple(i) {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -688,14 +654,21 @@ function barStyleSimple(i) {
   height: 14px;
 }
 
+/* ── Show scrollbar on non-touch devices ──────────── */
+@media (hover: hover) {
+  .days-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) transparent;
+  }
+  .days-scroll::-webkit-scrollbar { display: block; height: 4px; }
+  .days-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
+  .days-scroll::-webkit-scrollbar-track { background: transparent; }
+}
+
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 1000px) {
   .daily-card {
     padding: 8px 10px 10px;
-  }
-  .day-col {
-    flex: 0 0 calc(100% / 6);
-    min-width: 0;
   }
 }
 

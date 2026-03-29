@@ -82,6 +82,8 @@
             :daily="weatherData?.daily ?? null"
             :unit-prefs="unitPrefs"
             :blocked="panelOpen || settingsOpen"
+            :pws-data-active="!!(pwsData || tempestData)"
+            :pws-name="activePwsStation?.name ?? null"
             @panel-change="conditionsOpen = $event"
           />
 
@@ -823,13 +825,18 @@ if (!isGeoActive.value) {
   position: relative;
   height: 300px;
   overflow: hidden;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .scene-top-bar {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -874,7 +881,7 @@ if (!isGeoActive.value) {
   left: 50%;
   transform: translateX(-50%);
   margin-top: 2px;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 400;
   color: rgba(255,255,255,0.7);
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);

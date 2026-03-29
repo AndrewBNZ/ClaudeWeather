@@ -66,11 +66,19 @@
               <div class="cond-tile-head">
                 <span class="cond-tile-icon" v-html="tile.icon"></span>
                 <span class="cond-tile-label" :style="{ color: tile.color }">{{ tile.label }}</span>
+                <span v-if="tile.fromStation" class="cond-tile-pws-dot" :title="props.pwsName ? `PWS: ${props.pwsName}` : 'PWS: Personal weather station'"></span>
               </div>
               <div class="cond-tile-value">
                 {{ tile.value }}<span v-if="tile.unit" class="cond-tile-unit">{{ tile.unit }}</span>
               </div>
-              <div v-if="tile.sub" class="cond-tile-sub">{{ tile.sub }}</div>
+              <div v-if="tile.sub" class="cond-tile-sub">
+                <svg v-if="tile.windDeg != null" class="cond-wind-arrow" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                     :style="{ transform: `rotate(${tile.windDeg + 180}deg)`, transformOrigin: '50% 50%' }">
+                  <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                </svg>
+                {{ tile.sub }}
+              </div>
             </div>
           </div>
         </div>
@@ -88,10 +96,12 @@ import { useSettings } from '../composables/useSettings.js'
 import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
 
 const props = defineProps({
-  data:      { type: Object, required: true },
-  daily:     { type: Object, default: null },
-  unitPrefs: { type: Object, required: true },
-  blocked:   { type: Boolean, default: false },
+  data:         { type: Object,  required: true },
+  daily:        { type: Object,  default: null },
+  unitPrefs:    { type: Object,  required: true },
+  blocked:      { type: Boolean, default: false },
+  pwsDataActive:{ type: Boolean, default: false },
+  pwsName:      { type: String,  default: null },
 })
 
 const emit = defineEmits(['panel-change'])
@@ -204,10 +214,13 @@ const moonIllumination = computed(() =>
 )
 
 // ── Tiles ───────────────────────────────────────────────────────────────────
+const STATION_TILE_IDS = new Set(['temperature', 'feelsLike', 'rain', 'wind', 'humidity', 'uv', 'pressure'])
+
 const tiles = computed(() => {
   const d     = props.data
   const up    = props.unitPrefs
   const daily = props.daily
+  const pws   = props.pwsDataActive
 
   function scaledFmt(id, v) {
     if (v == null) return '–'
@@ -217,83 +230,86 @@ const tiles = computed(() => {
     return Number(scaled).toFixed(dec)
   }
 
+  const st = (id, tile) => ({ ...tile, fromStation: pws && STATION_TILE_IDS.has(id) })
+
   return [
-    {
+    st('temperature', {
       id: 'temperature', label: 'Temperature',
       icon: TILE_ICONS.temperature, color: '#f97316',
       value: fmt(d.temperature_2m, 1),
       unit: DATA_TYPES.temperature.getUnit(up),
       sub: todayHigh.value != null ? `H ${fmt(todayHigh.value, 0)}°  ·  L ${fmt(todayLow.value, 0)}°` : null,
-    },
-    {
+    }),
+    st('feelsLike', {
       id: 'feelsLike', label: 'Feels Like',
       icon: TILE_ICONS.feelsLike, color: '#a855f7',
       value: fmt(d.apparent_temperature, 1),
       unit: DATA_TYPES.feelsLike.getUnit(up),
-    },
-    {
+    }),
+    st('rain', {
       id: 'rain', label: 'Precipitation',
       icon: TILE_ICONS.rain, color: '#3b82f6',
       value: fmt(d.precipitation, 1),
       unit: DATA_TYPES.rainAmount.getUnit(up),
       sub: d.precipitation_probability != null ? `${fmt(d.precipitation_probability, 0)}% chance` : null,
-    },
-    {
+    }),
+    st('wind', {
       id: 'wind', label: 'Wind',
       icon: TILE_ICONS.wind, color: '#06b6d4',
-      value: fmt(d.wind_speed_10m, 0),
+      value: fmt(d.wind_speed_10m, DATA_TYPES.wind.decimals ?? 0),
       unit: DATA_TYPES.wind.getUnit(up),
       sub: d.wind_direction_10m != null ? windCardinal(d.wind_direction_10m) : null,
-    },
-    {
+      windDeg: d.wind_direction_10m ?? null,
+    }),
+    st('humidity', {
       id: 'humidity', label: 'Humidity',
       icon: TILE_ICONS.humidity, color: '#14b8a6',
       value: fmt(d.relative_humidity_2m, 0),
       unit: '%',
-    },
-    {
+    }),
+    st('uv', {
       id: 'uv', label: 'UV Index',
       icon: TILE_ICONS.uv, color: '#eab308',
       value: fmt(d.uv_index, 1),
       unit: '',
-    },
-    {
+    }),
+    st('cloudCover', {
       id: 'cloudCover', label: 'Cloud Cover',
       icon: TILE_ICONS.cloudCover, color: '#94a3b8',
       value: fmt(d.cloud_cover, 0),
       unit: '%',
-    },
-    {
+    }),
+    st('visibility', {
       id: 'visibility', label: 'Visibility',
       icon: TILE_ICONS.visibility, color: '#22d3ee',
       value: scaledFmt('visibility', d.visibility),
       unit: DATA_TYPES.visibility.getUnit(up),
-    },
-    {
+    }),
+    st('pressure', {
       id: 'pressure', label: 'Pressure',
       icon: TILE_ICONS.pressure, color: '#818cf8',
       value: scaledFmt('pressure', d.surface_pressure),
       unit: DATA_TYPES.pressure.getUnit(up),
-    },
-    {
+    }),
+    st('moon', {
       id: 'moon', label: 'Moon Phase',
       icon: TILE_ICONS.moon, color: '#a5b4fc',
       value: moonPhaseName.value,
       unit: '',
       sub: `${moonIllumination.value}% illuminated`,
-    },
-    {
+    }),
+    st('sunrise', {
       id: 'sunrise', label: 'Sunrise',
       icon: TILE_ICONS.sunrise, color: '#fb923c',
       value: fmtTime(daily?.sunrise?.[0]),
       unit: '',
-    },
-    {
+    }),
+    st('sunset', {
       id: 'sunset', label: 'Sunset',
       icon: TILE_ICONS.sunset, color: '#f472b6',
       value: fmtTime(daily?.sunset?.[0]),
       unit: '',
-    },
+    }),
   ]
 })
 </script>
@@ -360,7 +376,7 @@ const tiles = computed(() => {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
   color: rgba(255,255,255,0.8);
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
@@ -442,8 +458,11 @@ const tiles = computed(() => {
 /* ── Conditions panel (bottom sheet) ───────────────────────────────────── */
 .cond-panel {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
   bottom: 0;
   z-index: 250;
   background: var(--panel-bg);
@@ -486,7 +505,7 @@ const tiles = computed(() => {
 .cond-condition-row {
   display: flex;
   justify-content: center;
-  padding: 10px 16px 4px;
+  padding: 10px 16px 10px;
   flex-shrink: 0;
 }
 
@@ -518,7 +537,7 @@ const tiles = computed(() => {
   grid-template-columns: 1fr 1fr;
   grid-auto-rows: 80px;
   gap: 8px;
-  padding: 12px;
+  padding: 0 12px;
 }
 
 .cond-tile {
@@ -533,6 +552,15 @@ const tiles = computed(() => {
   align-items: center;
   gap: 5px;
   margin-bottom: 5px;
+}
+.cond-tile-pws-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.85;
 }
 
 .cond-tile-icon {
@@ -576,6 +604,13 @@ const tiles = computed(() => {
   font-size: 0.72rem;
   color: var(--text-faint);
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cond-wind-arrow {
+  flex-shrink: 0;
+  color: var(--text-faint);
 }
 
 /* ── Bottom sheet transition (shared) ───────────────────────────────────── */
@@ -588,8 +623,11 @@ const tiles = computed(() => {
 
 .sc-sheet {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
   bottom: 0;
   z-index: 250;
   background: var(--panel-bg);
@@ -618,6 +656,6 @@ const tiles = computed(() => {
 }
 .sheet-slide-enter-from,
 .sheet-slide-leave-to {
-  transform: translateY(100%);
+  transform: translateX(-50%) translateY(100%);
 }
 </style>

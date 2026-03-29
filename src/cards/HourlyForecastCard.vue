@@ -6,19 +6,13 @@
     </div>
 
     <!-- Data point picker pills -->
-    <div v-if="layout.showDataPointPicker && pickerOptions.length" class="hf-picker">
-      <button
-        v-for="opt in pickerOptions"
-        :key="opt.type"
-        class="hf-pill"
-        :class="{ active: activeDataPoint === opt.type }"
-        :style="activeDataPoint === opt.type ? { '--pill-color': DATA_TYPES[opt.type].color } : {}"
-        @click="selectDataPoint(opt.type)"
-      >
-        <span class="hf-pill-icon" v-html="TILE_ICONS[DATA_TYPES[opt.type]?.iconKey ?? opt.type]"></span>
-        {{ DATA_TYPES[opt.type]?.shortLabel ?? opt.type }}
-      </button>
-    </div>
+    <DataPointPicker
+      :show="layout.showDataPointPicker"
+      :options="pickerOptions"
+      :model-value="activeDataPoint"
+      inset
+      @update:model-value="selectDataPoint"
+    />
 
     <!-- Scrollable area -->
     <div class="hf-scroll-wrapper">
@@ -133,7 +127,7 @@ import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { DEFAULT_HOURLY_FORECAST_LAYOUT } from '../composables/useSettings.js'
-import { TILE_ICONS } from '../utils/tileIcons.js'
+import DataPointPicker from '../components/DataPointPicker.vue'
 
 const COL_WIDTH = 54
 
@@ -401,44 +395,9 @@ watch(() => props.selectedDay, (d) => {
 }
 
 .hf-title {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
-}
-
-/* ── Data point picker pills ─────────────────────────────────────────── */
-
-.hf-picker {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 0 16px 10px;
-}
-.hf-picker::-webkit-scrollbar { display: none; }
-
-.hf-pill {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--card-border);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-.hf-pill-icon { display: flex; align-items: center; }
-.hf-pill-icon :deep(svg) { width: 13px; height: 13px; }
-.hf-pill.active {
-  background: color-mix(in srgb, var(--pill-color) 18%, transparent);
-  border-color: var(--pill-color);
-  color: var(--pill-color);
-  font-weight: 600;
 }
 
 /* ── Scroll container ────────────────────────────────────────────────── */
@@ -463,7 +422,7 @@ watch(() => props.selectedDay, (d) => {
   position: absolute;
   top: 1px;
   white-space: nowrap;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-faint);
 }
@@ -548,7 +507,7 @@ watch(() => props.selectedDay, (d) => {
 }
 
 .hf-val-label {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -563,12 +522,12 @@ watch(() => props.selectedDay, (d) => {
 .hf-cell {
   height: 16px;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
 .hf-row-time .hf-cell {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-muted);
   height: 26px;
@@ -587,7 +546,7 @@ watch(() => props.selectedDay, (d) => {
   flex-shrink: 0;
 }
 .hf-wind-arrow svg { width: 10px; height: 10px; }
-.hf-wind-speed { font-size: 0.78rem; }
+.hf-wind-speed { font-size: 0.8rem; }
 
 /* Generic row: inherits inline :style color */
 .hf-row-generic .hf-cell { font-size: 0.8rem; }
@@ -600,14 +559,23 @@ watch(() => props.selectedDay, (d) => {
 .hf-col-past .hf-bar-fill { opacity: 0.45; }
 .hf-col-past.hf-cell { opacity: 0.55; }
 
+/* ── Show scrollbar on non-touch devices ─────────────────────────────── */
+@media (hover: hover) {
+  .hf-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--card-border) transparent;
+  }
+  .hf-scroll::-webkit-scrollbar { display: block; height: 4px; }
+  .hf-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
+  .hf-scroll::-webkit-scrollbar-track { background: transparent; }
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
   .hf-header { padding: 0 10px 10px; }
-  .hf-picker { padding: 0 10px 8px; }
 }
 
 @media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
   .hf-header { padding: 0 10px 8px; }
-  .hf-picker { padding: 0 10px 6px; }
 }
 </style>

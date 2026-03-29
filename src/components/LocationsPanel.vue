@@ -90,14 +90,7 @@ watch(() => props.isOpen, (open) => {
       const card = document.querySelector('.conditions')
       const cardRect = card?.getBoundingClientRect()
       const maxHeight = `${window.innerHeight - rect.bottom - 14}px`
-      if (cardRect) {
-        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${cardRect.left + 8}px`, right: `${window.innerWidth - cardRect.right + 8}px`, maxHeight }
-      } else {
-        const panelWidth = 320
-        const rightEdge = Math.min(rect.right, window.innerWidth - 8)
-        const leftEdge = Math.max(rightEdge - panelWidth, 8)
-        dropdownStyle.value = { top: `${rect.bottom + 6}px`, left: `${leftEdge}px`, width: `${panelWidth}px`, maxHeight }
-      }
+      dropdownStyle.value = { top: `${rect.bottom + 6}px`, maxHeight }
     }
     if (!props.locations.length) setTimeout(() => searchRef.value?.focus(), 300)
   }
@@ -140,6 +133,10 @@ function geoLocate() {
 .dropdown {
   position: fixed;
   z-index: 203;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 640px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
@@ -343,17 +340,18 @@ function geoLocate() {
 
 .drop-enter-active, .drop-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
-  transform-origin: top right;
+  transform-origin: top center;
 }
 .drop-enter-from, .drop-leave-to {
   opacity: 0;
-  transform: scale(0.95) translateY(-6px);
+  transform: translateX(-50%) scale(0.95) translateY(-6px);
 }
 
 @media (max-width: 599px) {
   .dropdown {
     left: 8px !important;
     right: 8px !important;
+    transform: none !important;
     bottom: 8px !important;
     max-height: none !important;
     width: auto !important;
