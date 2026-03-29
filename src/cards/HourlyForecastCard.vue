@@ -345,14 +345,23 @@ function fmtVal(type, i) {
 const programmaticScroll = ref(false)
 const userScrolling = ref(false)
 let userScrollTimer = null
+let programmaticScrollTimer = null
 
 function onHourlyScroll() {
-  if (!scrollEl.value || programmaticScroll.value) return
+  if (!scrollEl.value) return
+  const sl = scrollEl.value.scrollLeft
+  positionDateLabels(sl)
+
+  if (programmaticScroll.value) {
+    // Keep flag true until scroll animation settles
+    clearTimeout(programmaticScrollTimer)
+    programmaticScrollTimer = setTimeout(() => { programmaticScroll.value = false }, 150)
+    return
+  }
+
   userScrolling.value = true
   clearTimeout(userScrollTimer)
   userScrollTimer = setTimeout(() => { userScrolling.value = false }, 150)
-  const sl = scrollEl.value.scrollLeft
-  positionDateLabels(sl)
   const centerX  = sl + scrollEl.value.clientWidth / 2
   const slotIdx  = Math.round(centerX / COL_WIDTH)
   const slot     = allHoursArr.value[Math.min(slotIdx, allHoursArr.value.length - 1)]
@@ -376,8 +385,6 @@ watch(() => props.selectedDay, (d) => {
     const offset = Math.max(0, targetHour - displayStartIndex.value) * COL_WIDTH
     programmaticScroll.value = true
     scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })
-    // Re-enable user scroll tracking after the animation settles (~400ms)
-    setTimeout(() => { programmaticScroll.value = false }, 400)
   })
 })
 </script>
