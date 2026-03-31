@@ -559,6 +559,7 @@ function barStyleSimple(i) {
   font-size: 1.25rem;
   line-height: 1;
   flex-shrink: 0;
+  margin-bottom: 5px;
 }
 
 /* ── Temperature section ──────────────────────────── */
@@ -594,10 +595,10 @@ function barStyleSimple(i) {
 
 .bar-track {
   position: relative;
-  width: 6px;
+  width: 10px;
   height: 60px;
   background: var(--card-border);
-  border-radius: 3px;
+  border-radius: 6px;
   margin: 3px 0;
   flex-shrink: 0;
 }
@@ -606,7 +607,7 @@ function barStyleSimple(i) {
   position: absolute;
   left: 0;
   right: 0;
-  border-radius: 3px;
+  border-radius: 6px;
   min-height: 4px;
 }
 

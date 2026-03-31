@@ -493,14 +493,14 @@ watch(() => props.selectedDay, (d) => {
 }
 
 
-.hf-emoji { font-size: 20px; line-height: 1; }
+.hf-emoji { font-size: 20px; line-height: 1; margin-bottom: 5px; }
 
 .hf-bar-track {
   position: relative;
-  width: 6px;
+  width: 10px;
   height: 60px;
   background: var(--card-border);
-  border-radius: 3px;
+  border-radius: 6px;
   flex-shrink: 0;
 }
 
@@ -508,7 +508,7 @@ watch(() => props.selectedDay, (d) => {
   position: absolute;
   left: 0;
   right: 0;
-  border-radius: 3px;
+  border-radius: 6px;
   min-height: 4px;
   transition: top 0.3s ease, height 0.3s ease;
 }
