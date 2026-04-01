@@ -548,7 +548,7 @@ const tiles = computed(() => {
   grid-template-columns: 1fr 1fr;
   grid-auto-rows: 80px;
   gap: 8px;
-  padding: 0 12px;
+  padding: 0 12px 12px 12px;
 }
 
 .cond-tile {
