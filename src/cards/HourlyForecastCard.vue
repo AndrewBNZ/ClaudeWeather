@@ -299,12 +299,14 @@ function barFillStyle(i) {
 
 // ── Sticky date labels ────────────────────────────────────────────────────────
 
-const EDGE_PAD  = 10
+const EDGE_PAD  = 0
 const FADE_ZONE = 150
 const dateBarEl = ref(null)
 
 function dateLabel(dateStr) {
   if (!dateStr) return ''
+  const todayStr = new Date(Date.now() + (props.utcOffset ?? 0) * 1000).toISOString().slice(0, 10)
+  if (dateStr === todayStr) return 'Today'
   const [y, m, d] = dateStr.split('-').map(Number)
   const dt = new Date(Date.UTC(y, m - 1, d, 12))
   return dt.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
@@ -570,7 +572,6 @@ watch(() => props.selectedDay, (d) => {
 
 .hf-cell {
   height: 18px;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 0.8rem;
   color: var(--text-muted);
 }
@@ -627,7 +628,6 @@ watch(() => props.selectedDay, (d) => {
 
 .hf-sun-cell {
   height: 18px;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .hf-sun-time {

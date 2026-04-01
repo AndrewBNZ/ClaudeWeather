@@ -30,6 +30,10 @@ export function useCardPress(callback) {
     if (timer !== null) { clearTimeout(timer); timer = null }
   }
 
+  // Android Chrome fires touchcancel when the contextmenu event fires (~400ms).
+  // Don't clear the timer here — let it fire so settings still opens.
+  function onTouchcancel() {}
+
   function onContextmenu(e) {
     e.preventDefault()
     callback()
@@ -38,5 +42,5 @@ export function useCardPress(callback) {
   // Suppress the OS-level long-press callout (iOS share sheet, Android menu)
   const style = { webkitTouchCallout: 'none', userSelect: 'none' }
 
-  return { onTouchstart, onTouchmove, onTouchend, onContextmenu, style }
+  return { onTouchstart, onTouchmove, onTouchend, onTouchcancel, onContextmenu, style }
 }

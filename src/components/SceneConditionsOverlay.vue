@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent>
+  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
     <div class="sc-inner">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
@@ -131,6 +131,15 @@ function onPointerUp() {
 
 function onPointerCancel() {
   if (holdTimer) { clearTimeout(holdTimer); holdTimer = null }
+}
+
+// Android Chrome fires pointercancel when contextmenu fires, which would clear
+// the timer before settings opens. Open settings directly from contextmenu instead.
+function onContextMenu() {
+  if (props.blocked) return
+  if (holdTimer) { clearTimeout(holdTimer); holdTimer = null }
+  holdFired = true
+  showSettingsPanel.value = true
 }
 
 function onClick() {
