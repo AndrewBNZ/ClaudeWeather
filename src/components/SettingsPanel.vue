@@ -3,7 +3,7 @@
   <Transition name="settings-drop">
     <div v-if="isOpen" class="settings-dropdown" :style="dropdownStyle">
       <div class="settings-header">
-        <span class="settings-panel-title">Preferences</span>
+        <span class="settings-panel-title">Settings</span>
         <button class="settings-tab-close" @click="$emit('close')">✕</button>
       </div>
       <div v-if="!subPanel" class="settings-tabs">
@@ -12,7 +12,7 @@
         <button :class="['settings-tab', { active: tab === 'data' }]"     @click="tab = 'data'">Data</button>
       </div>
       <div v-else class="sub-panel-nav">
-        <button class="sub-panel-back" @click="subPanel = null; tab = 'layout'">
+        <button class="sub-panel-back" @click.stop="subPanel = null; tab = 'layout'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           Back
         </button>
@@ -156,7 +156,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">Reset</div>
-              <div class="setting-hint">Delete all preferences and locations</div>
+              <div class="setting-hint">Delete all settings and locations</div>
             </div>
             <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
           </div>
@@ -184,7 +184,7 @@
           <span class="panel-title">Reset everything?</span>
           <button class="panel-close" @click="resetConfirmOpen = false">✕</button>
         </div>
-        <p class="reset-confirm-body">Your preferences and saved locations will be deleted and the app will restart.</p>
+        <p class="reset-confirm-body">Your settings and saved locations will be deleted and the app will restart.</p>
         <div class="reset-confirm-actions">
           <button class="setting-action-btn" @click="resetConfirmOpen = false">Cancel</button>
           <button class="setting-action-btn setting-action-btn--danger" @click="resetAll">Reset</button>

@@ -26,7 +26,7 @@
           :class="{ active: settingsOpen }"
           :disabled="conditionsOpen"
           @click="settingsOpen = !settingsOpen; panelOpen = false"
-          title="Preferences"
+          title="Settings"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
