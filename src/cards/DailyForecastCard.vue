@@ -672,16 +672,4 @@ function barStyleSimple(i) {
     padding: 8px 10px 10px;
   }
 }
-
-@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
-  .daily-card {
-    padding: 8px 10px;
-  }
-  .forecast-grid {
-    --h-temp: 72px;
-  }
-  .bar-track {
-    height: 44px;
-  }
-}
 </style>
