@@ -1072,7 +1072,7 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 /* ── Moon ─────────────────────────────────────────────────────────────────── */
 .moon {
   position: absolute;
-  top: 68px;
+  top: 15px;
   right: 6%;
   width: 64px;
   height: 64px;
