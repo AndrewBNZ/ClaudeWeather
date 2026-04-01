@@ -2,22 +2,13 @@
   <!-- Show when -->
   <div class="setting-row">
     <div>
-      <div class="setting-label">Show card</div>
-      <div class="setting-hint">When to display the Weather Warnings card</div>
+      <div class="setting-label">Show this card</div>
     </div>
   </div>
-  <div class="setting-row setting-row--col" style="padding-top: 0;">
-    <div class="show-mode-options">
-      <button
-        class="show-mode-btn"
-        :class="{ active: warningsConfig.show === 'always' }"
-        @click="warningsConfig.show = 'always'"
-      >Always</button>
-      <button
-        class="show-mode-btn"
-        :class="{ active: warningsConfig.show === 'active-only' }"
-        @click="warningsConfig.show = 'active-only'"
-      >Only when active alert</button>
+  <div class="setting-row" style="padding-top: 0; border-bottom: none;">
+    <div class="unit-pill">
+      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'always' }]"      @click="warningsConfig.show = 'always'">Always</button>
+      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'active-only' }]" @click="warningsConfig.show = 'active-only'">Only when active</button>
     </div>
   </div>
 
@@ -36,12 +27,11 @@
     </div>
   </div>
   <div class="setting-row setting-row--col" style="padding-top: 0; border-bottom: none;">
-    <div class="feed-options">
+    <div class="unit-pill feed-pill">
       <button
         v-for="opt in feedOptions"
         :key="opt.value"
-        class="show-mode-btn"
-        :class="{ active: selectedFeed === opt.value }"
+        :class="['unit-pill-opt', { active: selectedFeed === opt.value }]"
         @click="selectFeed(opt.value)"
       >{{ opt.label }}</button>
     </div>
@@ -82,7 +72,7 @@ const feedOptions = computed(() => {
 // Which option is currently selected
 const selectedFeed = computed(() => {
   const override = warningsConfig.value.feedOverride
-  if (!override) return 'auto'
+  if (override === null || override === undefined) return 'auto'
   // Check if it matches a known country entry
   for (const [country, feed] of Object.entries(CAP_FEEDS)) {
     if (override === feed.rssUrl) return country
@@ -110,8 +100,10 @@ function selectFeed(value) {
   if (value === 'auto') {
     warningsConfig.value = { ...warningsConfig.value, feedOverride: null }
   } else if (value === 'custom') {
-    // Just switch to custom mode; URL applied on blur/enter
-    if (selectedFeed.value !== 'custom') customUrl.value = ''
+    if (selectedFeed.value !== 'custom') {
+      customUrl.value = ''
+      warningsConfig.value = { ...warningsConfig.value, feedOverride: '' }
+    }
   } else {
     // A named country entry — store its rssUrl as override
     warningsConfig.value = { ...warningsConfig.value, feedOverride: CAP_FEEDS[value].rssUrl }
@@ -120,33 +112,18 @@ function selectFeed(value) {
 
 function applyCustomUrl() {
   const url = customUrl.value.trim()
-  warningsConfig.value = { ...warningsConfig.value, feedOverride: url || null }
+  warningsConfig.value = { ...warningsConfig.value, feedOverride: url }
 }
 </script>
 
 <style scoped>
-.show-mode-options,
-.feed-options {
-  display:   flex;
-  flex-wrap: wrap;
-  gap:       0.4rem;
-  width:     100%;
+.feed-pill {
+  border-radius: 10px;
+  flex-wrap:     wrap;
+  height:        auto;
 }
 
-.show-mode-btn {
-  padding:       0.3rem 0.75rem;
-  border-radius: 0.5rem;
-  border:        1px solid rgba(255,255,255,0.15);
-  background:    transparent;
-  color:         inherit;
-  font-size:     0.82rem;
-  cursor:        pointer;
-  transition:    background 0.15s, border-color 0.15s;
-}
-.show-mode-btn.active {
-  background:   rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.4);
-}
+.feed-pill .unit-pill-opt { flex: 1 1 auto; text-align: center; }
 
 .custom-url-wrap {
   width:      100%;
@@ -156,11 +133,11 @@ function applyCustomUrl() {
   width:         100%;
   padding:       0.4rem 0.6rem;
   border-radius: 0.4rem;
-  border:        1px solid rgba(255,255,255,0.2);
-  background:    rgba(255,255,255,0.06);
-  color:         inherit;
+  border:        1px solid var(--btn-border);
+  background:    var(--input-bg);
+  color:         var(--text);
   font-size:     0.82rem;
   box-sizing:    border-box;
 }
-.custom-url-input::placeholder { opacity: 0.4; }
+.custom-url-input::placeholder { color: var(--text-faint); }
 </style>

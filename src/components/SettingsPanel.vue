@@ -117,6 +117,11 @@
           <DailyForecastSettings />
         </div>
 
+        <!-- Weather Warnings layout sub-panel -->
+        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'weatherWarnings' }">
+          <WeatherWarningsSettings />
+        </div>
+
         <!-- Data tab -->
         <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'data' }">
           <div class="setting-row">
@@ -214,9 +219,10 @@ import { ref, computed, watch } from 'vue'
 import { useSettings, CARD_META } from '../composables/useSettings.js'
 import { showWhatsNew } from '../composables/useWhatsNew.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
-import DailyForecastSettings    from './settings/DailyForecastSettings.vue'
-import HourlyForecastSettings  from './settings/HourlyForecastSettings.vue'
-import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
+import DailyForecastSettings      from './settings/DailyForecastSettings.vue'
+import HourlyForecastSettings    from './settings/HourlyForecastSettings.vue'
+import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
+import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import DataTypesModal      from './settings/DataTypesModal.vue'
 import UnitsModal          from './settings/UnitsModal.vue'
 import ForecastModelModal  from './settings/ForecastModelModal.vue'
@@ -241,12 +247,13 @@ const {
   toggleCard, reorderCards,
 } = useSettings()
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', weatherWarnings: 'weatherWarnings' }
 const CARD_HINTS = {
-  combinedHourly: 'Configure the hourly forecast card',
-  dailyForecast:  'Configure the daily forecast card',
-  sunriseMoon:    'Sunrise, sunset and moon phase',
-  radar:          'Radar map',
+  combinedHourly:  'Configure the hourly forecast card',
+  dailyForecast:   'Configure the daily forecast card',
+  sunriseMoon:     'Sunrise, sunset and moon phase',
+  radar:           'Radar map',
+  weatherWarnings: 'Configure the weather warnings feed',
 }
 
 // ── Card drag-and-drop ────────────────────────────────────────────────────────
@@ -289,7 +296,7 @@ function _onCardTouchEnd() {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast' }
+const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', weatherWarnings: 'Weather Warnings' }
 const subPanelTitle  = computed(() => subPanelTitles[subPanel.value] ?? '')
 const dropdownStyle  = ref({})
 

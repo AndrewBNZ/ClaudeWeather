@@ -1,5 +1,5 @@
 <template>
-  <div class="card warnings-card">
+  <div v-if="showMode === 'always' || locationAlerts.length > 0" class="card warnings-card">
     <!-- Loading -->
     <div v-if="loading" class="warnings-loading">
       <div class="warnings-skeleton" />

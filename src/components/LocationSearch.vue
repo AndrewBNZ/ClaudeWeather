@@ -14,23 +14,25 @@
       @focus="onFocus"
     />
 
-    <transition name="drop">
-      <ul v-if="showDropdown && results.length" class="dropdown">
-        <li
-          v-for="r in results"
-          :key="r.id"
-          @mousedown.prevent="selectResult(r)"
-        >
-          <span class="result-name">{{ r.name }}</span>
-          <span class="result-sub">{{ formatSub(r) }}</span>
-        </li>
-      </ul>
-    </transition>
+    <Teleport to="body">
+      <transition name="drop">
+        <ul v-if="showDropdown && results.length" class="dropdown" :style="dropdownStyle">
+          <li
+            v-for="r in results"
+            :key="r.id"
+            @mousedown.prevent="selectResult(r)"
+          >
+            <span class="result-name">{{ r.name }}</span>
+            <span class="result-sub">{{ formatSub(r) }}</span>
+          </li>
+        </ul>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { searchLocations, formatLocationName } from '../services/geocoding.js'
 
 const inputRef = ref(null)
@@ -45,7 +47,23 @@ const emit = defineEmits(['location-selected', 'searching'])
 const query        = ref('')
 const results      = ref([])
 const showDropdown = ref(false)
+const inputRect    = ref(null)
 let searchTimer    = null
+
+const dropdownStyle = computed(() => {
+  if (!inputRect.value) return {}
+  const r = inputRect.value
+  return {
+    position: 'fixed',
+    top:   `${r.bottom + 6}px`,
+    left:  `${r.left}px`,
+    width: `${r.width}px`,
+  }
+})
+
+function updateRect() {
+  inputRect.value = inputRef.value?.getBoundingClientRect() ?? null
+}
 
 function formatSub(r) {
   const parts = []
