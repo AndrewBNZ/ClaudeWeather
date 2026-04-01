@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick">
+  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent>
     <div class="sc-inner">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
@@ -325,6 +325,8 @@ const tiles = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .sc-inner {

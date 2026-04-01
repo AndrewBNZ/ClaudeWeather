@@ -52,6 +52,13 @@
           </div>
           <div class="setting-row">
             <div>
+              <div class="setting-label">What's New</div>
+              <div class="setting-hint">Installed version: {{ appVersion }}</div>
+            </div>
+            <button class="setting-action-btn" @click="openWhatsNew">View →</button>
+          </div>
+          <div class="setting-row">
+            <div>
               <div class="setting-label">Weather simulator</div>
               <div class="setting-hint">Preview weather effects on the scene</div>
             </div>
@@ -205,6 +212,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useSettings, CARD_META } from '../composables/useSettings.js'
+import { showWhatsNew } from '../composables/useWhatsNew.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
 import DailyForecastSettings    from './settings/DailyForecastSettings.vue'
 import HourlyForecastSettings  from './settings/HourlyForecastSettings.vue'
@@ -222,6 +230,10 @@ defineExpose({
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
   openModelModal:     () => { modelInfoOpen.value = true },
 })
+
+function openWhatsNew() { showWhatsNew.value = true }
+
+const appVersion = __APP_VERSION__
 
 const {
   theme, timeFormat, showSim,

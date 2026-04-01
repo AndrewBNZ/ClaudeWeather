@@ -258,6 +258,8 @@
       @next="onTutorialNext"
       @finish="finishTutorial"
     />
+
+    <UpdateBanner />
   </div>
 </template>
 
@@ -278,6 +280,7 @@ import PwsPickerModal                                from './components/PwsPicke
 import { reverseGeocode }                            from './services/geocoding.js'
 import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
+import UpdateBanner from './components/UpdateBanner.vue'
 
 const {
   timeFormat, showSim,
@@ -751,7 +754,7 @@ onMounted(() => {
   }
 })
 
-function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 50 }
+function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 35 }
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)

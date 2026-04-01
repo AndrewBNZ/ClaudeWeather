@@ -462,7 +462,7 @@ watch(() => props.selectedDay, (d) => {
 
 /* ── Day boundary line ───────────────────────────────────────────────── */
 .hf-col-day-start {
-  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 1px solid var(--card-border);
 }
 
 
@@ -567,7 +567,7 @@ watch(() => props.selectedDay, (d) => {
 .hf-col-past.hf-cell { opacity: 0.55; }
 
 /* ── Show scrollbar on non-touch devices ─────────────────────────────── */
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .hf-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--card-border) transparent;

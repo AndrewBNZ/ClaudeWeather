@@ -1,0 +1,17 @@
+// Add a new entry at the top for each release.
+// The version must match package.json exactly.
+export default [
+  {
+    version: '1.1.0',
+    entries: [
+      "📢 Update notifications — a banner appears when a new version is ready to install",
+      "🆕 What's New — you'll see a summary of changes after each update (like this one!)",
+    ],
+  },
+  {
+    version: '1.0.0',
+    entries: [
+      "First release!",
+    ],
+  },
+]

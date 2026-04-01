@@ -35,5 +35,8 @@ export function useCardPress(callback) {
     callback()
   }
 
-  return { onTouchstart, onTouchmove, onTouchend, onContextmenu }
+  // Suppress the OS-level long-press callout (iOS share sheet, Android menu)
+  const style = { webkitTouchCallout: 'none', userSelect: 'none' }
+
+  return { onTouchstart, onTouchmove, onTouchend, onContextmenu, style }
 }

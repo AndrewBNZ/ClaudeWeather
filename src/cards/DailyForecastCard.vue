@@ -656,7 +656,7 @@ function barStyleSimple(i) {
 }
 
 /* ── Show scrollbar on non-touch devices ──────────── */
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .days-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--card-border) transparent;
