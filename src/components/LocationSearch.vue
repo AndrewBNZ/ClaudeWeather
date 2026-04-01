@@ -87,6 +87,7 @@ function onInput() {
       const res = await searchLocations(q)
       if (query.value !== q) return  // query changed while fetching
       results.value = res
+      if (res.length > 0) updateRect()
       showDropdown.value = res.length > 0
     } catch {
       results.value = []
@@ -115,7 +116,10 @@ function closeDropdown() {
 }
 
 function onFocus() {
-  if (results.value.length) showDropdown.value = true
+  if (results.value.length) {
+    updateRect()
+    showDropdown.value = true
+  }
 }
 
 function onBlur() {
@@ -147,16 +151,12 @@ function onBlur() {
 }
 
 .dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
   background: var(--dropdown-bg);
   border: 1px solid var(--input-border);
   border-radius: 10px;
   list-style: none;
   overflow: hidden;
-  z-index: 100;
+  z-index: 9999;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
 
