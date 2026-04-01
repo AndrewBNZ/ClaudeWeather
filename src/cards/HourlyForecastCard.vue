@@ -433,14 +433,14 @@ watch(() => props.selectedDay, (d) => {
 
 <style scoped>
 .hourly-forecast-card {
-  padding: 12px 0;
+  padding: 10px 12px;
   overflow: hidden;
 }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 
 .hf-header {
-  padding: 0 16px 10px;
+  margin-bottom: 5px;
 }
 
 .hf-title {
@@ -637,12 +637,4 @@ watch(() => props.selectedDay, (d) => {
   color: var(--sun);
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────── */
-@media (max-width: 1000px) {
-  .hf-header { padding: 0 10px 10px; }
-}
-
-@media (orientation: landscape) and (max-height: 900px) and (max-width: 1366px) {
-  .hf-header { padding: 0 10px 8px; }
-}
 </style>

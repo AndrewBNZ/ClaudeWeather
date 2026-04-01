@@ -428,11 +428,11 @@ function barStyleSimple(i) {
 
 <style scoped>
 .daily-card {
-  padding: 12px 16px;
+  padding: 10px 12px;
 }
 
 .daily-header {
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 .daily-title {
