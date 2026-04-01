@@ -13,19 +13,23 @@ export const CAP_FEEDS = {
   // 'United Kingdom': { name: 'Met Office', rssUrl: '' },          // TODO: find UK Met Office CAP RSS URL
 }
 
-// In-memory cache: url → { alerts, fetchedAt }
+// In-memory cache: rawUrl → { alerts, fetchedAt }
 const cache = new Map()
 const CACHE_TTL_MS = 15 * 60 * 1000
 
-function resolveUrl(country, feedOverride) {
-  if (feedOverride) return feedOverride
-  const entry = CAP_FEEDS[country]
-  if (!entry) return null
-  // Use the dev proxy path in development to avoid CORS issues
+// MetService (and other national met services) don't send permissive CORS headers.
+// In dev we use a Vite proxy; in production we route through corsproxy.io.
+function applyProxy(rawUrl) {
   if (import.meta.env.DEV) {
-    return entry.rssUrl.replace('https://alerts.metservice.com', '/cap-proxy')
+    return rawUrl.replace('https://alerts.metservice.com', '/cap-proxy')
   }
-  return entry.rssUrl
+  return `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`
+}
+
+function resolveUrl(country, feedOverride) {
+  const rawUrl = feedOverride ?? CAP_FEEDS[country]?.rssUrl ?? null
+  if (!rawUrl) return null
+  return { raw: rawUrl, proxied: applyProxy(rawUrl) }
 }
 
 // ── XML parsing ───────────────────────────────────────────────────────────────
@@ -149,23 +153,25 @@ export function filterAlertsForLocation(alerts, lat, lon) {
  * Results are cached for 15 minutes.
  */
 export async function fetchAlerts(country, feedOverride = null) {
-  const url = resolveUrl(country, feedOverride)
+  const resolved = resolveUrl(country, feedOverride)
 
-  if (!url) {
+  if (!resolved) {
     return { alerts: [], error: null, noFeed: true }
   }
 
-  const cached = cache.get(url)
+  const { raw, proxied } = resolved
+
+  const cached = cache.get(raw)
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
     return { alerts: cached.alerts, error: null }
   }
 
   try {
-    const res = await fetch(url)
+    const res = await fetch(proxied)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const xml = await res.text()
     const alerts = parseCapRss(xml)
-    cache.set(url, { alerts, fetchedAt: Date.now() })
+    cache.set(raw, { alerts, fetchedAt: Date.now() })
     return { alerts, error: null }
   } catch (err) {
     const isCors = err instanceof TypeError && err.message.toLowerCase().includes('fetch')

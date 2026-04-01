@@ -354,7 +354,7 @@ const GEO_ACTIVE_KEY    = `${P}-geo-active`
 const LEGACY_KEY        = `${P}-location`
 
 function persistLocations(arr) { try { localStorage.setItem(LOCATIONS_KEY, JSON.stringify(arr)) } catch {} }
-function persistActive(loc)    { try { localStorage.setItem(ACTIVE_KEY, JSON.stringify({ lat: loc.lat, lon: loc.lon })) } catch {} }
+function persistActive(loc)    { try { const v = { lat: loc.lat, lon: loc.lon }; if (loc.country) v.country = loc.country; localStorage.setItem(ACTIVE_KEY, JSON.stringify(v)) } catch {} }
 function loadActiveKey()       { try { return JSON.parse(localStorage.getItem(ACTIVE_KEY)) } catch { return null } }
 
 function loadSavedLocations() {
@@ -690,7 +690,7 @@ function onLocationSelected({ lat, lon, name, country }) {
   clearGeoActive()
   location.value     = { lat, lon, ...(country ? { country } : {}) }
   locationName.value = name
-  persistActive({ lat, lon })
+  persistActive(location.value)
   addToSaved(lat, lon, name, country)
 }
 
@@ -704,10 +704,10 @@ async function applyGeoLocation(lat, lon) {
     const name = [details.name, details.admin1, details.country].filter(Boolean).join(', ')
     locationName.value = name
     location.value     = { lat, lon, ...(details.country ? { country: details.country } : {}) }
-    persistActive({ lat, lon })
+    persistActive(location.value)
   } catch {
     locationName.value = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`
-    persistActive({ lat, lon })
+    persistActive(location.value)
   }
 }
 
@@ -719,9 +719,9 @@ async function onGeoLocate({ lat, lon }) {
 
 function onPanelSelect(loc) {
   clearGeoActive()
-  location.value     = { lat: loc.lat, lon: loc.lon }
+  location.value     = { lat: loc.lat, lon: loc.lon, ...(loc.country ? { country: loc.country } : {}) }
   locationName.value = loc.name
-  persistActive(loc)
+  persistActive(location.value)
   panelOpen.value    = false
 }
 
@@ -801,7 +801,7 @@ if (!isGeoActive.value) {
     return savedLocations.value[0] ?? null
   })()
   if (activeSaved) {
-    location.value     = { lat: activeSaved.lat, lon: activeSaved.lon }
+    location.value     = { lat: activeSaved.lat, lon: activeSaved.lon, ...(activeSaved.country ? { country: activeSaved.country } : {}) }
     locationName.value = activeSaved.name
   }
 }
