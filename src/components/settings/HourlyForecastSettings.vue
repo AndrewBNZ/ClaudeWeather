@@ -17,6 +17,14 @@
   </div>
   <div class="setting-row">
     <div>
+      <div class="setting-label">Sunrise &amp; sunset</div>
+    </div>
+    <button class="toggle-switch" :class="{ on: hourlyForecastLayout.showSunriseSunset }" @click="hourlyForecastLayout.showSunriseSunset = !hourlyForecastLayout.showSunriseSunset">
+      <span class="toggle-thumb" />
+    </button>
+  </div>
+  <div class="setting-row">
+    <div>
       <div class="setting-label">Data point picker</div>
       <div class="setting-hint">Pill buttons to quickly change the bar chart</div>
     </div>

@@ -23,6 +23,7 @@
   --text-muted: #94a3b8;
   --text-faint: #475569;
   --accent: #38bdf8;
+  --sun: #fbbf24;
   --radius: 16px;
   --radius-sm: 8px;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
@@ -56,6 +57,7 @@
   --text: #0f172a;
   --text-muted: #475569;
   --text-faint: #94a3b8;
+  --sun: #b45309;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   --app-bg: radial-gradient(ellipse at top, #bfdbfe 0%, #f0f4f8 60%);
   --header-bg: rgba(248, 250, 255, 0.92);

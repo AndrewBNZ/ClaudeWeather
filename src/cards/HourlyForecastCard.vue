@@ -40,6 +40,18 @@
           >{{ hourLabel(slot.index) }}</div>
         </div>
 
+        <!-- Sunrise / sunset row -->
+        <div v-if="layout.showSunriseSunset" class="hf-row hf-row-sun">
+          <div
+            v-for="slot in allHoursArr"
+            :key="'sun-' + slot.index"
+            class="hf-col hf-sun-cell"
+            :class="{ 'hf-col-day-start': isDayStart(slot.index) }"
+          >
+            <span v-if="sunEvents[slot.index]" class="hf-sun-time">{{ sunEvents[slot.index].label }}</span>
+          </div>
+        </div>
+
         <!-- Bar chart row (main data point) -->
         <div class="hf-chart">
           <div
@@ -203,6 +215,36 @@ const allWindDirs = computed(() => props.hourly?.wind_direction_10m ?? [])
 const hourEmojis = computed(() =>
   allCodes.value.map(c => c != null ? getWeatherInfo(c)?.emoji ?? '' : '')
 )
+
+// ── Sunrise / sunset events keyed by absolute hour index ─────────────────────
+
+const sunEvents = computed(() => {
+  if (!layout.value.showSunriseSunset || !props.daily) return {}
+  const map = {}
+  const fmt = (dtStr) => {
+    if (!dtStr) return null
+    const timePart = dtStr.split('T')[1]
+    if (!timePart) return null
+    const [h, m] = timePart.split(':').map(Number)
+    if (props.timeFormat === '24h') return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')}`
+  }
+  const sunrises = props.daily.sunrise ?? []
+  const sunsets  = props.daily.sunset  ?? []
+  for (let day = 0; day < Math.max(sunrises.length, sunsets.length); day++) {
+    const sr = sunrises[day]
+    if (sr) {
+      const h = parseInt(sr.split('T')[1])
+      map[day * 24 + h] = { type: 'sunrise', label: fmt(sr) }
+    }
+    const ss = sunsets[day]
+    if (ss) {
+      const h = parseInt(ss.split('T')[1])
+      map[day * 24 + h] = { type: 'sunset', label: fmt(ss) }
+    }
+  }
+  return map
+})
 
 // ── Scaled value accessor ─────────────────────────────────────────────────────
 
@@ -431,7 +473,7 @@ watch(() => props.selectedDay, (d) => {
   white-space: nowrap;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-faint);
+  color: var(--text-muted);
 }
 
 .hf-scroll {
@@ -536,7 +578,7 @@ watch(() => props.selectedDay, (d) => {
 .hf-row-time .hf-cell {
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-faint);
   height: 26px;
 }
 
@@ -575,6 +617,24 @@ watch(() => props.selectedDay, (d) => {
   .hf-scroll::-webkit-scrollbar { display: block; height: 4px; }
   .hf-scroll::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 2px; }
   .hf-scroll::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* ── Sunrise / sunset row ────────────────────────────────────────────── */
+
+.hf-row-sun {
+  margin-bottom: 2px;
+}
+
+.hf-sun-cell {
+  height: 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.hf-sun-time {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--sun);
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */

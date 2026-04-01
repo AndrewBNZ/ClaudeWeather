@@ -2,6 +2,12 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: '1.1.1',
+    entries: [
+      "🌅 Sunrise & sunset times can be displayed in the hourly chart",
+    ],
+  },
+  {
     version: '1.1.0',
     entries: [
       "📢 Update notifications — a banner appears when a new version is ready to install",

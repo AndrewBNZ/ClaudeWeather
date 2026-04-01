@@ -61,6 +61,7 @@ export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
   showDataPointPicker: false,
+  showSunriseSunset:   false,
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST
     .filter(t => !t.isMap && t.hourlyKey != null)
