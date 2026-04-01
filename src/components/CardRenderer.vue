@@ -38,6 +38,8 @@ const props = defineProps({
   dailyForecastLayout:  { type: Object,  default: null },
   hourlyForecastLayout: { type: Object,  default: null },
   forecastDataPoint:    { type: String,  default: null },
+  warningsConfig:       { type: Object,  default: null },
+  locationCountry:      { type: String,  default: null },
 })
 
 const emit = defineEmits([
@@ -74,6 +76,8 @@ const cardProps = computed(() => ({
   dailyForecastLayout:  props.dailyForecastLayout,
   hourlyForecastLayout: props.hourlyForecastLayout,
   forecastDataPoint:    props.forecastDataPoint,
+  warningsConfig:       props.warningsConfig,
+  locationCountry:      props.locationCountry,
 }))
 
 const cardEvents = computed(() => ({

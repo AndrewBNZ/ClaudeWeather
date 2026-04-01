@@ -1,6 +1,12 @@
 // Add a new entry at the top for each release.
 // The version must match package.json exactly.
 export default [
+   {
+    version: '1.1.2',
+    entries: [
+      "🚨 Added weather warnings card [NZ]",
+    ],
+  },
   {
     version: '1.1.1',
     entries: [

@@ -11,4 +11,8 @@ export const CARD_SETTINGS_REGISTRY = {
     title:     'Hourly Forecast',
     component: defineAsyncComponent(() => import('../components/settings/HourlyForecastSettings.vue')),
   },
+  weatherWarnings: {
+    title:     'Weather Warnings',
+    component: defineAsyncComponent(() => import('../components/settings/WeatherWarningsSettings.vue')),
+  },
 }

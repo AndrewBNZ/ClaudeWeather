@@ -81,9 +81,10 @@ function selectResult(r) {
   showDropdown.value = false
   results.value = []
   emit('location-selected', {
-    lat:  r.latitude,
-    lon:  r.longitude,
-    name: formatLocationName(r),
+    lat:     r.latitude,
+    lon:     r.longitude,
+    name:    formatLocationName(r),
+    country: r.country,
   })
 }
 

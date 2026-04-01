@@ -53,3 +53,12 @@ export async function reverseGeocode(lat, lon) {
   const r = await res.json()
   return formatLocationName(normalize(r))
 }
+
+// Like reverseGeocode but returns the full normalized object { name, admin1, country, latitude, longitude }.
+export async function reverseGeocodeDetails(lat, lon) {
+  const params = new URLSearchParams({ lat, lon, format: 'json', addressdetails: 1, zoom: 10 })
+  const res = await fetch(`${NOMINATIM}/reverse?${params}`, { headers: HEADERS })
+  if (!res.ok) throw new Error(`Reverse geocode error: ${res.status}`)
+  const r = await res.json()
+  return normalize(r)
+}

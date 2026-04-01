@@ -182,6 +182,8 @@
                 :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
                 :daily-forecast-layout="dailyForecastLayout"
                 :hourly-forecast-layout="hourlyForecastLayout"
+                :warnings-config="warningsConfig"
+                :location-country="location?.country ?? null"
                 :forecast-data-point="forecastDataPoint"
                 @select="activeDataType = $event"
                 @day-selected="selectedDay = $event"
@@ -218,6 +220,7 @@
       <CardSettingsSheet
         v-if="cardSettingsType"
         :card-type="cardSettingsType"
+        :extra-props="{ locationCountry: location?.country ?? null }"
         @close="cardSettingsType = null"
       />
     </transition>
@@ -277,7 +280,7 @@ import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
 import { connectTempest, disconnectTempest, tempestData } from './services/tempestWs.js'
 import PwsPickerModal                                from './components/PwsPickerModal.vue'
-import { reverseGeocode }                            from './services/geocoding.js'
+import { reverseGeocodeDetails }                     from './services/geocoding.js'
 import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
 import UpdateBanner from './components/UpdateBanner.vue'
@@ -285,7 +288,7 @@ import UpdateBanner from './components/UpdateBanner.vue'
 const {
   timeFormat, showSim,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-  dailyForecastLayout, hourlyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout, warningsConfig,
 } = useSettings()
 
 // ── Card stack ────────────────────────────────────────────────────────────────
@@ -668,10 +671,10 @@ watch(activeDataType, checkAndRefresh)
 watch(selectedDay,    checkAndRefresh)
 
 // ── Location management ───────────────────────────────────────────────────────
-function addToSaved(lat, lon, name) {
+function addToSaved(lat, lon, name, country) {
   const already = savedLocations.value.some(l => l.lat === lat && l.lon === lon)
   if (!already) {
-    savedLocations.value = [...savedLocations.value, { lat, lon, name }]
+    savedLocations.value = [...savedLocations.value, { lat, lon, name, ...(country ? { country } : {}) }]
     persistLocations(savedLocations.value)
   }
 }
@@ -682,13 +685,13 @@ function clearGeoActive() {
   try { localStorage.removeItem(GEO_ACTIVE_KEY) } catch {}
 }
 
-function onLocationSelected({ lat, lon, name }) {
+function onLocationSelected({ lat, lon, name, country }) {
   if (tutorialStep.value === 1) tutPendingLocation.value = true
   clearGeoActive()
-  location.value     = { lat, lon }
+  location.value     = { lat, lon, ...(country ? { country } : {}) }
   locationName.value = name
   persistActive({ lat, lon })
-  addToSaved(lat, lon, name)
+  addToSaved(lat, lon, name, country)
 }
 
 async function applyGeoLocation(lat, lon) {
@@ -697,8 +700,10 @@ async function applyGeoLocation(lat, lon) {
   locationName.value = 'Locating…'
   try { localStorage.setItem(GEO_ACTIVE_KEY, 'true') } catch {}
   try {
-    const name = await reverseGeocode(lat, lon)
+    const details = await reverseGeocodeDetails(lat, lon)
+    const name = [details.name, details.admin1, details.country].filter(Boolean).join(', ')
     locationName.value = name
+    location.value     = { lat, lon, ...(details.country ? { country: details.country } : {}) }
     persistActive({ lat, lon })
   } catch {
     locationName.value = `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`

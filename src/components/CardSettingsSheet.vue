@@ -6,7 +6,7 @@
         <button class="panel-close" @click="$emit('close')">✕</button>
       </div>
       <div class="card-sheet-body">
-        <component :is="settingsComponent" />
+        <component :is="settingsComponent" v-bind="extraProps" />
       </div>
     </div>
   </div>
@@ -16,7 +16,10 @@
 import { computed } from 'vue'
 import { CARD_SETTINGS_REGISTRY } from '../cards/cardSettingsRegistry.js'
 
-const props = defineProps({ cardType: { type: String, required: true } })
+const props = defineProps({
+  cardType:   { type: String, required: true },
+  extraProps: { type: Object, default: () => ({}) },
+})
 defineEmits(['close'])
 
 const entry            = computed(() => CARD_SETTINGS_REGISTRY[props.cardType])

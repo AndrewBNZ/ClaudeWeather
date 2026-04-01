@@ -22,6 +22,7 @@ const DAILY_SUMMARY_KEY = `${P}-dailysummary`
 const DAILY_FORECAST_LAYOUT_KEY   = `${P}-daily-forecast-layout`
 const HOURLY_FORECAST_LAYOUT_KEY  = `${P}-hourly-forecast-layout`
 const SCENE_OVERLAY_LAYOUT_KEY    = `${P}-scene-overlay-layout`
+const WARNINGS_CONFIG_KEY         = `${P}-warnings-config`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -93,18 +94,30 @@ export const TILE_META = {
 }
 
 export const CARD_META = {
-  combinedHourly: { icon: '🕐', label: 'Hourly Forecast' },
-  dailyForecast:  { icon: '📅', label: 'Daily Forecast' },
-  sunriseMoon:    { icon: '🌙', label: 'Sunrise & Moon' },
-  radar:          { icon: '🛰️', label: 'Radar' },
+  combinedHourly:  { icon: '🕐', label: 'Hourly Forecast' },
+  dailyForecast:   { icon: '📅', label: 'Daily Forecast' },
+  sunriseMoon:     { icon: '🌙', label: 'Sunrise & Moon' },
+  radar:           { icon: '🛰️', label: 'Radar' },
+  weatherWarnings: { icon: '⚠️', label: 'Weather Warnings' },
 }
 
 const DEFAULT_CARDS = [
-  { type: 'dailyForecast',  enabled: true },
-  { type: 'combinedHourly', enabled: true },
-  { type: 'sunriseMoon',    enabled: true },
-  { type: 'radar',          enabled: true },
+  { type: 'weatherWarnings', enabled: false },
+  { type: 'dailyForecast',   enabled: true },
+  { type: 'combinedHourly',  enabled: true },
+  { type: 'sunriseMoon',     enabled: true },
+  { type: 'radar',           enabled: true },
 ]
+
+export const DEFAULT_WARNINGS_CONFIG = { show: 'always', feedOverride: null }
+
+function loadWarningsConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(WARNINGS_CONFIG_KEY))
+    if (raw && typeof raw === 'object') return { ...DEFAULT_WARNINGS_CONFIG, ...raw }
+  } catch {}
+  return { ...DEFAULT_WARNINGS_CONFIG }
+}
 
 function loadSceneOverlayLayout() {
   try {
@@ -250,6 +263,7 @@ const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false'
 const dailyForecastLayout  = ref(loadDailyForecastLayout())
 const hourlyForecastLayout = ref(loadHourlyForecastLayout())
 const sceneOverlayLayout   = ref(loadSceneOverlayLayout())
+const warningsConfig       = ref(loadWarningsConfig())
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
@@ -269,6 +283,7 @@ watch(showDailySummary,      (v) => localStorage.setItem(DAILY_SUMMARY_KEY, Stri
 watch(dailyForecastLayout,   (v) => { try { localStorage.setItem(DAILY_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(hourlyForecastLayout,  (v) => { try { localStorage.setItem(HOURLY_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(sceneOverlayLayout,    (v) => { try { localStorage.setItem(SCENE_OVERLAY_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
+watch(warningsConfig,        (v) => { try { localStorage.setItem(WARNINGS_CONFIG_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -383,5 +398,6 @@ export function useSettings() {
     toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
     toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints, setHourlyMainDataPoint,
     sceneOverlayLayout, setSceneOverlaySlot,
+    warningsConfig,
   }
 }

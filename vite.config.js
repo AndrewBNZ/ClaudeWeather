@@ -47,6 +47,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite:     (path) => path.replace(/^\/tempest-proxy/, ''),
       },
+      '/cap-proxy': {
+        target:      'https://alerts.metservice.com',
+        changeOrigin: true,
+        rewrite:     (path) => path.replace(/^\/cap-proxy/, ''),
+      },
     },
   },
 })
