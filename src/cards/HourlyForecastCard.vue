@@ -498,7 +498,7 @@ watch(() => props.selectedDay, (d) => {
 .hf-bar-track {
   position: relative;
   width: 10px;
-  height: 60px;
+  height: 75px;
   background: var(--card-border);
   border-radius: 6px;
   flex-shrink: 0;
@@ -527,7 +527,7 @@ watch(() => props.selectedDay, (d) => {
 }
 
 .hf-cell {
-  height: 16px;
+  height: 18px;
   border-right: 1px solid rgba(255, 255, 255, 0.04);
   font-size: 0.8rem;
   color: var(--text-muted);

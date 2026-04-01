@@ -445,8 +445,8 @@ function barStyleSimple(i) {
 .forecast-grid {
   --h-day:  20px;
   --h-wx:   28px;
-  --h-temp: 96px;
-  --h-stat: 16px;
+  --h-temp: 115px;
+  --h-stat: 18px;
   display: flex;
   overflow: hidden;
   gap: 6px;
@@ -596,7 +596,7 @@ function barStyleSimple(i) {
 .bar-track {
   position: relative;
   width: 10px;
-  height: 60px;
+  height: 75px;
   background: var(--card-border);
   border-radius: 6px;
   margin: 3px 0;
