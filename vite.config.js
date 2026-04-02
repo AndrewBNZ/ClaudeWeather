@@ -12,7 +12,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       workbox: {
         globPatterns: ['**/*.{js,css,html}'],
         navigateFallback: '/ClaudeWeather/index.html',
