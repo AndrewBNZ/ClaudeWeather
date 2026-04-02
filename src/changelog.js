@@ -2,7 +2,7 @@
 // The version must match package.json exactly.
 export default [
    {
-    version: '1.1.4',
+    version: '1.1.5',
     entries: [
       "🚨 Enhanced weather warnings",
     ],
