@@ -2,6 +2,12 @@
 // The version must match package.json exactly.
 export default [
    {
+    version: '1.1.4',
+    entries: [
+      "🚨 Enhanced weather warnings",
+    ],
+  },
+   {
     version: '1.1.2',
     entries: [
       "🚨 Added weather warnings card [NZ]",

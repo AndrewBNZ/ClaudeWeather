@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showMode === 'always' || locationAlerts.length > 0" class="card warnings-card">
+  <div v-if="showMode === 'always' || visibleAlerts.length > 0" v-bind="$attrs" class="card warnings-card">
     <!-- Loading -->
     <div v-if="loading" class="warnings-loading">
       <div class="warnings-skeleton" />
@@ -30,9 +30,10 @@
         v-for="alert in visibleAlerts"
         :key="alert.id"
         class="warning-row"
-        :style="{ '--severity-color': severityColor(alert.severity) }"
+        :style="{ '--severity-color': alertColor(alert) }"
+        @click="selectedAlert = alert"
       >
-        <div class="warning-badge" :style="{ background: severityColor(alert.severity) }">
+        <div class="warning-badge" :style="{ background: alertColor(alert), color: badgeTextColor(alert) }">
           {{ alert.severity || 'Alert' }}
         </div>
         <div class="warning-body">
@@ -40,6 +41,7 @@
           <div v-if="areaLabel(alert)" class="warning-area">{{ areaLabel(alert) }}</div>
           <div v-if="alert.expires" class="warning-expires">Expires {{ formatExpiry(alert.expires) }}</div>
         </div>
+        <div class="warning-chevron">›</div>
       </div>
     </template>
 
@@ -49,11 +51,25 @@
       <span>No active weather warnings</span>
     </div>
   </div>
+
+  <!-- Detail modal -->
+  <Teleport to="body">
+    <WeatherWarningModal
+      v-if="selectedAlert"
+      :alert="selectedAlert"
+      @close="selectedAlert = null"
+    />
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+
+defineOptions({ inheritAttrs: false })
 import { fetchAlerts, filterAlertsForLocation } from '../services/capAlerts.js'
+import WeatherWarningModal from './WeatherWarningModal.vue'
+
+const selectedAlert = ref(null)
 
 const props = defineProps({
   lat:             { type: Number, default: 0 },
@@ -67,15 +83,14 @@ const loading    = ref(true)
 const fetchError = ref(null)
 const noFeed     = ref(false)
 
-const showMode = computed(() => props.warningsConfig?.show ?? 'always')
+const showMode       = computed(() => props.warningsConfig?.show           ?? 'always')
+const locationFilter = computed(() => props.warningsConfig?.locationFilter ?? 'location')
 
-// Alerts filtered to the user's location polygon (or all if no polygon data)
-const locationAlerts = computed(() =>
-  filterAlertsForLocation(alerts.value, props.lat, props.lng)
+const visibleAlerts = computed(() =>
+  locationFilter.value === 'all'
+    ? alerts.value
+    : filterAlertsForLocation(alerts.value, props.lat, props.lng)
 )
-
-// In active-only mode, don't show the card body when no alerts match
-const visibleAlerts = computed(() => locationAlerts.value)
 
 const SEVERITY_COLORS = {
   extreme:  '#d32f2f',
@@ -84,8 +99,17 @@ const SEVERITY_COLORS = {
   minor:    '#1565c0',
 }
 
-function severityColor(severity) {
-  return SEVERITY_COLORS[(severity ?? '').toLowerCase()] ?? '#546e7a'
+function alertColor(alert) {
+  return alert.colourHex ?? SEVERITY_COLORS[(alert.severity ?? '').toLowerCase()] ?? '#546e7a'
+}
+
+function badgeTextColor(alert) {
+  const hex = alert.colourHex
+  if (!hex || !hex.startsWith('#')) return '#fff'
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
 }
 
 function areaLabel(alert) {
@@ -135,7 +159,7 @@ onUnmounted(() => clearInterval(refreshTimer))
   display:        flex;
   flex-direction: column;
   gap:            0.5rem;
-  padding:        1rem;
+  padding: 10px 12px;
 }
 
 /* Loading skeletons */
@@ -147,7 +171,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 .warnings-skeleton {
   height:        1.1rem;
   border-radius: 0.4rem;
-  background:    rgba(255,255,255,0.08);
+  background:    var(--card-border);
   animation:     pulse 1.4s ease-in-out infinite;
 }
 .warnings-skeleton--short { width: 55%; }
@@ -175,7 +199,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 .warnings-retry-btn {
   margin-left:      auto;
   padding:          0.2rem 0.6rem;
-  border:           1px solid rgba(255,255,255,0.2);
+  border:           1px solid var(--btn-border);
   border-radius:    0.4rem;
   background:       transparent;
   color:            inherit;
@@ -189,7 +213,8 @@ onUnmounted(() => clearInterval(refreshTimer))
   gap:         0.75rem;
   align-items: flex-start;
   padding:     0.5rem 0;
-  border-top:  1px solid rgba(255,255,255,0.07);
+  border-top:  1px solid var(--row-border);
+  cursor:      pointer;
 }
 .warning-row:first-child { border-top: none; }
 
@@ -218,5 +243,13 @@ onUnmounted(() => clearInterval(refreshTimer))
   font-size:  0.78rem;
   opacity:    0.6;
   margin-top: 0.2rem;
+}
+
+.warning-chevron {
+  flex-shrink: 0;
+  font-size:   1rem;
+  opacity:     0.3;
+  align-self:  center;
+  margin-left: 0.25rem;
 }
 </style>

@@ -1,21 +1,34 @@
 <template>
   <!-- Show when -->
-  <div class="setting-row">
+  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
     <div>
       <div class="setting-label">Show this card</div>
     </div>
   </div>
-  <div class="setting-row" style="padding-top: 0; border-bottom: none;">
+  <div class="setting-row" style="padding-top: 0.4rem;">
     <div class="unit-pill">
       <button :class="['unit-pill-opt', { active: warningsConfig.show === 'always' }]"      @click="warningsConfig.show = 'always'">Always</button>
-      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'active-only' }]" @click="warningsConfig.show = 'active-only'">Only when active</button>
+      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'active-only' }]" @click="warningsConfig.show = 'active-only'">If a warning exists</button>
+    </div>
+  </div>
+
+  <!-- Location filter -->
+  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
+    <div>
+      <div class="setting-label">Show warnings for</div>
+    </div>
+  </div>
+  <div class="setting-row" style="padding-top: 0.4rem;">
+    <div class="unit-pill">
+      <button :class="['unit-pill-opt', { active: (warningsConfig.locationFilter ?? 'location') === 'location' }]" @click="warningsConfig.locationFilter = 'location'">Selected location</button>
+      <button :class="['unit-pill-opt', { active: warningsConfig.locationFilter === 'all' }]"                      @click="warningsConfig.locationFilter = 'all'">Everywhere</button>
     </div>
   </div>
 
   <!-- Feed / country override -->
-  <div class="setting-row" style="border-bottom: none;">
+  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
     <div>
-      <div class="setting-label">Feed</div>
+      <div class="setting-label">Source</div>
       <div class="setting-hint">
         <template v-if="!showCustomUrl">
           {{ autoLabel }}
@@ -26,7 +39,7 @@
       </div>
     </div>
   </div>
-  <div class="setting-row setting-row--col" style="padding-top: 0; border-bottom: none;">
+  <div class="setting-row setting-row--col" style="padding-top: 0.4rem; border-bottom: none;">
     <div class="unit-pill feed-pill">
       <button
         v-for="opt in feedOptions"

@@ -6,7 +6,7 @@
 // To add a new country: add an entry with { name, rssUrl } and wire up the feed URL.
 export const CAP_FEEDS = {
   'New Zealand': {
-    name:   'MetService',
+    name:   'MetService NZ',
     rssUrl: 'https://alerts.metservice.com/cap/rss',
   },
   // 'Australia': { name: 'Bureau of Meteorology', rssUrl: '' },   // TODO: find BoM CAP RSS URL
@@ -106,6 +106,7 @@ function parseCapItem(item) {
 
   return {
     id:          capText(item, 'identifier') || getTagText(item, 'guid'),
+    link:        getTagText(item, 'link'),
     event:       capText(item, 'event'),
     headline:    capText(item, 'headline') || getTagText(item, 'title'),
     description: capText(item, 'description') || getTagText(item, 'description'),
@@ -171,6 +172,16 @@ export async function fetchAlerts(country, feedOverride = null) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const xml = await res.text()
     const alerts = parseCapRss(xml)
+
+    // The RSS items contain no polygon data — fetch each alert's full CAP XML
+    // in parallel to populate area polygons (used for location filtering).
+    await Promise.all(alerts.map(async (alert) => {
+      if (!alert.link) return
+      const detail = await fetchAlertDetail(alert.link)
+      if (detail.areas?.length) alert.areas = detail.areas
+      if (detail.parameters?.ColourCodeHex) alert.colourHex = detail.parameters.ColourCodeHex
+    }))
+
     cache.set(raw, { alerts, fetchedAt: Date.now() })
     return { alerts, error: null }
   } catch (err) {
@@ -186,4 +197,77 @@ export async function fetchAlerts(country, feedOverride = null) {
 export function clearAlertsCache(url = null) {
   if (url) cache.delete(url)
   else cache.clear()
+}
+
+// ── Full alert detail ─────────────────────────────────────────────────────────
+
+const detailCache = new Map()
+
+/**
+ * Fetch the full CAP XML for a single alert by its detail URL.
+ * Returns { instruction, web, parameters } — fields not available in the RSS feed.
+ */
+export async function fetchAlertDetail(rawUrl) {
+  if (!rawUrl) return { areas: [], areaDesc: null, onset: null, expires: null, description: null, instruction: null, web: null, parameters: {} }
+
+  const cached = detailCache.get(rawUrl)
+  if (cached) return cached
+
+  try {
+    const proxied = applyProxy(rawUrl)
+    const res = await fetch(proxied)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const xml = await res.text()
+
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(xml, 'application/xml')
+    const capNS = 'urn:oasis:names:tc:emergency:cap:1.2'
+
+    function elText(parent, tagName) {
+      return (parent.getElementsByTagNameNS(capNS, tagName)[0]
+        ?? parent.querySelector(tagName))?.textContent.trim() ?? null
+    }
+
+    // Parse <parameter> key/value pairs (MetService: ColourCode, ColourCodeHex, ChanceOfUpgrade, NextUpdate)
+    const paramEls = [
+      ...Array.from(doc.getElementsByTagNameNS(capNS, 'parameter')),
+      ...Array.from(doc.querySelectorAll('parameter')),
+    ]
+    const seen = new Set()
+    const parameters = {}
+    for (const el of paramEls) {
+      const name  = elText(el, 'valueName')
+      const value = elText(el, 'value')
+      if (name && !seen.has(name)) { parameters[name] = value; seen.add(name) }
+    }
+
+    // Parse <area> elements — prefer namespace-aware search to avoid duplicates
+    const nsAreaEls = Array.from(doc.getElementsByTagNameNS(capNS, 'area'))
+    const areaEls   = nsAreaEls.length > 0 ? nsAreaEls : Array.from(doc.querySelectorAll('area'))
+
+    const areas = areaEls.map(areaEl => {
+      const nsPolys = Array.from(areaEl.getElementsByTagNameNS(capNS, 'polygon'))
+      const polyEls = nsPolys.length > 0 ? nsPolys : Array.from(areaEl.querySelectorAll('polygon'))
+      const polygons = polyEls
+        .map(p => parsePolygon(p.textContent))
+        .filter(p => p.length >= 3)
+      return { desc: elText(areaEl, 'areaDesc'), polygons }
+    })
+
+    const detail = {
+      areas,
+      areaDesc:    areas.map(a => a.desc).filter(Boolean).join(', ') || null,
+      onset:       elText(doc, 'onset'),
+      expires:     elText(doc, 'expires'),
+      description: elText(doc, 'description'),
+      instruction: elText(doc, 'instruction'),
+      web:         elText(doc, 'web'),
+      parameters,
+    }
+
+    detailCache.set(rawUrl, detail)
+    return detail
+  } catch {
+    return { areas: [], areaDesc: null, onset: null, expires: null, description: null, instruction: null, web: null, parameters: {} }
+  }
 }
