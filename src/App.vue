@@ -213,6 +213,7 @@
     <SettingsPanel
       ref="settingsPanel"
       :is-open="settingsOpen"
+      :location-country="location?.country ?? null"
       @close="settingsOpen = false"
     />
 

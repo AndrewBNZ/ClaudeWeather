@@ -119,7 +119,7 @@
 
         <!-- Weather Warnings layout sub-panel -->
         <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'weatherWarnings' }">
-          <WeatherWarningsSettings />
+          <WeatherWarningsSettings :location-country="props.locationCountry" />
         </div>
 
         <!-- Data tab -->
@@ -229,7 +229,10 @@ import ForecastModelModal  from './settings/ForecastModelModal.vue'
 import PwsKeyModal         from './settings/PwsKeyModal.vue'
 import TempestTokenModal   from './settings/TempestTokenModal.vue'
 
-const props = defineProps({ isOpen: Boolean })
+const props = defineProps({
+  isOpen:          Boolean,
+  locationCountry: { type: String, default: null },
+})
 defineEmits(['close'])
 defineExpose({
   openUnitsModal:     () => { unitsModalOpen.value = true },

@@ -12,12 +12,13 @@
       </div>
 
       <!-- Area -->
-      <div v-if="displayArea" class="ww-modal-area">📍{{ displayArea }}</div>
+      <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
 
       <!-- Timing -->
       <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
-        <span v-if="displayOnset">From {{ fmt(displayOnset) }}</span>
-        <span v-if="displayExpires">Until {{ fmt(displayExpires) }}</span>
+        <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
+        <span>-</span>
+        <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
       </div>
 
       <!-- Area map -->
@@ -63,6 +64,8 @@ import { fetchAlertDetail } from '../services/capAlerts.js'
 
 const props = defineProps({
   alert: { type: Object, required: true },
+  lat:   { type: Number, default: null },
+  lng:   { type: Number, default: null },
 })
 const emit = defineEmits(['close'])
 
@@ -109,14 +112,27 @@ function initMap() {
     allCoords.push(...polygon)
   })
 
+  leafletMap.invalidateSize()
   if (allCoords.length) {
     leafletMap.fitBounds(L.latLngBounds(allCoords), { padding: [12, 12] })
+  }
+
+  if (props.lat != null && props.lng != null) {
+    L.circleMarker([props.lat, props.lng], {
+      radius: 6,
+      color: '#ffffff',
+      fillColor: '#10b981',
+      fillOpacity: 1,
+      weight: 2,
+    }).addTo(leafletMap)
   }
 }
 
 onMounted(async () => {
   await nextTick()
-  initMap()
+  // Delay map init until after the slide-up transition finishes (300ms)
+  // to prevent Leaflet flickering while the container is mid-animation.
+  setTimeout(initMap, 310)
 
   if (!props.alert.link) return
   detailLoading.value = true
@@ -165,6 +181,28 @@ function colorTextColor(hex) {
 </script>
 
 <style scoped>
+/* Slide-up transition — overlay fades, sheet translates up */
+.ww-modal-enter-active {
+  transition: opacity 0.25s ease;
+}
+.ww-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.ww-modal-enter-from,
+.ww-modal-leave-to {
+  opacity: 0;
+}
+.ww-modal-enter-active .ww-modal,
+.ww-modal-leave-active .ww-modal {
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ww-modal-enter-from .ww-modal {
+  transform: translateY(40px);
+}
+.ww-modal-leave-to .ww-modal {
+  transform: translateY(40px);
+}
+
 .ww-modal-overlay {
   position:        fixed;
   inset:           0;
@@ -200,7 +238,7 @@ function colorTextColor(hex) {
 /* Header */
 .ww-modal-header {
   display:     flex;
-  align-items: flex-start;
+  align-items: center;
   gap:         0.6rem;
 }
 
@@ -214,7 +252,6 @@ function colorTextColor(hex) {
   letter-spacing: 0.03em;
   color:          #fff;
   line-height:    1.5;
-  margin-top:     0.1rem;
 }
 
 .ww-modal-title {
@@ -237,7 +274,7 @@ function colorTextColor(hex) {
 
 /* Area */
 .ww-modal-area {
-  font-size:   0.82rem;
+  font-size:   0.85rem;
   font-weight: 600;
   opacity:     0.75;
 }
@@ -247,7 +284,7 @@ function colorTextColor(hex) {
   display:   flex;
   flex-wrap: wrap;
   gap:       0.25rem 0.75rem;
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   opacity:   0.6;
 }
 
@@ -275,7 +312,7 @@ function colorTextColor(hex) {
 
 /* Body sections */
 .ww-modal-section {
-  font-size:   0.88rem;
+  font-size:   0.85rem;
   line-height: 1.55;
   opacity:     0.85;
   margin:      0;
@@ -319,14 +356,14 @@ function colorTextColor(hex) {
 
 /* Next update */
 .ww-modal-next-update {
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   opacity:   0.45;
 }
 
 /* External link */
 .ww-modal-link {
   display:     inline-block;
-  font-size:   0.8rem;
+  font-size:   0.85rem;
   color:       var(--text-muted);
   text-decoration: none;
 }

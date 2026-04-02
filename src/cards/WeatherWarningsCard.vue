@@ -54,11 +54,15 @@
 
   <!-- Detail modal -->
   <Teleport to="body">
-    <WeatherWarningModal
-      v-if="selectedAlert"
-      :alert="selectedAlert"
-      @close="selectedAlert = null"
-    />
+    <Transition name="ww-modal">
+      <WeatherWarningModal
+        v-if="selectedAlert"
+        :alert="selectedAlert"
+        :lat="props.lat"
+        :lng="props.lng"
+        @close="selectedAlert = null"
+      />
+    </Transition>
   </Teleport>
 </template>
 
@@ -247,7 +251,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 
 .warning-chevron {
   flex-shrink: 0;
-  font-size:   1rem;
+  font-size:   1.5rem;
   opacity:     0.3;
   align-self:  center;
   margin-left: 0.25rem;
