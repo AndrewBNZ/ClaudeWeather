@@ -1,34 +1,51 @@
 # ClaudeWeather — Project Instructions
 
-## Kanban Workflow
+## Stack
 
-Issues are tracked on the [GitHub Project board](https://github.com/users/AndrewBNZ/projects/1).
+- **Vue 3 + Vite** — no UI framework, custom CSS only
+- **Chart.js** — hourly/daily charts
+- **Leaflet** — radar map
+- **PWA** — vite-plugin-pwa
+- **APIs:** Open-Meteo (forecast, no key), Open-Meteo geocoding, CAP alerts (weather warnings), WeatherLink PWS, Tempest
 
-### Shorthands
+## Dev Commands
 
-| Command | Action |
-|---------|--------|
-| `/next` | Check the board, pick up the next Ready issue |
-| `/next #N` | Pick up a specific issue by number |
-| `/rework #N <feedback>` | Send issue #N back to In Progress and rework based on feedback |
-| `/done #N` | Merge branch to main, move to Done, close issue #N |
+```
+npm run dev      # dev server → http://localhost:5173
+npm run build    # production build
+npm run preview  # preview production build
+```
 
-### Issue Workflow
+Node/npm are not on the bash PATH — use full paths from memory if running via shell.
 
-1. Pick up issue → create branch `issue-{N}/{short-description}`, move to **In Progress**
-2. Do the work, commit on the branch
-3. Move to **Review**, hand off to user
-4. User says `/done #N` → merge to main, move to **Done**, close issue
-5. User syncs to GitHub via VS Code
+## Key Files
 
-## GitHub
+| File | Responsibility |
+|------|---------------|
+| `src/App.vue` | Root state, location, units, card layout orchestration |
+| `src/config.js` | App name + localStorage key prefix |
+| `src/composables/useSettings.js` | All persistent settings (units, tiles, cards, sim, theme, etc.) |
+| `src/utils/dataTypes.js` | `DATA_TYPES` config + `DATA_TYPE_LIST`, `getDailyHumidityFromHourly` |
+| `src/utils/tileIcons.js` | `TILE_ICONS` — canonical SVG icon set, keyed by data type ID |
+| `src/utils/weatherCodes.js` | WMO code → label, `getCompassDir` |
+| `src/utils/moonPhase.js` | Moon phase calculation |
+| `src/cards/cardRegistry.js` | Async card component map |
+| `src/cards/cardSettingsRegistry.js` | Card-specific settings component map |
+| `src/services/weatherApi.js` | Open-Meteo forecast fetch |
+| `src/services/adapters/openMeteo.js` | Response normalisation |
+| `src/services/geocoding.js` | `searchLocations`, `formatLocationName`, `reverseGeocode` |
+| `src/services/capAlerts.js` | CAP weather warnings fetch + parse |
+| `src/services/pwsApi.js` | WeatherLink PWS integration |
+| `src/services/tempestApi.js` / `tempestWs.js` | Tempest station REST + WebSocket |
 
-- Repo: `AndrewBNZ/ClaudeWeather`
-- Project ID: `PVT_kwHOABJzRs4BSLqi`
-- Status field ID: `PVTSSF_lAHOABJzRs4BSLqizg_yrUg`
-- Status options:
-  - Backlog: `4a1ecb1e`
-  - Ready: `433f5635`
-  - In Progress: `b4cc7a92`
-  - Review: `fc23becb`
-  - Done: `de039c60`
+## Design Rules
+
+- **No UI framework** — all styling is custom CSS with a dark glassmorphism theme
+- **SVG icons only** — use `TILE_ICONS` from `tileIcons.js` via `v-html`. Do not add emoji icon fields to `DATA_TYPES`
+- **Settings panel order** — when adding new rows to the settings panel, insert above the Weather Simulator row. Weather Simulator is always second-to-last; Reset is always last
+
+## API Notes
+
+- Open-Meteo is free with no API key required
+- User is in New Zealand — Open-Meteo can underestimate temperature due to elevation mismatch; consider `cell_selection=nearest` when relevant
+- localStorage keys are prefixed with `claudeweather-` (via `APP_STORAGE_PREFIX`)

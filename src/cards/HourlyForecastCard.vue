@@ -292,8 +292,8 @@ function barFillStyle(i) {
     const heightPct = v != null ? ((v - min) / range) * 100 : 2
     return { top: `${100 - Math.max(heightPct, 2)}%`, height: `${Math.max(heightPct, 2)}%`, background: bg }
   } else {
-    const heightPct = v != null ? (v / (barMax.value || 1)) * 100 : 2
-    return { top: `${100 - Math.max(heightPct, 2)}%`, height: `${Math.max(heightPct, 2)}%`, background: bg }
+    const heightPct = v != null ? (v / (barMax.value || 1)) * 100 : 0
+    return { bottom: '0', top: 'auto', height: `${heightPct}%`, background: bg }
   }
 }
 
@@ -545,6 +545,7 @@ watch(() => props.selectedDay, (d) => {
   height: 75px;
   background: var(--card-border);
   border-radius: 6px;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -554,7 +555,7 @@ watch(() => props.selectedDay, (d) => {
   right: 0;
   border-radius: 6px;
   min-height: 4px;
-  transition: top 0.3s ease, height 0.3s ease;
+  transition: top 0.3s ease, bottom 0.3s ease, height 0.3s ease;
 }
 
 .hf-val-label {

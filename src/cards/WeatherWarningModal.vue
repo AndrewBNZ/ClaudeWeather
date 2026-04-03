@@ -5,52 +5,65 @@
       <!-- Header -->
       <div class="ww-modal-header">
         <div class="ww-modal-badge" :style="{ background: alertColor(alert), color: colorTextColor(alertColor(alert)) }">
-          {{ alert.severity || 'Alert' }}
+          <template v-if="alert.severity && alert.severity !== 'Alert'">{{ alert.severity }}</template>
+          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+          </svg>
         </div>
         <div class="ww-modal-title">{{ alert.headline || alert.event }}</div>
         <button class="ww-modal-close" @click="emit('close')">✕</button>
       </div>
 
-      <!-- Area -->
-      <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
+      <!-- Scrollable body -->
+      <div class="ww-modal-body">
 
-      <!-- Timing -->
-      <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
-        <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
-        <span>-</span>
-        <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
-      </div>
+        <!-- Area -->
+        <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
 
-      <!-- Area map -->
-      <div v-if="hasPolygons" ref="mapEl" class="ww-modal-map" />
-
-      <!-- Loading detail -->
-      <div v-if="detailLoading" class="ww-modal-loading">
-        <div class="ww-skeleton" />
-        <div class="ww-skeleton ww-skeleton--short" />
-        <div class="ww-skeleton" />
-      </div>
-
-      <template v-else>
-        <!-- Description -->
-        <p v-if="displayDescription" class="ww-modal-section">{{ displayDescription }}</p>
-
-        <!-- Instruction -->
-        <div v-if="detail.instruction" class="ww-modal-instruction">
-          <div class="ww-instruction-label">What to do</div>
-          <p>{{ detail.instruction }}</p>
+        <!-- Timing -->
+        <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
+          <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
+          <span>-</span>
+          <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
         </div>
 
-        <!-- Next update -->
-        <div v-if="detail.parameters?.NextUpdate" class="ww-modal-next-update">
-          Next update {{ fmt(detail.parameters.NextUpdate) }}
+        <!-- Area map -->
+        <div v-if="hasPolygons" ref="mapEl" class="ww-modal-map" />
+
+        <!-- Loading detail -->
+        <div v-if="detailLoading" class="ww-modal-loading">
+          <div class="ww-skeleton" />
+          <div class="ww-skeleton ww-skeleton--short" />
+          <div class="ww-skeleton" />
         </div>
 
-        <!-- External link -->
-        <a v-if="detail.web" :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">
-          Full details ↗
-        </a>
-      </template>
+        <template v-else>
+          <!-- Description -->
+          <p v-if="displayDescription" class="ww-modal-section">{{ displayDescription }}</p>
+
+          <!-- Instruction -->
+          <div v-if="detail.instruction" class="ww-modal-instruction">
+            <div class="ww-instruction-label">What to do</div>
+            <p>{{ detail.instruction }}</p>
+          </div>
+
+          <!-- Issued -->
+          <div v-if="displayEffective" class="ww-modal-next-update">
+            Issued {{ fmt(displayEffective) }}
+          </div>
+
+          <!-- Next update -->
+          <div v-if="detail.parameters?.NextUpdate" class="ww-modal-next-update">
+            Next update {{ fmt(detail.parameters.NextUpdate) }}
+          </div>
+
+          <!-- External link -->
+          <a v-if="detail.web" :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">
+            Full details ↗
+          </a>
+        </template>
+
+      </div>
 
     </div>
   </div>
@@ -69,7 +82,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
-const detail        = ref({ instruction: null, web: null, parameters: {} })
+const detail        = ref({ instruction: null, web: null, parameters: {}, sent: null, effective: null })
 const detailLoading = ref(false)
 
 // ── Map ───────────────────────────────────────────────────────────────────────
@@ -147,6 +160,7 @@ onUnmounted(() => {
 
 // Prefer values from the full CAP detail; fall back to RSS-parsed alert fields
 const displayArea        = computed(() => detail.value.areaDesc        ?? (props.alert.areas.map(a => a.desc).filter(Boolean).join(', ') || null))
+const displayEffective   = computed(() => detail.value.sent ?? props.alert.pubDate ?? null)
 const displayOnset       = computed(() => detail.value.onset           ?? props.alert.onset       ?? null)
 const displayExpires     = computed(() => detail.value.expires         ?? props.alert.expires     ?? null)
 const displayDescription = computed(() => detail.value.description     ?? props.alert.description ?? null)
@@ -226,13 +240,31 @@ function colorTextColor(hex) {
   width:         100%;
   max-width:     480px;
   max-height:    85dvh;
+  overflow:      hidden;
+  padding:       1.25rem 1.25rem 0;
+  display:       flex;
+  flex-direction: column;
+  gap:            0;
+  box-shadow:    var(--shadow);
+  border-top:    3px solid var(--severity-color);
+}
+
+.ww-modal-body {
   overflow-y:    auto;
-  padding:       1.25rem;
   display:       flex;
   flex-direction: column;
   gap:            0.85rem;
-  box-shadow:    var(--shadow);
-  border-top:    3px solid var(--severity-color);
+  padding-bottom: 1.25rem;
+  margin-top:    0.85rem;
+}
+
+@media (pointer: coarse) {
+  .ww-modal-body {
+    scrollbar-width: none;
+  }
+  .ww-modal-body::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Header */
@@ -291,6 +323,8 @@ function colorTextColor(hex) {
 /* Area map */
 .ww-modal-map {
   height:        180px;
+  min-height:    180px;
+  flex-shrink:   0;
   border-radius: 0.5rem;
   overflow:      hidden;
   border:        1px solid var(--card-border);

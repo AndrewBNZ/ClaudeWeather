@@ -116,6 +116,7 @@ function parseCapItem(item) {
     expires:     capText(item, 'expires'),
     onset:       capText(item, 'onset'),
     effective:   capText(item, 'effective'),
+    pubDate:     getTagText(item, 'pubDate'),
     areas,
   }
 }
@@ -257,6 +258,8 @@ export async function fetchAlertDetail(rawUrl) {
     const detail = {
       areas,
       areaDesc:    areas.map(a => a.desc).filter(Boolean).join(', ') || null,
+      sent:        elText(doc, 'sent'),
+      effective:   elText(doc, 'effective'),
       onset:       elText(doc, 'onset'),
       expires:     elText(doc, 'expires'),
       description: elText(doc, 'description'),
@@ -268,6 +271,6 @@ export async function fetchAlertDetail(rawUrl) {
     detailCache.set(rawUrl, detail)
     return detail
   } catch {
-    return { areas: [], areaDesc: null, onset: null, expires: null, description: null, instruction: null, web: null, parameters: {} }
+    return { areas: [], areaDesc: null, sent: null, effective: null, onset: null, expires: null, description: null, instruction: null, web: null, parameters: {} }
   }
 }

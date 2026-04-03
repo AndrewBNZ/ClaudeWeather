@@ -42,32 +42,25 @@
             <div class="day-lbl">{{ dayLabel(date) }}</div>
             <div v-if="layout.showConditions" class="wx-icon">{{ wxEmoji(i) }}</div>
 
-            <div class="temp-wrap" :class="{ 'temp-wrap-simple': !FLOATING_BAR_TYPES.has(activeDataPoint) }">
-              <!-- Floating bar types (temperature, feelsLike) -->
-              <template v-if="FLOATING_BAR_TYPES.has(activeDataPoint)">
-                <span class="t-hi">{{ fmtTemp(mainHi[i]) }}</span>
-                <div class="bar-track">
-                  <div class="bar-fill" :style="barStyle(i)" />
-                </div>
-                <span class="t-lo">{{ fmtTemp(mainLo[i]) }}</span>
-              </template>
-              <!-- Simple bottom-up bar (rain, wind, uv) -->
-              <template v-else>
-                <div v-if="activeDataPoint === 'wind'" class="t-hi t-wind-val">
-                  <span v-if="windDirs[i] != null" class="wind-dir-arrow">
-                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
-                         :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
-                      <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                      <polygon points="7,2 4,7 10,7" fill="currentColor"/>
-                    </svg>
-                  </span>
-                  <span>{{ fmtMainValue(i) }}</span>
-                </div>
-                <span v-else class="t-hi">{{ fmtMainValue(i) }}</span>
-                <div class="bar-track">
-                  <div class="bar-fill" :style="barStyleSimple(i)" />
-                </div>
-              </template>
+            <div class="temp-wrap">
+              <!-- Value above bar -->
+              <div v-if="activeDataPoint === 'wind'" class="t-hi t-wind-val">
+                <span v-if="windDirs[i] != null" class="wind-dir-arrow">
+                  <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                       :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
+                    <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                  </svg>
+                </span>
+                <span>{{ fmtMainValue(i) }}</span>
+              </div>
+              <span v-else class="t-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
+              <!-- Bar -->
+              <div class="bar-track">
+                <div class="bar-fill" :style="FLOATING_BAR_TYPES.has(activeDataPoint) ? barStyle(i) : barStyleSimple(i)" />
+              </div>
+              <!-- Low value — always rendered to keep flex layout consistent; hidden for non-range types -->
+              <span class="t-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
             </div>
 
             <div v-if="visibleOtherPoints.length" class="stats">
@@ -419,7 +412,8 @@ function barStyleSimple(i) {
   const maxVal    = globalMainMax.value || 1
   const heightPct = (val / maxVal) * 100
   return {
-    top:        `${100 - heightPct}%`,
+    bottom:     '0',
+    top:        'auto',
     height:     `${heightPct}%`,
     background: DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color,
   }
@@ -567,7 +561,7 @@ function barStyleSimple(i) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   width: 100%;
   height: var(--h-temp);
   flex-shrink: 0;
@@ -578,9 +572,6 @@ function barStyleSimple(i) {
   font-weight: 600;
   color: var(--text);
   line-height: 1.2;
-}
-.temp-wrap-simple {
-  justify-content: flex-start;
 }
 .t-wind-val {
   display: flex;
@@ -599,6 +590,7 @@ function barStyleSimple(i) {
   height: 75px;
   background: var(--card-border);
   border-radius: 6px;
+  overflow: hidden;
   margin: 3px 0;
   flex-shrink: 0;
 }

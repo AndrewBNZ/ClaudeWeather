@@ -34,7 +34,10 @@
         @click="selectedAlert = alert"
       >
         <div class="warning-badge" :style="{ background: alertColor(alert), color: badgeTextColor(alert) }">
-          {{ alert.severity || 'Alert' }}
+          <template v-if="alert.severity && alert.severity !== 'Alert'">{{ alert.severity }}</template>
+          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:block">
+            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+          </svg>
         </div>
         <div class="warning-body">
           <div class="warning-headline">{{ alert.headline || alert.event }}</div>
@@ -247,6 +250,12 @@ onUnmounted(() => clearInterval(refreshTimer))
   font-size:  0.78rem;
   opacity:    0.6;
   margin-top: 0.2rem;
+}
+
+.warning-area {
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
 }
 
 .warning-chevron {
