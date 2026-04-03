@@ -152,6 +152,7 @@ const props = defineProps({
   timeFormat:           { type: String, default: '12h' },
   hourlyForecastLayout: { type: Object, default: null },
   forecastDataPoint:    { type: String, default: null },
+  focusHour:            { type: Number, default: null },
 })
 
 const emit = defineEmits(['forecast-data-point', 'day-selected'])
@@ -427,6 +428,17 @@ watch(() => props.selectedDay, (d) => {
     if (!scrollEl.value) return
     const targetHour = d * 24
     const offset = Math.max(0, targetHour - displayStartIndex.value) * COL_WIDTH
+    programmaticScroll.value = true
+    scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })
+  })
+})
+
+// Scroll to a specific absolute hour (e.g. from Custom Alerts tap)
+watch(() => props.focusHour, (absHour) => {
+  if (absHour == null) return
+  nextTick(() => {
+    if (!scrollEl.value) return
+    const offset = Math.max(0, absHour - displayStartIndex.value) * COL_WIDTH
     programmaticScroll.value = true
     scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })
   })

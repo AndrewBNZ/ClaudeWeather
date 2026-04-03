@@ -40,12 +40,15 @@ const props = defineProps({
   forecastDataPoint:    { type: String,  default: null },
   warningsConfig:       { type: Object,  default: null },
   locationCountry:      { type: String,  default: null },
+  customAlertsConfig:   { type: Object,  default: null },
+  customAlertResults:   { type: Object,  default: null },
+  focusHour:            { type: Number,  default: null },
 })
 
 const emit = defineEmits([
   'select', 'grass-color', 'open-locations', 'open-settings',
   'open-data-types', 'open-model-modal', 'refresh', 'day-selected',
-  'open-card-settings', 'forecast-data-point',
+  'open-card-settings', 'forecast-data-point', 'scroll-to-hour', 'open-alert-editor',
 ])
 
 const cardComponent = computed(() => CARD_REGISTRY[props.cardType])
@@ -78,6 +81,9 @@ const cardProps = computed(() => ({
   forecastDataPoint:    props.forecastDataPoint,
   warningsConfig:       props.warningsConfig,
   locationCountry:      props.locationCountry,
+  customAlertsConfig:   props.customAlertsConfig,
+  customAlertResults:   props.customAlertResults,
+  focusHour:            props.focusHour,
 }))
 
 const cardEvents = computed(() => ({
@@ -90,6 +96,8 @@ const cardEvents = computed(() => ({
   refresh:          ()  => emit('refresh'),
   'day-selected':   (v) => emit('day-selected', v),
   'forecast-data-point': (v) => emit('forecast-data-point', v),
+  'scroll-to-hour':      (v) => emit('scroll-to-hour', v),
+  'open-alert-editor':   (v) => emit('open-alert-editor', v),
 }))
 
 // Long-press (touch) + right-click opens card settings when available

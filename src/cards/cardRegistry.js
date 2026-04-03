@@ -5,5 +5,6 @@ export const CARD_REGISTRY = {
   dailyForecast:   defineAsyncComponent(() => import('./DailyForecastCard.vue')),
   sunriseMoon:     defineAsyncComponent(() => import('./SunriseMoonCard.vue')),
   radar:           defineAsyncComponent(() => import('./RadarCard.vue')),
+  customAlerts:    defineAsyncComponent(() => import('./CustomAlertsCard.vue')),
   weatherWarnings: defineAsyncComponent(() => import('./WeatherWarningsCard.vue')),
 }

@@ -1,5 +1,5 @@
 <template>
-  <div class="setting-row">
+  <div class="setting-row" style="padding-top: 10px">
     <div>
       <div class="setting-label">Title</div>
     </div>

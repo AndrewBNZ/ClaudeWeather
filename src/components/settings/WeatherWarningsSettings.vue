@@ -1,6 +1,6 @@
 <template>
   <!-- Show when -->
-  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
+  <div class="setting-row" style="border-bottom: none; padding-bottom: 0; padding-top: 10px">
     <div>
       <div class="setting-label">Show this card</div>
     </div>

@@ -29,22 +29,21 @@
       <div
         v-for="alert in visibleAlerts"
         :key="alert.id"
-        class="warning-row"
-        :style="{ '--severity-color': alertColor(alert) }"
+        class="warning-tile"
+        :style="{
+          background: hexToRgba(alertColor(alert), 0.12),
+          borderLeftColor: alertColor(alert),
+        }"
         @click="selectedAlert = alert"
       >
-        <div class="warning-badge" :style="{ background: alertColor(alert), color: badgeTextColor(alert) }">
-          <template v-if="alert.severity && alert.severity !== 'Alert'">{{ alert.severity }}</template>
-          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:block">
-            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-          </svg>
-        </div>
-        <div class="warning-body">
+        <div class="warning-tile-top">
+          <svg class="warning-icon" :style="{ color: alertColor(alert) }" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
           <div class="warning-headline">{{ alert.headline || alert.event }}</div>
-          <div v-if="areaLabel(alert)" class="warning-area">{{ areaLabel(alert) }}</div>
-          <div v-if="alert.expires" class="warning-expires">Expires {{ formatExpiry(alert.expires) }}</div>
         </div>
-        <div class="warning-chevron">›</div>
+        <div class="warning-meta">
+          <span v-if="areaLabel(alert)" class="warning-meta-area">{{ areaLabel(alert) }}</span>
+          <span v-if="alert.expires" class="warning-meta-expires">Expires {{ formatExpiry(alert.expires) }}</span>
+        </div>
       </div>
     </template>
 
@@ -110,13 +109,12 @@ function alertColor(alert) {
   return alert.colourHex ?? SEVERITY_COLORS[(alert.severity ?? '').toLowerCase()] ?? '#546e7a'
 }
 
-function badgeTextColor(alert) {
-  const hex = alert.colourHex
-  if (!hex || !hex.startsWith('#')) return '#fff'
+function hexToRgba(hex, alpha) {
+  if (!hex || !hex.startsWith('#')) return `rgba(84,110,122,${alpha})`
   const r = parseInt(hex.slice(1, 3), 16)
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
-  return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
+  return `rgba(${r},${g},${b},${alpha})`
 }
 
 function areaLabel(alert) {
@@ -163,10 +161,18 @@ onUnmounted(() => clearInterval(refreshTimer))
 
 <style scoped>
 .warnings-card {
-  display:        flex;
-  flex-direction: column;
-  gap:            0.5rem;
-  padding: 10px 12px;
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   0.35rem;
+  padding:               10px 12px;
+}
+
+/* Full-width states inside the grid */
+.warnings-loading,
+.warnings-error,
+.warnings-no-feed,
+.warnings-none {
+  grid-column: 1 / -1;
 }
 
 /* Loading skeletons */
@@ -214,55 +220,58 @@ onUnmounted(() => clearInterval(refreshTimer))
   cursor:           pointer;
 }
 
-/* Alert rows */
-.warning-row {
+/* Alert tiles */
+.warning-tile {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.2rem;
+  padding:        0.5rem 0.65rem;
+  border-radius:  0.5rem;
+  border-left:    3px solid transparent;
+  cursor:         pointer;
+  transition:     opacity 0.15s;
+  min-width:      0;
+}
+.warning-tile:active { opacity: 0.7; }
+
+.warning-tile-top {
   display:     flex;
-  gap:         0.75rem;
-  align-items: flex-start;
-  padding:     0.5rem 0;
-  border-top:  1px solid var(--row-border);
-  cursor:      pointer;
-}
-.warning-row:first-child { border-top: none; }
-
-.warning-badge {
-  flex-shrink:   0;
-  padding:       0.2rem 0.5rem;
-  border-radius: 0.35rem;
-  font-size:     0.7rem;
-  font-weight:   700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color:         #fff;
-  line-height:   1.4;
+  align-items: center;
+  gap:         0.35rem;
+  min-width:   0;
 }
 
-.warning-body { flex: 1; min-width: 0; }
+.warning-icon {
+  flex-shrink: 0;
+}
 
 .warning-headline {
-  font-size:   0.9rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.warning-area,
-.warning-expires {
-  font-size:  0.78rem;
-  opacity:    0.6;
-  margin-top: 0.2rem;
-}
-
-.warning-area {
+  font-size:     0.82rem;
+  font-weight:   600;
+  line-height:   1.3;
   white-space:   nowrap;
   overflow:      hidden;
   text-overflow: ellipsis;
 }
 
-.warning-chevron {
+.warning-meta {
+  display:    flex;
+  gap:        0 0.4rem;
+  font-size:  0.7rem;
+  opacity:    0.6;
+  min-width:  0;
+}
+
+.warning-meta-area {
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  flex-shrink:   1;
+  min-width:     0;
+}
+
+.warning-meta-expires {
+  white-space: nowrap;
   flex-shrink: 0;
-  font-size:   1.5rem;
-  opacity:     0.3;
-  align-self:  center;
-  margin-left: 0.25rem;
 }
 </style>

@@ -183,6 +183,9 @@
                 :daily-forecast-layout="dailyForecastLayout"
                 :hourly-forecast-layout="hourlyForecastLayout"
                 :warnings-config="warningsConfig"
+                :custom-alerts-config="customAlertsConfig"
+                :custom-alert-results="customAlertResults"
+                :focus-hour="focusHour"
                 :location-country="location?.country ?? null"
                 :forecast-data-point="forecastDataPoint"
                 @select="activeDataType = $event"
@@ -191,6 +194,8 @@
                 @open-data-types="settingsPanel?.openDataTypesModal()"
                 @open-model-modal="settingsPanel?.openModelModal()"
                 @refresh="loadWeather(false, true)"
+                @scroll-to-hour="onScrollToHour"
+                @open-alert-editor="onOpenAlertEditor"
                 @open-card-settings="cardSettingsType = $event"
               />
             </div>
@@ -221,8 +226,8 @@
       <CardSettingsSheet
         v-if="cardSettingsType"
         :card-type="cardSettingsType"
-        :extra-props="{ locationCountry: location?.country ?? null }"
-        @close="cardSettingsType = null"
+        :extra-props="{ locationCountry: location?.country ?? null, editAlertId: editAlertId }"
+        @close="cardSettingsType = null; editAlertId = null"
       />
     </transition>
 
@@ -277,6 +282,7 @@ import TutorialGuide     from './components/TutorialGuide.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
 import CardSettingsSheet from './components/CardSettingsSheet.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
+import { evaluateCustomAlerts } from './services/customAlertEvaluator.js'
 import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
 import { getPwsObservations }                        from './services/pwsApi.js'
 import { connectTempest, disconnectTempest, tempestData } from './services/tempestWs.js'
@@ -290,11 +296,32 @@ const {
   timeFormat, showSim,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
   dailyForecastLayout, hourlyForecastLayout, warningsConfig,
+  customAlertsConfig, customAlerts,
 } = useSettings()
 
 // ── Card stack ────────────────────────────────────────────────────────────────
 const enabledCards      = computed(() => cardConfig.value.filter(c => c.enabled))
+const customAlertResults = computed(() => {
+  if (!weatherData.value?.hourly || !customAlerts.value?.length) return new Map()
+  return evaluateCustomAlerts(customAlerts.value, weatherData.value.hourly)
+})
 const cardSettingsType  = ref(null)
+const editAlertId       = ref(null)
+const focusHour         = ref(null)
+
+function onOpenAlertEditor(alertId) {
+  editAlertId.value = alertId
+  cardSettingsType.value = 'customAlerts'
+}
+
+function onScrollToHour({ date, hour }) {
+  const daily = weatherData.value?.daily
+  if (!daily?.time) return
+  const dayIndex = daily.time.indexOf(date)
+  if (dayIndex === -1) return
+  selectedDay.value = dayIndex
+  focusHour.value = dayIndex * 24 + hour
+}
 
 // ── Sim panel state (moved from CurrentConditions) ────────────────────────────
 const simTimeOfDays = [
