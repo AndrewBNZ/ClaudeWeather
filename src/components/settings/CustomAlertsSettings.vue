@@ -27,18 +27,17 @@
           <div v-if="!customAlerts.length" class="alerts-empty-hint">
             No alerts yet — tap Add Alert to create one.
           </div>
-          <div v-for="(alert, i) in customAlerts" :key="alert.id" class="alert-list-row">
+          <div v-for="(alert, i) in customAlerts" :key="alert.id" class="alert-list-row" @click="openEditor(i)">
             <span class="alert-list-dot" :style="{ background: alert.color }" />
             <span class="alert-list-title">{{ alert.title || 'Untitled' }}</span>
             <div class="alert-list-actions">
               <button
                 class="toggle-switch"
                 :class="{ on: alert.enabled }"
-                @click="toggleAlertEnabled(i)"
+                @click.stop="toggleAlertEnabled(i)"
                 :title="alert.enabled ? 'Disable alert' : 'Enable alert'"
               ><span class="toggle-thumb" /></button>
-              <button class="setting-action-btn" @click="openEditor(i)">Edit →</button>
-              <button class="alert-delete-btn" @click="deleteAlert(i)" title="Delete alert">
+              <button class="alert-delete-btn" @click.stop="deleteAlert(i)" title="Delete alert">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -46,6 +45,7 @@
                   <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
               </button>
+              <svg class="alert-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
           </div>
         </div>
@@ -60,13 +60,6 @@
 
       <!-- ── PAGE: Editor ── -->
       <div class="alerts-page alerts-page--editor">
-        <div class="editor-save-row">
-          <button
-            class="setting-action-btn"
-            @click="saveAlert"
-            :disabled="!editingAlert.title?.trim()"
-          >Save</button>
-        </div>
 
         <!-- Title / colour / enabled -->
         <div class="settings-group">
@@ -104,164 +97,168 @@
 
         <!-- ── Criteria ── -->
         <div class="criteria-section-label">Criteria</div>
-        <div class="criteria-hint">Only enabled criteria are evaluated. An alert fires when all enabled criteria match.</div>
+        <div class="criteria-hint">An alert fires when all enabled criteria match.</div>
 
-        <!-- Days of week -->
-        <div class="criterion-block" v-if="editingAlert.daysOfWeek">
-          <div class="criterion-header">
-            <span class="setting-label">Days of week</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.daysOfWeek.enabled }"
-              @click="editingAlert.daysOfWeek.enabled = !editingAlert.daysOfWeek.enabled"
-            ><span class="toggle-thumb" /></button>
-          </div>
-          <div v-if="editingAlert.daysOfWeek.enabled" class="criterion-body">
-            <div class="day-pills">
+        <div class="settings-group" style="margin-top: 0.75rem">
+
+          <!-- Days of week -->
+          <div v-if="editingAlert.daysOfWeek" class="setting-row" :class="{ 'setting-row--col': editingAlert.daysOfWeek.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Days of week</span>
               <button
-                v-for="(label, idx) in DAY_LABELS"
-                :key="idx"
-                :class="['day-pill', { active: editingAlert.daysOfWeek.days.includes(idx) }]"
-                @click="toggleDay(idx)"
-              >{{ label }}</button>
+                class="toggle-switch"
+                :class="{ on: editingAlert.daysOfWeek.enabled }"
+                @click="editingAlert.daysOfWeek.enabled = !editingAlert.daysOfWeek.enabled"
+              ><span class="toggle-thumb" /></button>
             </div>
-          </div>
-        </div>
-
-        <!-- Between hours -->
-        <div class="criterion-block" v-if="editingAlert.betweenHours">
-          <div class="criterion-header">
-            <span class="setting-label">Between hours</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.betweenHours.enabled }"
-              @click="editingAlert.betweenHours.enabled = !editingAlert.betweenHours.enabled"
-            ><span class="toggle-thumb" /></button>
-          </div>
-          <div v-if="editingAlert.betweenHours.enabled" class="criterion-body">
-            <RangeSlider
-              :low="editingAlert.betweenHours.from ?? 0"
-              :high="editingAlert.betweenHours.to ?? 23"
-              :min="0" :max="23" :step="1"
-              :format="formatHourLabel"
-              @update:low="v => editingAlert.betweenHours.from = v ?? 0"
-              @update:high="v => editingAlert.betweenHours.to = v ?? 23"
-            />
-          </div>
-        </div>
-
-        <!-- Temperature -->
-        <div class="criterion-block" v-if="editingAlert.temperature">
-          <div class="criterion-header">
-            <span class="setting-label">Temperature</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.temperature.enabled }"
-              @click="editingAlert.temperature.enabled = !editingAlert.temperature.enabled"
-            ><span class="toggle-thumb" /></button>
-          </div>
-          <div v-if="editingAlert.temperature.enabled" class="criterion-body">
-            <RangeSlider
-              :low="editingAlert.temperature.min"
-              :high="editingAlert.temperature.max"
-              :min="tempRange.min" :max="tempRange.max" :step="1"
-              :unit="tempUnit"
-              @update:low="v => editingAlert.temperature.min = v"
-              @update:high="v => editingAlert.temperature.max = v"
-            />
-          </div>
-        </div>
-
-        <!-- Rain -->
-        <div class="criterion-block" v-if="editingAlert.rain">
-          <div class="criterion-header">
-            <span class="setting-label">Rain</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.rain.enabled }"
-              @click="editingAlert.rain.enabled = !editingAlert.rain.enabled"
-            ><span class="toggle-thumb" /></button>
-          </div>
-          <div v-if="editingAlert.rain.enabled" class="criterion-body">
-            <div class="criterion-sub-label">Probability (%)</div>
-            <RangeSlider
-              :low="editingAlert.rain.probMin"
-              :high="editingAlert.rain.probMax"
-              :min="0" :max="100" :step="5"
-              unit="%"
-              @update:low="v => editingAlert.rain.probMin = v"
-              @update:high="v => editingAlert.rain.probMax = v"
-            />
-            <div class="criterion-sub-label" style="margin-top: 0.6rem">Amount (mm)</div>
-            <RangeSlider
-              :low="editingAlert.rain.amountMin"
-              :high="editingAlert.rain.amountMax"
-              :min="0" :max="50" :step="1"
-              unit="mm"
-              @update:low="v => editingAlert.rain.amountMin = v"
-              @update:high="v => editingAlert.rain.amountMax = v"
-            />
-          </div>
-        </div>
-
-        <!-- Wind -->
-        <div class="criterion-block" v-if="editingAlert.wind">
-          <div class="criterion-header">
-            <span class="setting-label">Wind</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.wind.enabled }"
-              @click="editingAlert.wind.enabled = !editingAlert.wind.enabled"
-            ><span class="toggle-thumb" /></button>
-          </div>
-          <div v-if="editingAlert.wind.enabled" class="criterion-body">
-            <div class="criterion-sub-label">Speed ({{ windUnit }})</div>
-            <RangeSlider
-              :low="editingAlert.wind.speedMin"
-              :high="editingAlert.wind.speedMax"
-              :min="0" :max="windRange" :step="1"
-              :unit="` ${windUnit}`"
-              @update:low="v => editingAlert.wind.speedMin = v"
-              @update:high="v => editingAlert.wind.speedMax = v"
-            />
-            <div class="criterion-sub-label" style="margin-top: 0.6rem">Direction</div>
-            <div class="compass-wrap">
-              <div class="compass-rose">
+            <div v-if="editingAlert.daysOfWeek.enabled" class="criterion-body">
+              <div class="day-pills">
                 <button
-                  v-for="dir in COMPASS_DIRS"
-                  :key="dir"
-                  :class="['compass-btn', `compass-btn--${dir.toLowerCase()}`, { active: editingAlert.wind.directions?.includes(dir) }]"
-                  @click="toggleWindDir(dir)"
-                >{{ dir }}</button>
-                <button
-                  :class="['compass-any', { active: !editingAlert.wind.directions?.length }]"
-                  @click="editingAlert.wind.directions = []"
-                >Any</button>
+                  v-for="(label, idx) in DAY_LABELS"
+                  :key="idx"
+                  :class="['day-pill', { active: editingAlert.daysOfWeek.days.includes(idx) }]"
+                  @click="toggleDay(idx)"
+                >{{ label }}</button>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Cloud cover -->
-        <div class="criterion-block" v-if="editingAlert.cloudCover" style="border-bottom: none">
-          <div class="criterion-header">
-            <span class="setting-label">Cloud cover</span>
-            <button
-              class="toggle-switch"
-              :class="{ on: editingAlert.cloudCover.enabled }"
-              @click="editingAlert.cloudCover.enabled = !editingAlert.cloudCover.enabled"
-            ><span class="toggle-thumb" /></button>
+          <!-- Between hours -->
+          <div v-if="editingAlert.betweenHours" class="setting-row" :class="{ 'setting-row--col': editingAlert.betweenHours.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Between hours</span>
+              <button
+                class="toggle-switch"
+                :class="{ on: editingAlert.betweenHours.enabled }"
+                @click="editingAlert.betweenHours.enabled = !editingAlert.betweenHours.enabled"
+              ><span class="toggle-thumb" /></button>
+            </div>
+            <div v-if="editingAlert.betweenHours.enabled" class="criterion-body">
+              <RangeSlider
+                :low="editingAlert.betweenHours.from ?? 0"
+                :high="editingAlert.betweenHours.to ?? 23"
+                :min="0" :max="23" :step="1"
+                :format="formatHourLabel"
+                @update:low="v => editingAlert.betweenHours.from = v ?? 0"
+                @update:high="v => editingAlert.betweenHours.to = v ?? 23"
+              />
+            </div>
           </div>
-          <div v-if="editingAlert.cloudCover.enabled" class="criterion-body">
-            <RangeSlider
-              :low="editingAlert.cloudCover.min"
-              :high="editingAlert.cloudCover.max"
-              :min="0" :max="100" :step="5"
-              unit="%"
-              @update:low="v => editingAlert.cloudCover.min = v"
-              @update:high="v => editingAlert.cloudCover.max = v"
-            />
+
+          <!-- Temperature -->
+          <div v-if="editingAlert.temperature" class="setting-row" :class="{ 'setting-row--col': editingAlert.temperature.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Temperature</span>
+              <button
+                class="toggle-switch"
+                :class="{ on: editingAlert.temperature.enabled }"
+                @click="editingAlert.temperature.enabled = !editingAlert.temperature.enabled"
+              ><span class="toggle-thumb" /></button>
+            </div>
+            <div v-if="editingAlert.temperature.enabled" class="criterion-body">
+              <RangeSlider
+                :low="editingAlert.temperature.min"
+                :high="editingAlert.temperature.max"
+                :min="tempRange.min" :max="tempRange.max" :step="1"
+                :unit="tempUnit"
+                @update:low="v => editingAlert.temperature.min = v"
+                @update:high="v => editingAlert.temperature.max = v"
+              />
+            </div>
           </div>
+
+          <!-- Rain -->
+          <div v-if="editingAlert.rain" class="setting-row" :class="{ 'setting-row--col': editingAlert.rain.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Rain</span>
+              <button
+                class="toggle-switch"
+                :class="{ on: editingAlert.rain.enabled }"
+                @click="editingAlert.rain.enabled = !editingAlert.rain.enabled"
+              ><span class="toggle-thumb" /></button>
+            </div>
+            <div v-if="editingAlert.rain.enabled" class="criterion-body">
+              <div class="criterion-sub-label">Probability (%)</div>
+              <RangeSlider
+                :low="editingAlert.rain.probMin"
+                :high="editingAlert.rain.probMax"
+                :min="0" :max="100" :step="5"
+                unit="%"
+                @update:low="v => editingAlert.rain.probMin = v"
+                @update:high="v => editingAlert.rain.probMax = v"
+              />
+              <div class="criterion-sub-label" style="margin-top: 0.6rem">Amount (mm)</div>
+              <RangeSlider
+                :low="editingAlert.rain.amountMin"
+                :high="editingAlert.rain.amountMax"
+                :min="0" :max="50" :step="1"
+                unit="mm"
+                @update:low="v => editingAlert.rain.amountMin = v"
+                @update:high="v => editingAlert.rain.amountMax = v"
+              />
+            </div>
+          </div>
+
+          <!-- Wind -->
+          <div v-if="editingAlert.wind" class="setting-row" :class="{ 'setting-row--col': editingAlert.wind.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Wind</span>
+              <button
+                class="toggle-switch"
+                :class="{ on: editingAlert.wind.enabled }"
+                @click="editingAlert.wind.enabled = !editingAlert.wind.enabled"
+              ><span class="toggle-thumb" /></button>
+            </div>
+            <div v-if="editingAlert.wind.enabled" class="criterion-body">
+              <div class="criterion-sub-label">Speed ({{ windUnit }})</div>
+              <RangeSlider
+                :low="editingAlert.wind.speedMin"
+                :high="editingAlert.wind.speedMax"
+                :min="0" :max="windRange" :step="1"
+                :unit="` ${windUnit}`"
+                @update:low="v => editingAlert.wind.speedMin = v"
+                @update:high="v => editingAlert.wind.speedMax = v"
+              />
+              <div class="criterion-sub-label" style="margin-top: 0.6rem">Direction</div>
+              <div class="compass-wrap">
+                <div class="compass-rose">
+                  <button
+                    v-for="dir in COMPASS_DIRS"
+                    :key="dir"
+                    :class="['compass-btn', `compass-btn--${dir.toLowerCase()}`, { active: editingAlert.wind.directions?.includes(dir) }]"
+                    @click="toggleWindDir(dir)"
+                  >{{ dir }}</button>
+                  <button
+                    :class="['compass-any', { active: !editingAlert.wind.directions?.length }]"
+                    @click="editingAlert.wind.directions = []"
+                  >Any</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cloud cover -->
+          <div v-if="editingAlert.cloudCover" class="setting-row" :class="{ 'setting-row--col': editingAlert.cloudCover.enabled }">
+            <div class="criterion-header">
+              <span class="setting-label">Cloud cover</span>
+              <button
+                class="toggle-switch"
+                :class="{ on: editingAlert.cloudCover.enabled }"
+                @click="editingAlert.cloudCover.enabled = !editingAlert.cloudCover.enabled"
+              ><span class="toggle-thumb" /></button>
+            </div>
+            <div v-if="editingAlert.cloudCover.enabled" class="criterion-body">
+              <RangeSlider
+                :low="editingAlert.cloudCover.min"
+                :high="editingAlert.cloudCover.max"
+                :min="0" :max="100" :step="5"
+                unit="%"
+                @update:low="v => editingAlert.cloudCover.min = v"
+                @update:high="v => editingAlert.cloudCover.max = v"
+              />
+            </div>
+          </div>
+
         </div>
 
       </div><!-- end editor page -->
@@ -373,7 +370,8 @@ function cancelEditor() {
   emit('page-change', { page: 'list' })
 }
 
-defineExpose({ cancelEditor })
+const canSave = computed(() => !!editingAlert.title?.trim())
+defineExpose({ cancelEditor, saveAlert, canSave })
 
 function deleteAlert(index) {
   customAlerts.value = customAlerts.value.filter((_, i) => i !== index)
@@ -411,11 +409,16 @@ function toggleDay(idx) {
 <style scoped>
 .alerts-panel {
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .alerts-pages {
   display: flex;
   width: 200%;
+  flex: 1;
+  min-height: 0;
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .alerts-pages.at-editor {
@@ -426,28 +429,34 @@ function toggleDay(idx) {
   width: 50%;
   flex-shrink: 0;
   min-width: 0;
+  overflow-y: auto;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .alerts-page--editor {
-  overflow-y: auto;
-  max-height: 65dvh;
-  padding-bottom: 1rem;
+  padding-bottom: 1.5rem;
 }
 
 /* ── List page ── */
 .alerts-empty-hint {
   font-size: 0.82rem;
   opacity: 0.5;
-  padding: 0.4rem 20px 0.2rem;
+  padding: 0.4rem 0 0.2rem;
 }
 
 .alert-list-row {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.55rem 20px;
+  padding: 10px 20px;
+  min-height: 52px;
+  box-sizing: border-box;
   border-top: 1px solid var(--row-border, rgba(255,255,255,0.07));
+  cursor: pointer;
+  transition: background 0.12s;
 }
+.alert-list-row:hover { background: var(--btn-hover); }
 
 .alert-list-dot {
   width: 10px;
@@ -484,32 +493,31 @@ function toggleDay(idx) {
 }
 .alert-delete-btn:hover { opacity: 0.75; color: #f87171; }
 
+.alert-chevron {
+  color: var(--text-faint, rgba(255,255,255,0.25));
+  flex-shrink: 0;
+  margin-left: 0.1rem;
+}
+
 .alerts-add-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  margin: 0.6rem 20px 0.1rem;
+  margin: 0.6rem 0 0.1rem;
   padding: 0.4rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px dashed var(--btn-border, rgba(255,255,255,0.15));
   background: transparent;
   color: var(--text-muted, rgba(255,255,255,0.5));
   font-size: 0.84rem;
-  width: calc(100% - 40px);
+  width: 100%;
   cursor: pointer;
   transition: opacity 0.15s;
 }
 .alerts-add-btn:hover { opacity: 0.75; }
 
 /* ── Editor page ── */
-.editor-save-row {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0.5rem 20px 0.4rem;
-  border-bottom: 1px solid var(--row-border, rgba(255,255,255,0.07));
-}
-
 .alert-title-input {
   flex: 1;
   padding: 0.32rem 0.55rem;
@@ -552,7 +560,7 @@ function toggleDay(idx) {
   letter-spacing: 0.07em;
   text-transform: uppercase;
   opacity: 0.45;
-  padding: 0.7rem 20px 0.1rem;
+  padding: 0.7rem 0 0.1rem;
 }
 
 .criteria-hint {
@@ -560,22 +568,18 @@ function toggleDay(idx) {
   opacity: 0.45;
   margin-bottom: 0.2rem;
   line-height: 1.4;
-  padding: 0 20px;
-}
-
-.criterion-block {
-  border-top: 1px solid var(--row-border, rgba(255,255,255,0.07));
-  padding: 0.55rem 20px;
 }
 
 .criterion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .criterion-body {
-  padding-top: 0.5rem;
+  width: 100%;
+  padding-top: 0.25rem;
 }
 
 .criterion-sub-label {

@@ -196,7 +196,7 @@
                 @refresh="loadWeather(false, true)"
                 @scroll-to-hour="onScrollToHour"
                 @open-alert-editor="onOpenAlertEditor"
-                @open-card-settings="cardSettingsType = $event"
+                @open-card-settings="onOpenCardSettings"
               />
             </div>
           </Transition>
@@ -219,17 +219,9 @@
       ref="settingsPanel"
       :is-open="settingsOpen"
       :location-country="location?.country ?? null"
-      @close="settingsOpen = false"
+      :edit-alert-id="editAlertId"
+      @close="settingsOpen = false; editAlertId = null"
     />
-
-    <transition name="card-sheet">
-      <CardSettingsSheet
-        v-if="cardSettingsType"
-        :card-type="cardSettingsType"
-        :extra-props="{ locationCountry: location?.country ?? null, editAlertId: editAlertId }"
-        @close="cardSettingsType = null; editAlertId = null"
-      />
-    </transition>
 
     <!-- PWS station picker modal -->
     <transition name="modal-fade">
@@ -273,14 +265,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, shallowReactive } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, shallowReactive, nextTick } from 'vue'
 import WeatherScene               from './components/WeatherScene.vue'
 import SceneConditionsOverlay     from './components/SceneConditionsOverlay.vue'
 import CardRenderer               from './components/CardRenderer.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
 import TutorialGuide     from './components/TutorialGuide.vue'
 import SettingsPanel     from './components/SettingsPanel.vue'
-import CardSettingsSheet from './components/CardSettingsSheet.vue'
 import { fetchWeather, clearWeatherCache } from './services/weatherApi.js'
 import { evaluateCustomAlerts } from './services/customAlertEvaluator.js'
 import { MODELS as OPEN_METEO_MODELS } from './services/adapters/openMeteo.js'
@@ -305,13 +296,21 @@ const customAlertResults = computed(() => {
   if (!weatherData.value?.hourly || !customAlerts.value?.length) return new Map()
   return evaluateCustomAlerts(customAlerts.value, weatherData.value.hourly)
 })
-const cardSettingsType  = ref(null)
 const editAlertId       = ref(null)
 const focusHour         = ref(null)
 
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings' }
+
+function onOpenCardSettings(cardType) {
+  const sub = CARD_SUBPANEL[cardType]
+  if (!sub) return
+  settingsOpen.value = true
+  nextTick(() => settingsPanel.value?.openToSubPanel(sub))
+}
+
 function onOpenAlertEditor(alertId) {
   editAlertId.value = alertId
-  cardSettingsType.value = 'customAlerts'
+  onOpenCardSettings('customAlerts')
 }
 
 function onScrollToHour({ date, hour }) {

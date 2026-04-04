@@ -25,6 +25,12 @@
           <span v-if="CARD_ICONS[subPanel]" class="sub-panel-title-icon" v-html="CARD_ICONS[subPanel]"></span>
           {{ subPanelTitle }}
         </span>
+        <button
+          v-if="subPanel === 'customAlerts' && alertsEditorPage === 'editor'"
+          class="setting-action-btn sub-panel-save-btn"
+          :disabled="!customAlertsRef?.canSave"
+          @click="customAlertsRef?.saveAlert()"
+        >Save</button>
       </div>
       <div class="settings-body" :data-slide="slideDir">
         <!-- Display tab -->
@@ -144,8 +150,8 @@
         </div>
 
         <!-- Custom Alerts layout sub-panel -->
-        <div class="settings-tab-pane" :data-pane="'customAlerts'" :class="paneClass('customAlerts')">
-          <CustomAlertsSettings ref="customAlertsRef" :active="subPanel === 'customAlerts'" @page-change="onAlertsPageChange" />
+        <div class="settings-tab-pane settings-tab-pane--flush" :data-pane="'customAlerts'" :class="paneClass('customAlerts')">
+          <CustomAlertsSettings ref="customAlertsRef" :active="subPanel === 'customAlerts'" :edit-alert-id="props.editAlertId" @page-change="onAlertsPageChange" />
         </div>
 
         <!-- Weather Warnings layout sub-panel -->
@@ -269,12 +275,14 @@ import TempestTokenModal   from './settings/TempestTokenModal.vue'
 const props = defineProps({
   isOpen:          Boolean,
   locationCountry: { type: String, default: null },
+  editAlertId:     { type: String, default: null },
 })
 const emit = defineEmits(['close'])
 defineExpose({
   openUnitsModal:     () => { unitsModalOpen.value = true },
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
   openModelModal:     () => { modelInfoOpen.value = true },
+  openToSubPanel:     (sub) => navigate(sub),
 })
 
 function openWhatsNew() { showWhatsNew.value = true }
@@ -608,6 +616,10 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
               opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
+.settings-tab-pane--flush {
+  padding: 0;
+  gap: 0;
+}
 
 /* Visible pane — sits at natural position */
 .settings-tab-pane--active {
@@ -688,7 +700,9 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 10px 20px;
+  min-height: 52px;
+  box-sizing: border-box;
 }
 .setting-row + .setting-row {
   border-top: 1px solid var(--row-border);
@@ -1241,6 +1255,16 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   color: var(--text);
   text-align: center;
   padding-right: 60px; /* offset for back btn width */
+}
+
+.sub-panel-save-btn {
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+
+/* When save btn is present it balances the Back btn — remove the title offset */
+.sub-panel-nav:has(.sub-panel-save-btn) .sub-panel-title-bar {
+  padding-right: 0;
 }
 
 .sub-panel-title-icon {
