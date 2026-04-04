@@ -1,5 +1,6 @@
 <template>
-  <div v-for="(slot, idx) in sceneOverlayLayout.slots" :key="idx" class="setting-row setting-row--col" :style="idx === 0 ? 'padding-top: 10px' : ''">
+  <div class="settings-group">
+  <div v-for="(slot, idx) in sceneOverlayLayout.slots" :key="idx" class="setting-row setting-row--col">
     <div>
       <div class="setting-label">Slot {{ idx + 1 }}</div>
     </div>
@@ -14,6 +15,7 @@
         {{ opt.label }}
       </button>
     </div></div>
+  </div>
   </div>
 </template>
 

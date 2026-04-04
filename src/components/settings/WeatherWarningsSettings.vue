@@ -1,62 +1,50 @@
 <template>
-  <!-- Show when -->
-  <div class="setting-row" style="border-bottom: none; padding-bottom: 0; padding-top: 10px">
-    <div>
+  <div class="settings-group">
+    <!-- Show when -->
+    <div class="setting-row setting-row--col">
       <div class="setting-label">Show this card</div>
-    </div>
-  </div>
-  <div class="setting-row" style="padding-top: 0.4rem;">
-    <div class="unit-pill">
-      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'always' }]"      @click="warningsConfig.show = 'always'">Always</button>
-      <button :class="['unit-pill-opt', { active: warningsConfig.show === 'active-only' }]" @click="warningsConfig.show = 'active-only'">If a warning exists</button>
-    </div>
-  </div>
-
-  <!-- Location filter -->
-  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
-    <div>
-      <div class="setting-label">Show warnings for</div>
-    </div>
-  </div>
-  <div class="setting-row" style="padding-top: 0.4rem;">
-    <div class="unit-pill">
-      <button :class="['unit-pill-opt', { active: (warningsConfig.locationFilter ?? 'location') === 'location' }]" @click="warningsConfig.locationFilter = 'location'">Selected location</button>
-      <button :class="['unit-pill-opt', { active: warningsConfig.locationFilter === 'all' }]"                      @click="warningsConfig.locationFilter = 'all'">Everywhere</button>
-    </div>
-  </div>
-
-  <!-- Feed / country override -->
-  <div class="setting-row" style="border-bottom: none; padding-bottom: 0;">
-    <div>
-      <div class="setting-label">Source</div>
-      <div class="setting-hint">
-        <template v-if="!showCustomUrl">
-          {{ autoLabel }}
-        </template>
-        <template v-else>
-          Custom RSS/Atom feed URL
-        </template>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: warningsConfig.show === 'always' }]"      @click="warningsConfig.show = 'always'">Always</button>
+        <button :class="['unit-pill-opt', { active: warningsConfig.show === 'active-only' }]" @click="warningsConfig.show = 'active-only'">If a warning exists</button>
       </div>
     </div>
-  </div>
-  <div class="setting-row setting-row--col" style="padding-top: 0.4rem; border-bottom: none;">
-    <div class="unit-pill feed-pill">
-      <button
-        v-for="opt in feedOptions"
-        :key="opt.value"
-        :class="['unit-pill-opt', { active: selectedFeed === opt.value }]"
-        @click="selectFeed(opt.value)"
-      >{{ opt.label }}</button>
+
+    <!-- Location filter -->
+    <div class="setting-row setting-row--col">
+      <div class="setting-label">Show warnings for</div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: (warningsConfig.locationFilter ?? 'location') === 'location' }]" @click="warningsConfig.locationFilter = 'location'">Selected location</button>
+        <button :class="['unit-pill-opt', { active: warningsConfig.locationFilter === 'all' }]"                      @click="warningsConfig.locationFilter = 'all'">Everywhere</button>
+      </div>
     </div>
-    <div v-if="showCustomUrl" class="custom-url-wrap">
-      <input
-        v-model="customUrl"
-        class="custom-url-input"
-        type="url"
-        placeholder="https://…/alerts.rss"
-        @blur="applyCustomUrl"
-        @keydown.enter="applyCustomUrl"
-      />
+
+    <!-- Feed / country override -->
+    <div class="setting-row setting-row--col">
+      <div>
+        <div class="setting-label">Source</div>
+        <div class="setting-hint">
+          <template v-if="!showCustomUrl">{{ autoLabel }}</template>
+          <template v-else>Custom RSS/Atom feed URL</template>
+        </div>
+      </div>
+      <div class="unit-pill feed-pill">
+        <button
+          v-for="opt in feedOptions"
+          :key="opt.value"
+          :class="['unit-pill-opt', { active: selectedFeed === opt.value }]"
+          @click="selectFeed(opt.value)"
+        >{{ opt.label }}</button>
+      </div>
+      <div v-if="showCustomUrl" class="custom-url-wrap">
+        <input
+          v-model="customUrl"
+          class="custom-url-input"
+          type="url"
+          placeholder="https://…/alerts.rss"
+          @blur="applyCustomUrl"
+          @keydown.enter="applyCustomUrl"
+        />
+      </div>
     </div>
   </div>
 </template>

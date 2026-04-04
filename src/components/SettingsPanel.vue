@@ -1,180 +1,210 @@
 <template>
-  <!-- Dropdown -->
-  <Transition name="settings-drop">
-    <div v-if="isOpen" class="settings-dropdown" :style="dropdownStyle">
-      <div class="settings-header">
-        <span class="settings-panel-title">Settings</span>
-        <button class="settings-tab-close" @click="$emit('close')">✕</button>
-      </div>
+  <Teleport to="body">
+  <Transition name="settings-sheet-overlay">
+    <div v-if="isOpen" class="settings-sheet-overlay" @click.self="$emit('close')">
+      <div ref="sheetRef" class="settings-dropdown" @click.stop>
+        <!-- Drag handle -->
+        <div class="settings-handle-bar" @touchstart.passive="onDragStart" @mousedown="onDragStart">
+          <div class="settings-handle"></div>
+        </div>
+        <div class="settings-header">
+          <span class="settings-panel-title">Settings</span>
+          <button class="settings-tab-close" @click="$emit('close')">✕</button>
+        </div>
       <div v-if="!subPanel" class="settings-tabs">
-        <button :class="['settings-tab', { active: tab === 'display' }]"  @click="tab = 'display'">Display</button>
-        <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="tab = 'layout'">Layout</button>
-        <button :class="['settings-tab', { active: tab === 'data' }]"     @click="tab = 'data'">Data</button>
+        <button :class="['settings-tab', { active: tab === 'display' }]"  @click="switchTab('display')">Display</button>
+        <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="switchTab('layout')">Layout</button>
+        <button :class="['settings-tab', { active: tab === 'data' }]"     @click="switchTab('data')">Data</button>
       </div>
       <div v-else class="sub-panel-nav">
-        <button class="sub-panel-back" @click.stop="subPanel = null; tab = 'layout'">
+        <button class="sub-panel-back" @click.stop="navigateBack()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
           Back
         </button>
-        <span class="sub-panel-title-bar">{{ subPanelTitle }}</span>
+        <span class="sub-panel-title-bar">
+          <span v-if="CARD_ICONS[subPanel]" class="sub-panel-title-icon" v-html="CARD_ICONS[subPanel]"></span>
+          {{ subPanelTitle }}
+        </span>
       </div>
-      <div class="settings-body">
+      <div class="settings-body" :data-slide="slideDir">
         <!-- Display tab -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'display' }">
-          <div class="setting-row setting-row--col">
-            <div>
-              <div class="setting-label">Theme</div>
-              <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
+        <div class="settings-tab-pane" :data-pane="'display'" :class="paneClass('display')">
+          <div class="settings-group">
+            <div class="setting-row setting-row--col">
+              <div>
+                <div class="setting-label">Theme</div>
+                <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
+              </div>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
+                <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
+                <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
+                <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+              </div>
             </div>
-            <div class="unit-pill">
-              <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
-              <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
-              <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
-              <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Units</div>
+                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+              </div>
+              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Units</div>
-              <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Time format</div>
+                <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
+              </div>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
+              </div>
             </div>
-            <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Time format</div>
-              <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">What's New</div>
+                <div class="setting-hint">Installed version: {{ appVersion }}</div>
+              </div>
+              <button class="setting-action-btn" @click="openWhatsNew">View →</button>
             </div>
-            <div class="unit-pill">
-              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
-              <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather simulator</div>
+                <div class="setting-hint">Preview weather effects on the scene</div>
+              </div>
+              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
+                <span class="toggle-thumb" />
+              </button>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">What's New</div>
-              <div class="setting-hint">Installed version: {{ appVersion }}</div>
-            </div>
-            <button class="setting-action-btn" @click="openWhatsNew">View →</button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather simulator</div>
-              <div class="setting-hint">Preview weather effects on the scene</div>
-            </div>
-            <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
-              <span class="toggle-thumb" />
-            </button>
           </div>
         </div>
 
         <!-- Layout tab -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'layout' || subPanel }">
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Current Conditions</div>
-              <div class="setting-hint">Configure the scene overlay data points</div>
-            </div>
-            <button class="setting-action-btn" @click="subPanel = 'sceneConditions'">Edit →</button>
-          </div>
-          <div v-for="(card, i) in cardConfig" :key="card.type"
-            :data-card-idx="i"
-            class="setting-row setting-row--draggable"
-            :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i }"
-            draggable="true"
-            @dragstart="onCardDragStart($event, i)"
-            @dragover="onCardDragOver($event, i)"
-            @dragend="onCardDragEnd"
-            @drop="onCardDrop($event, i)"
-            @touchstart.passive="onCardTouchStart($event, i)"
-          >
-            <span class="tile-drag-handle">⠿</span>
-            <div>
-              <div class="setting-label">{{ CARD_META[card.type].label }}</div>
-              <div class="setting-hint">{{ CARD_HINTS[card.type] }}</div>
-            </div>
-            <div class="setting-row-controls">
-              <button v-if="CARD_SUBPANEL[card.type] && card.enabled" class="setting-action-btn" @click.stop="subPanel = CARD_SUBPANEL[card.type]">Edit →</button>
+        <div class="settings-tab-pane" :data-pane="'layout'" :class="paneClass('layout')">
+          <div class="settings-group">
+            <button class="setting-row setting-row--nav" @click="navigate('sceneConditions')">
+              <div class="setting-row-label-group" style="flex:1;min-width:0;">
+                <span class="card-icon" v-html="CARD_ICONS.sceneConditions"></span>
+                <div>
+                  <div class="setting-label">Current Conditions</div>
+                  <div class="setting-hint" style="display: none;">Configure the scene overlay data points</div>
+                </div>
+              </div>
+              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div v-for="(card, i) in cardConfig" :key="card.type"
+              :data-card-idx="i"
+              class="setting-row setting-row--draggable"
+              :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': CARD_SUBPANEL[card.type] && card.enabled }"
+              draggable="true"
+              @click="CARD_SUBPANEL[card.type] && card.enabled && navigate(CARD_SUBPANEL[card.type])"
+              @dragstart="onCardDragStart($event, i)"
+              @dragover="onCardDragOver($event, i)"
+              @dragend="onCardDragEnd"
+              @drop="onCardDrop($event, i)"
+              @touchstart.passive="onCardTouchStart($event, i)"
+            >
+              <span class="tile-drag-handle">⠿</span>
+              <div class="setting-row-nav-btn setting-row-nav-btn--static">
+                <div class="setting-row-label-group">
+                  <span class="card-icon" v-html="CARD_ICONS[card.type]"></span>
+                  <div>
+                    <div class="setting-label">{{ CARD_META[card.type].label }}</div>
+                    <div class="setting-hint" style="display: none;">{{ CARD_HINTS[card.type] }}</div>
+                  </div>
+                </div>
+              </div>
               <button class="toggle-switch" :class="{ on: card.enabled }" @click.stop="toggleCard(card.type)">
                 <span class="toggle-thumb" />
               </button>
+              <button
+                v-if="CARD_SUBPANEL[card.type] && card.enabled"
+                class="setting-chevron-btn"
+                @click.stop="navigate(CARD_SUBPANEL[card.type])"
+              >
+                <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <div v-else class="setting-chevron-placeholder"></div>
             </div>
           </div>
         </div>
 
         <!-- Current Conditions layout sub-panel -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'sceneConditions' }">
+        <div class="settings-tab-pane" :data-pane="'sceneConditions'" :class="paneClass('sceneConditions')">
           <SceneConditionsSettings />
         </div>
 
         <!-- Hourly Forecast layout sub-panel -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'hourlyForecast' }">
+        <div class="settings-tab-pane" :data-pane="'hourlyForecast'" :class="paneClass('hourlyForecast')">
           <HourlyForecastSettings />
         </div>
 
         <!-- Daily Forecast layout sub-panel -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'dailyForecast' }">
+        <div class="settings-tab-pane" :data-pane="'dailyForecast'" :class="paneClass('dailyForecast')">
           <DailyForecastSettings />
         </div>
 
         <!-- Custom Alerts layout sub-panel -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'customAlerts' }">
-          <CustomAlertsSettings :active="subPanel === 'customAlerts'" />
+        <div class="settings-tab-pane" :data-pane="'customAlerts'" :class="paneClass('customAlerts')">
+          <CustomAlertsSettings ref="customAlertsRef" :active="subPanel === 'customAlerts'" @page-change="onAlertsPageChange" />
         </div>
 
         <!-- Weather Warnings layout sub-panel -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': subPanel !== 'weatherWarnings' }">
+        <div class="settings-tab-pane" :data-pane="'weatherWarnings'" :class="paneClass('weatherWarnings')">
           <WeatherWarningsSettings :location-country="props.locationCountry" />
         </div>
 
         <!-- Data tab -->
-        <div class="settings-tab-pane" :class="{ 'settings-tab-pane--hidden': tab !== 'data' }">
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Forecast model</div>
-              <div class="setting-hint">Experiment to find the best model for your area</div>
-            </div>
-            <button class="model-picker-btn" @click="modelInfoOpen = true">
-              {{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            </button>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Weather Underground PWS</div>
-              <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
-            </div>
-            <div class="setting-row-controls">
-              <button v-if="pwsEnabled" class="setting-action-btn" @click="pwsKeyModalOpen = true">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
-              <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
-                <span class="toggle-thumb" />
+        <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
+          <div class="settings-group">
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Forecast model</div>
+                <div class="setting-hint">Experiment to find the best model for your area</div>
+              </div>
+              <button class="model-picker-btn" @click="modelInfoOpen = true">
+                {{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
               </button>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Tempest PWS</div>
-              <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Weather Underground PWS</div>
+                <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
+              </div>
+              <div class="setting-row-controls">
+                <button v-if="pwsEnabled" class="setting-action-btn" @click="pwsKeyModalOpen = true">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
+                <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
+                  <span class="toggle-thumb" />
+                </button>
+              </div>
             </div>
-            <div class="setting-row-controls">
-              <button v-if="tempestEnabled" class="setting-action-btn" @click="tempestTokenModalOpen = true">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
-              <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
-                <span class="toggle-thumb" />
-              </button>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Tempest PWS</div>
+                <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
+              </div>
+              <div class="setting-row-controls">
+                <button v-if="tempestEnabled" class="setting-action-btn" @click="tempestTokenModalOpen = true">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
+                <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
+                  <span class="toggle-thumb" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="setting-row">
-            <div>
-              <div class="setting-label">Reset</div>
-              <div class="setting-hint">Delete all settings and locations</div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Reset</div>
+                <div class="setting-hint">Delete all settings and locations</div>
+              </div>
+              <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
             </div>
-            <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
           </div>
         </div>
 
       </div>
+      </div>
     </div>
   </Transition>
+  </Teleport>
 
   <!-- Units modal -->
   <transition name="modal-fade">
@@ -220,8 +250,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useSettings, CARD_META } from '../composables/useSettings.js'
+import { CARD_ICONS } from '../utils/tileIcons.js'
 import { showWhatsNew } from '../composables/useWhatsNew.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
 import DailyForecastSettings      from './settings/DailyForecastSettings.vue'
@@ -239,7 +270,7 @@ const props = defineProps({
   isOpen:          Boolean,
   locationCountry: { type: String, default: null },
 })
-defineEmits(['close'])
+const emit = defineEmits(['close'])
 defineExpose({
   openUnitsModal:     () => { unitsModalOpen.value = true },
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
@@ -307,8 +338,93 @@ function _onCardTouchEnd() {
 const tab            = ref('display')
 const subPanel       = ref(null)
 const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings' }
-const subPanelTitle  = computed(() => subPanelTitles[subPanel.value] ?? '')
-const dropdownStyle  = ref({})
+const alertsEditorPage  = ref('list')   // 'list' | 'editor'
+const alertsEditorTitle = ref('')
+const subPanelTitle  = computed(() => {
+  if (subPanel.value === 'customAlerts' && alertsEditorPage.value === 'editor') return alertsEditorTitle.value
+  return subPanelTitles[subPanel.value] ?? ''
+})
+
+const customAlertsRef = ref(null)
+
+function onAlertsPageChange({ page, title }) {
+  alertsEditorPage.value  = page
+  alertsEditorTitle.value = title ?? ''
+}
+
+// ── Panel slide navigation ────────────────────────────────────────────────────
+// activePane tracks which pane is visible; prevPane is the one animating out.
+// slideDir drives CSS: 'forward' → new pane slides in from right; 'back' → from left.
+const activePane = ref('display')   // display | layout | data | <subpanel key>
+const prevPane   = ref(null)
+const slideDir   = ref('forward')
+const animating  = ref(false)
+
+const SLIDE_DURATION = 280
+
+function paneClass(name) {
+  if (name === activePane.value) return 'settings-tab-pane--active'
+  if (name === prevPane.value)   return 'settings-tab-pane--leaving'
+  return 'settings-tab-pane--hidden'
+}
+
+const TOP_TABS = ['display', 'layout', 'data']
+
+function navigate(target) {
+  if (animating.value || target === activePane.value) return
+  const fromTop = TOP_TABS.includes(activePane.value)
+  const toTop   = TOP_TABS.includes(target)
+  prevPane.value   = activePane.value
+  // forward: going into a sub-panel, or moving right along tabs
+  // back: leaving a sub-panel to a top tab, or moving left along tabs
+  if (!fromTop && toTop) {
+    slideDir.value = 'back'
+  } else if (fromTop && !toTop) {
+    slideDir.value = 'forward'
+  } else if (toTop && fromTop) {
+    const order = TOP_TABS
+    slideDir.value = order.indexOf(target) > order.indexOf(activePane.value) ? 'forward' : 'back'
+  } else {
+    slideDir.value = 'forward'
+  }
+  activePane.value = target
+  // sync tab / subPanel for header logic
+  if (toTop) {
+    tab.value = target; subPanel.value = null
+  } else {
+    tab.value = 'layout'; subPanel.value = target
+  }
+  _runAnim()
+}
+
+function navigateBack() {
+  if (animating.value) return
+  if (subPanel.value === 'customAlerts' && alertsEditorPage.value === 'editor') {
+    customAlertsRef.value?.cancelEditor()
+    return
+  }
+  const target = 'layout'
+  prevPane.value   = activePane.value
+  slideDir.value   = 'back'
+  activePane.value = target
+  tab.value = 'layout'; subPanel.value = null
+  _runAnim()
+}
+
+function _runAnim() {
+  animating.value = true
+  nextTick(() => {
+    setTimeout(() => {
+      prevPane.value  = null
+      animating.value = false
+    }, SLIDE_DURATION)
+  })
+}
+
+// Keep tab clicks in sync (Display / Layout / Data tabs)
+function switchTab(name) {
+  navigate(name)
+}
 
 const dataTypesModalOpen    = ref(false)
 const unitsModalOpen        = ref(false)
@@ -316,38 +432,94 @@ const resetConfirmOpen      = ref(false)
 const modelInfoOpen         = ref(false)
 const pwsKeyModalOpen       = ref(false)
 const tempestTokenModalOpen = ref(false)
-// ── Dropdown positioning ──────────────────────────────────────────────────────
-watch(() => props.isOpen, (open) => {
-  if (!open) { subPanel.value = null; return }
-  const btn = document.querySelector('[data-settings-btn]')
-  if (!btn) return
-  const rect     = btn.getBoundingClientRect()
-  const card     = document.querySelector('.conditions')
-  const cardRect = card?.getBoundingClientRect()
-  const maxHeight = `${window.innerHeight - rect.bottom - 14}px`
-  dropdownStyle.value = { top: `${rect.bottom + 6}px`, maxHeight }
-})
+
+// ── Drag-to-dismiss ───────────────────────────────────────────────────────────
+const sheetRef   = ref(null)
+const dragStartY = ref(0)
+const dragDelta  = ref(0)
+
+function onDragStart(e) {
+  dragStartY.value = e.touches ? e.touches[0].clientY : e.clientY
+  dragDelta.value  = 0
+
+  const onMove = (e) => {
+    const y = e.touches ? e.touches[0].clientY : e.clientY
+    dragDelta.value = Math.max(0, y - dragStartY.value)
+    if (sheetRef.value) sheetRef.value.style.transform = `translateY(${dragDelta.value}px)`
+  }
+
+  const onEnd = () => {
+    document.removeEventListener('mousemove', onMove)
+    document.removeEventListener('mouseup', onEnd)
+    document.removeEventListener('touchmove', onMove)
+    document.removeEventListener('touchend', onEnd)
+
+    if (dragDelta.value > 120) {
+      if (sheetRef.value) sheetRef.value.style.transform = ''
+      emit('close')
+    } else {
+      if (sheetRef.value) {
+        sheetRef.value.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+        sheetRef.value.style.transform  = ''
+        sheetRef.value.addEventListener('transitionend', () => {
+          if (sheetRef.value) sheetRef.value.style.transition = ''
+        }, { once: true })
+      }
+    }
+  }
+
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', onEnd)
+  document.addEventListener('touchmove', onMove, { passive: true })
+  document.addEventListener('touchend', onEnd)
+}
 
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll() { try { localStorage.clear() } catch {}; window.location.reload() }
 </script>
 
 <style>
-/* ── Settings dropdown ───────────────────────────────────────────────────── */
-.settings-dropdown {
+/* ── Settings sheet overlay ──────────────────────────────────────────────── */
+.settings-sheet-overlay {
   position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 203;
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* ── Settings sheet ──────────────────────────────────────────────────────── */
+.settings-dropdown {
   width: 100%;
   max-width: 640px;
-  background: var(--panel-bg);
+  height: 92dvh;
+  height: 92vh;
+  height: 92dvh;
+  background: var(--sheet-bg);
+  border-radius: 20px 20px 0 0;
   border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-bottom: none;
+  box-shadow: 0 -4px 48px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Drag handle ─────────────────────────────────────────────────────────── */
+.settings-handle-bar {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 6px;
+  flex-shrink: 0;
+  cursor: grab;
+}
+.settings-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--sheet-handle);
+  border-radius: 9999px;
 }
 
 .settings-tabs {
@@ -393,48 +565,123 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 
 .settings-panel-title {
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--text);
 }
 
 .settings-tab-close {
-  background: none;
-  border: none;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
   color: var(--text-muted);
-  font-size: 1rem;
-  padding: 2px 4px;
+  font-size: 0.85rem;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.settings-tab-close:hover { color: var(--text); }
+.settings-tab-close:hover { background: var(--btn-hover); color: var(--text); }
 
 .settings-body {
   display: grid;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .settings-tab-pane {
   grid-area: 1 / 1;
-  padding: 8px 0;
+  padding: 12px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
   overflow-y: auto;
   max-height: 100%;
+  background: var(--sheet-bg);
+  /* slide transition */
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity   0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
-.settings-tab-pane--hidden {
-  visibility: hidden;
+/* Visible pane — sits at natural position */
+.settings-tab-pane--active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Pane animating out */
+[data-slide='forward'] .settings-tab-pane--leaving {
+  transform: translateX(-30%);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-slide='back'] .settings-tab-pane--leaving {
+  transform: translateX(30%);
+  opacity: 0;
   pointer-events: none;
 }
 
+/* Pane waiting off-screen (not participating in current transition) */
+.settings-tab-pane--hidden {
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+/* Incoming pane start position — applied before transition begins */
+[data-slide='forward'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
+  animation: slide-in-right 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+[data-slide='back'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
+  animation: slide-in-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(30%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+@keyframes slide-in-left {
+  from { transform: translateX(-30%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.06);
+}
+.card-icon svg { display: block; }
+
+.setting-row-label-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .setting-row--draggable { cursor: default; gap: 10px; }
+.setting-row--draggable.setting-row--nav { cursor: pointer; }
 .setting-row--draggable .tile-drag-handle { cursor: grab; }
-.setting-row--draggable > div:not(.setting-row-controls) { flex: 1; min-width: 0; }
+.setting-row--draggable .setting-row-nav-btn { flex: 1; min-width: 0; }
+
+.settings-group {
+  background: var(--sheet-item-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
 
 .setting-row {
   display: flex;
@@ -442,13 +689,68 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--row-border);
+}
+.setting-row + .setting-row {
+  border-top: 1px solid var(--row-border);
 }
 
 .setting-row--col {
   flex-direction: column;
   align-items: stretch;
   gap: 10px;
+}
+
+.setting-row--nav {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+}
+.setting-row--nav:hover { background: var(--btn-hover); }
+
+.setting-row-nav-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+.setting-row-nav-btn--static { cursor: default; pointer-events: none; }
+.setting-row-nav-btn:not(.setting-row-nav-btn--static):hover .setting-chevron { color: var(--text); }
+
+.setting-chevron-btn {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.setting-chevron-btn:hover .setting-chevron { color: var(--text); }
+
+.setting-chevron-placeholder {
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.setting-chevron {
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: color 0.15s;
 }
 
 .setting-row-controls {
@@ -520,13 +822,20 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 .panel-close:hover { color: var(--text); }
 
-.settings-drop-enter-active, .settings-drop-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  transform-origin: top center;
+.settings-sheet-overlay-enter-active,
+.settings-sheet-overlay-leave-active {
+  transition: opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.settings-drop-enter-from, .settings-drop-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) scale(0.95) translateY(-6px);
+.settings-sheet-overlay-enter-from,
+.settings-sheet-overlay-leave-to { opacity: 0; }
+
+.settings-sheet-overlay-enter-active .settings-dropdown,
+.settings-sheet-overlay-leave-active .settings-dropdown {
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.settings-sheet-overlay-enter-from .settings-dropdown,
+.settings-sheet-overlay-leave-to .settings-dropdown {
+  transform: translateY(100%);
 }
 
 /* ── Unit pills (in settings rows) ──────────────────────────────────────── */
@@ -803,7 +1112,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   color: var(--text-faint);
   font-style: italic;
 }
-.toggle-switch-placeholder { width: 36px; flex-shrink: 0; }
+.toggle-switch-placeholder { width: 44px; flex-shrink: 0; }
 
 .check-btn {
   flex-shrink: 0;
@@ -923,11 +1232,25 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 .sub-panel-title-bar {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
   text-align: center;
   padding-right: 60px; /* offset for back btn width */
+}
+
+.sub-panel-title-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.sub-panel-title-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .data-point-grid {
@@ -964,13 +1287,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 @media (max-width: 599px) {
   .settings-dropdown {
-    left: 8px !important;
-    right: 8px !important;
-    transform: none !important;
-    bottom: 8px !important;
-    max-height: none !important;
-    width: auto !important;
-    border-radius: 12px !important;
+    border-radius: 12px 12px 0 0;
   }
 }
 </style>

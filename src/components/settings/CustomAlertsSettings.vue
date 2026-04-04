@@ -6,50 +6,47 @@
       <div class="alerts-page alerts-page--list">
 
         <!-- "Show this card" -->
-        <div class="setting-row" style="border-bottom: none; padding-bottom: 0; padding-top: 10px">
-          <div class="setting-label">Show this card</div>
-        </div>
-        <div class="setting-row" style="padding-top: 0.4rem">
-          <div class="unit-pill">
-            <button
-              :class="['unit-pill-opt', { active: customAlertsConfig.show === 'always' }]"
-              @click="customAlertsConfig.show = 'always'"
-            >Always</button>
-            <button
-              :class="['unit-pill-opt', { active: customAlertsConfig.show === 'active-only' }]"
-              @click="customAlertsConfig.show = 'active-only'"
-            >If an alert is active</button>
+        <div class="settings-group">
+          <div class="setting-row setting-row--col">
+            <div class="setting-label">Show this card</div>
+            <div class="unit-pill">
+              <button
+                :class="['unit-pill-opt', { active: customAlertsConfig.show === 'always' }]"
+                @click="customAlertsConfig.show = 'always'"
+              >Always</button>
+              <button
+                :class="['unit-pill-opt', { active: customAlertsConfig.show === 'active-only' }]"
+                @click="customAlertsConfig.show = 'active-only'"
+              >If an alert is active</button>
+            </div>
           </div>
         </div>
 
-        <!-- Alert list header -->
-        <div class="setting-row" style="border-bottom: none; padding-bottom: 0; margin-top: 0.25rem">
-          <div class="setting-label">Alerts</div>
-        </div>
-
-        <div v-if="!customAlerts.length" class="alerts-empty-hint">
-          No alerts yet — tap Add Alert to create one.
-        </div>
-
-        <div v-for="(alert, i) in customAlerts" :key="alert.id" class="alert-list-row">
-          <span class="alert-list-dot" :style="{ background: alert.color }" />
-          <span class="alert-list-title">{{ alert.title || 'Untitled' }}</span>
-          <div class="alert-list-actions">
-            <button
-              class="toggle-switch"
-              :class="{ on: alert.enabled }"
-              @click="toggleAlertEnabled(i)"
-              :title="alert.enabled ? 'Disable alert' : 'Enable alert'"
-            ><span class="toggle-thumb" /></button>
-            <button class="setting-action-btn" @click="openEditor(i)">Edit →</button>
-            <button class="alert-delete-btn" @click="deleteAlert(i)" title="Delete alert">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-            </button>
+        <!-- Alert list -->
+        <div class="settings-group" style="margin-top: 0.75rem">
+          <div v-if="!customAlerts.length" class="alerts-empty-hint">
+            No alerts yet — tap Add Alert to create one.
+          </div>
+          <div v-for="(alert, i) in customAlerts" :key="alert.id" class="alert-list-row">
+            <span class="alert-list-dot" :style="{ background: alert.color }" />
+            <span class="alert-list-title">{{ alert.title || 'Untitled' }}</span>
+            <div class="alert-list-actions">
+              <button
+                class="toggle-switch"
+                :class="{ on: alert.enabled }"
+                @click="toggleAlertEnabled(i)"
+                :title="alert.enabled ? 'Disable alert' : 'Enable alert'"
+              ><span class="toggle-thumb" /></button>
+              <button class="setting-action-btn" @click="openEditor(i)">Edit →</button>
+              <button class="alert-delete-btn" @click="deleteAlert(i)" title="Delete alert">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -63,12 +60,7 @@
 
       <!-- ── PAGE: Editor ── -->
       <div class="alerts-page alerts-page--editor">
-        <div class="editor-header">
-          <button class="editor-back-btn" @click="cancelEditor">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-            Back
-          </button>
-          <span class="editor-header-title">{{ editingIndex >= 0 ? 'Edit Alert' : 'New Alert' }}</span>
+        <div class="editor-save-row">
           <button
             class="setting-action-btn"
             @click="saveAlert"
@@ -76,40 +68,38 @@
           >Save</button>
         </div>
 
-        <!-- Title -->
-        <div class="setting-row">
-          <div class="setting-label">Title</div>
-          <input
-            class="alert-title-input"
-            v-model="editingAlert.title"
-            placeholder="e.g. Perfect cycling weather"
-            maxlength="50"
-          />
-        </div>
-
-        <!-- Colour picker -->
-        <div class="setting-row setting-row--col" style="gap: 0.5rem">
-          <div class="setting-label">Colour</div>
-          <div class="color-palette">
-            <button
-              v-for="c in COLOR_PALETTE"
-              :key="c"
-              :class="['color-swatch', { selected: editingAlert.color === c }]"
-              :style="{ background: c }"
-              @click="editingAlert.color = c"
-              :title="c"
+        <!-- Title / colour / enabled -->
+        <div class="settings-group">
+          <div class="setting-row">
+            <div class="setting-label">Title</div>
+            <input
+              class="alert-title-input"
+              v-model="editingAlert.title"
+              placeholder="e.g. Perfect cycling weather"
+              maxlength="50"
             />
           </div>
-        </div>
-
-        <!-- Enabled toggle -->
-        <div class="setting-row">
-          <div class="setting-label">Enabled</div>
-          <button
-            class="toggle-switch"
-            :class="{ on: editingAlert.enabled }"
-            @click="editingAlert.enabled = !editingAlert.enabled"
-          ><span class="toggle-thumb" /></button>
+          <div class="setting-row setting-row--col" style="gap: 0.5rem">
+            <div class="setting-label">Colour</div>
+            <div class="color-palette">
+              <button
+                v-for="c in COLOR_PALETTE"
+                :key="c"
+                :class="['color-swatch', { selected: editingAlert.color === c }]"
+                :style="{ background: c }"
+                @click="editingAlert.color = c"
+                :title="c"
+              />
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Enabled</div>
+            <button
+              class="toggle-switch"
+              :class="{ on: editingAlert.enabled }"
+              @click="editingAlert.enabled = !editingAlert.enabled"
+            ><span class="toggle-thumb" /></button>
+          </div>
         </div>
 
         <!-- ── Criteria ── -->
@@ -289,6 +279,8 @@ const props = defineProps({
   editAlertId: { type: String,  default: null },
 })
 
+const emit = defineEmits(['page-change'])
+
 const { customAlerts, customAlertsConfig, unitPrefs } = useSettings()
 
 const page         = ref('list')
@@ -297,7 +289,10 @@ const editingAlert = reactive({})
 
 // Reset to list when the panel is hidden (navigated away from)
 watch(() => props.active, (isActive, wasActive) => {
-  if (wasActive && !isActive) page.value = 'list'
+  if (wasActive && !isActive) {
+    page.value = 'list'
+    emit('page-change', { page: 'list' })
+  }
 })
 
 // Open editor directly for a specific alert (e.g. from card modal Edit button)
@@ -356,6 +351,7 @@ function openEditor(index) {
   Object.assign(editingAlert, copy)
   editingIndex.value = index
   page.value = 'editor'
+  emit('page-change', { page: 'editor', title: index >= 0 ? 'Edit Alert' : 'New Alert' })
 }
 
 function saveAlert() {
@@ -369,11 +365,15 @@ function saveAlert() {
     customAlerts.value = [...customAlerts.value, copy]
   }
   page.value = 'list'
+  emit('page-change', { page: 'list' })
 }
 
 function cancelEditor() {
   page.value = 'list'
+  emit('page-change', { page: 'list' })
 }
+
+defineExpose({ cancelEditor })
 
 function deleteAlert(index) {
   customAlerts.value = customAlerts.value.filter((_, i) => i !== index)
@@ -503,31 +503,11 @@ function toggleDay(idx) {
 .alerts-add-btn:hover { opacity: 0.75; }
 
 /* ── Editor page ── */
-.editor-header {
+.editor-save-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 20px 0.6rem;
+  justify-content: flex-end;
+  padding: 0.5rem 20px 0.4rem;
   border-bottom: 1px solid var(--row-border, rgba(255,255,255,0.07));
-  margin-bottom: 0.1rem;
-}
-
-.editor-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  background: none;
-  border: none;
-  color: var(--text-muted, rgba(255,255,255,0.55));
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0.1rem 0;
-}
-.editor-back-btn:hover { color: var(--text, #fff); }
-
-.editor-header-title {
-  font-size: 0.9rem;
-  font-weight: 600;
 }
 
 .alert-title-input {
@@ -562,7 +542,7 @@ function toggleDay(idx) {
 .color-swatch.selected {
   border-color: rgba(255, 255, 255, 0.9);
   transform: scale(1.18);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2), 0 0 0 3px rgba(0, 0, 0, 0.35);
 }
 
 /* Criteria */

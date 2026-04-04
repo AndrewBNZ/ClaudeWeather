@@ -1,11 +1,14 @@
 <template>
   <div class="search-wrap">
+    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="22" y1="22" x2="16.65" y2="16.65"/>
+    </svg>
     <input
       ref="inputRef"
       v-model="query"
       class="search-input"
       type="text"
-      placeholder="Search for a location…"
+      placeholder="Search for a city or town"
       autocomplete="off"
       @input="onInput"
       @keydown.enter="selectFirst"
@@ -134,12 +137,23 @@ function onBlur() {
   flex: 1;
 }
 
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
 .search-input {
   width: 100%;
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1px solid transparent;
   border-radius: 8px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 36px;
   color: var(--text);
   outline: none;
   transition: border-color 0.2s;
@@ -148,6 +162,7 @@ function onBlur() {
 .search-input::placeholder { color: var(--text-faint); }
 .search-input:focus {
   border-color: rgba(56, 189, 248, 0.5);
+  border: 1px solid var(--input-border);
 }
 
 .dropdown {
@@ -171,7 +186,7 @@ function onBlur() {
 .dropdown li:hover { background: rgba(56, 189, 248, 0.1); }
 .dropdown li + li { border-top: 1px solid var(--row-border); }
 
-.result-name { color: var(--text); font-weight: 500; }
+.result-name { color: var(--text); font-weight: 500; font-size: 0.9rem; }
 .result-sub  { color: var(--text-muted); font-size: 0.8rem; }
 
 .drop-enter-active, .drop-leave-active { transition: opacity 0.15s, transform 0.15s; }

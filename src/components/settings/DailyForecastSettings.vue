@@ -1,46 +1,49 @@
 <template>
-  <div class="setting-row" style="padding-top: 10px">
-    <div>
-      <div class="setting-label">Title</div>
+  <div class="settings-group">
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Title</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: dailyForecastLayout.showTitle }" @click="dailyForecastLayout.showTitle = !dailyForecastLayout.showTitle">
+        <span class="toggle-thumb" />
+      </button>
     </div>
-    <button class="toggle-switch" :class="{ on: dailyForecastLayout.showTitle }" @click="dailyForecastLayout.showTitle = !dailyForecastLayout.showTitle">
-      <span class="toggle-thumb" />
-    </button>
-  </div>
-  <div class="setting-row">
-    <div>
-      <div class="setting-label">Condition icons</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Condition icons</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: dailyForecastLayout.showConditions }" @click="dailyForecastLayout.showConditions = !dailyForecastLayout.showConditions">
+        <span class="toggle-thumb" />
+      </button>
     </div>
-    <button class="toggle-switch" :class="{ on: dailyForecastLayout.showConditions }" @click="dailyForecastLayout.showConditions = !dailyForecastLayout.showConditions">
-      <span class="toggle-thumb" />
-    </button>
-  </div>
-  <div class="setting-row">
-    <div>
-      <div class="setting-label">Data point picker</div>
-      <div class="setting-hint">Pill buttons to quickly change the bar chart</div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Data point picker</div>
+        <div class="setting-hint">Pill buttons to quickly change the bar chart</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: dailyForecastLayout.showDataPointPicker }" @click="dailyForecastLayout.showDataPointPicker = !dailyForecastLayout.showDataPointPicker">
+        <span class="toggle-thumb" />
+      </button>
     </div>
-    <button class="toggle-switch" :class="{ on: dailyForecastLayout.showDataPointPicker }" @click="dailyForecastLayout.showDataPointPicker = !dailyForecastLayout.showDataPointPicker">
-      <span class="toggle-thumb" />
-    </button>
-  </div>
-  <div class="setting-row setting-row--col">
-    <div>
-      <div class="setting-label">Main data point</div>
-      <div class="setting-hint">Shown as the primary bar chart</div>
+    <div class="setting-row setting-row--col">
+      <div>
+        <div class="setting-label">Main data point</div>
+        <div class="setting-hint">Shown as the primary bar chart</div>
+      </div>
+      <div class="slot-scroll" ref="mainScrollEl"><div class="data-point-grid">
+        <button
+          v-for="opt in MAIN_DATA_POINT_OPTIONS"
+          :key="opt.type"
+          :class="['data-point-opt', { active: dailyForecastLayout.mainDataPoint === opt.type }]"
+          @click="setDailyMainDataPoint(opt.type)"
+        ><span class="tile-svg-icon" v-html="TILE_ICONS[opt.iconKey]"></span>{{ opt.label }}</button>
+      </div></div>
     </div>
-    <div class="slot-scroll" ref="mainScrollEl"><div class="data-point-grid">
-      <button
-        v-for="opt in MAIN_DATA_POINT_OPTIONS"
-        :key="opt.type"
-        :class="['data-point-opt', { active: dailyForecastLayout.mainDataPoint === opt.type }]"
-        @click="setDailyMainDataPoint(opt.type)"
-      ><span class="tile-svg-icon" v-html="TILE_ICONS[opt.iconKey]"></span>{{ opt.label }}</button>
-    </div></div>
   </div>
-  <div class="setting-row" style="border-bottom: none; padding-bottom: 2px;">
-    <div class="setting-label">Other data points</div>
-  </div>
+  <div class="settings-group settings-group--tile-list">
+    <div class="setting-row settings-group__header" style="border-bottom: none; padding-bottom: 2px;">
+      <div class="setting-label">Other data points</div>
+    </div>
   <div class="other-pts-header">
     <span class="setting-hint">Drag to reorder</span>
     <span class="other-pts-header-spacer"></span>
@@ -76,6 +79,7 @@
         <svg v-if="pt.showInPicker || pt.isMain" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
+  </div>
   </div>
 </template>
 

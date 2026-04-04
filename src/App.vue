@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell">
     <!-- Sticky top bar — location name + action buttons, always visible above scroll -->
-    <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: panelOpen || settingsOpen, scrolled: topBarScrolled }">
+    <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled }">
         <button
           data-locations-btn
           class="scene-top-btn"
@@ -10,7 +10,7 @@
           @click="panelOpen = !panelOpen; settingsOpen = false"
           title="Saved locations"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
             <circle cx="12" cy="9" r="2.5"/>
           </svg>
@@ -28,7 +28,7 @@
           @click="settingsOpen = !settingsOpen; panelOpen = false"
           title="Settings"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
             <line x1="4" y1="6" x2="20" y2="6"/>
             <line x1="4" y1="12" x2="20" y2="12"/>
             <line x1="4" y1="18" x2="20" y2="18"/>
@@ -40,7 +40,7 @@
     </div>
 
     <!-- Scrollable content area -->
-    <div class="scroll-root" ref="scrollRootEl" :class="{ blurred: panelOpen || settingsOpen }">
+    <div class="scroll-root" ref="scrollRootEl" :class="{ blurred: settingsOpen }">
 
       <!-- Offline -->
       <div v-if="isOffline && !weatherData" class="offline-card">
@@ -796,7 +796,7 @@ function onDocumentClick(e) {
   if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]') && !e.target.closest('.modal-overlay')) {
     settingsOpen.value = false
   }
-  if (panelOpen.value && !e.target.closest('.dropdown') && !e.target.closest('[data-locations-btn]')) {
+  if (panelOpen.value && !e.target.closest('.locations-sheet') && !e.target.closest('[data-locations-btn]')) {
     panelOpen.value = false
     tutSearching.value = false
   }
@@ -936,8 +936,8 @@ if (!isGeoActive.value) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-radius: 9999px;
-  width: 38px;
-  height: 32px;
+  width: 44px;
+  height: 36px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -1071,13 +1071,13 @@ if (!isGeoActive.value) {
 .sim-reset:hover { background: rgba(56, 130, 246, 0.3); border-color: rgba(147, 197, 253, 0.6); }
 
 .sim-toggle {
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   color: #fff;
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 9999px;
-  width: 42px;
-  height: 34px;
+  width: 48px;
+  height: 38px;
   padding: 0;
   display: flex;
   align-items: center;
