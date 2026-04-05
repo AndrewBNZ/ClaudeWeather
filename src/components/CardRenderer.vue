@@ -48,7 +48,7 @@ const props = defineProps({
 const emit = defineEmits([
   'select', 'grass-color', 'open-locations', 'open-settings',
   'open-data-types', 'open-model-modal', 'refresh', 'day-selected',
-  'open-card-settings', 'forecast-data-point', 'scroll-to-hour', 'open-alert-editor',
+  'open-card-settings', 'forecast-data-point', 'scroll-to-hour', 'open-alert-editor', 'set-data-type',
 ])
 
 const cardComponent = computed(() => CARD_REGISTRY[props.cardType])
@@ -98,6 +98,7 @@ const cardEvents = computed(() => ({
   'forecast-data-point': (v) => emit('forecast-data-point', v),
   'scroll-to-hour':      (v) => emit('scroll-to-hour', v),
   'open-alert-editor':   (v) => emit('open-alert-editor', v),
+  'set-data-type':       (v) => emit('set-data-type', v),
 }))
 
 // Long-press (touch) + right-click opens card settings when available

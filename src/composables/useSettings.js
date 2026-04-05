@@ -129,6 +129,13 @@ function loadWarningsConfig() {
 
 export const DEFAULT_CUSTOM_ALERTS_CONFIG = { show: 'always' }
 
+export const ALERT_TAP_DATA_TYPE_OPTIONS = [
+  { type: 'none', label: 'None', iconKey: null },
+  ...DATA_TYPE_LIST
+    .filter(t => !t.isMap && t.hourlyKey != null)
+    .map(t => ({ type: t.id, label: t.shortLabel, iconKey: t.iconKey ?? t.id })),
+]
+
 function loadCustomAlertsConfig() {
   try {
     const raw = JSON.parse(localStorage.getItem(CUSTOM_ALERTS_CONFIG_KEY))

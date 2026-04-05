@@ -196,6 +196,7 @@
                 @open-model-modal="settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel('forecastModel'))"
                 @refresh="loadWeather(false, true)"
                 @scroll-to-hour="onScrollToHour"
+                @set-data-type="forecastDataPoint = $event"
                 @open-alert-editor="onOpenAlertEditor"
                 @open-card-settings="onOpenCardSettings"
               />
@@ -356,6 +357,15 @@ function onScrollToHour({ date, hour }) {
   if (dayIndex === -1) return
   selectedDay.value = dayIndex
   focusHour.value = dayIndex * 24 + hour
+  setTimeout(() => {
+    const root = scrollRootEl.value
+    const el   = document.querySelector('.hourly-forecast-card')
+    if (!el || !root) return
+    const TOP_BAR_OFFSET = 64
+    const elRect   = el.getBoundingClientRect()
+    const rootRect = root.getBoundingClientRect()
+    root.scrollTo({ top: root.scrollTop + elRect.top - rootRect.top - TOP_BAR_OFFSET, behavior: 'smooth' })
+  }, 250)
 }
 
 // ── Sim panel state (moved from CurrentConditions) ────────────────────────────

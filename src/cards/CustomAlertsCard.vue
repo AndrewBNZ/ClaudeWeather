@@ -75,7 +75,7 @@ import { ref, computed } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
-const emit = defineEmits(['scroll-to-hour', 'open-alert-editor'])
+const emit = defineEmits(['scroll-to-hour', 'open-alert-editor', 'set-data-type'])
 
 const props = defineProps({
   customAlertsConfig: { type: Object, default: null },
@@ -119,7 +119,9 @@ function formatDate(dateStr) {
 }
 
 function navigateToHour(date, hour) {
+  const tapType = selectedEntry.value?.alert?.tapDataType ?? 'none'
   selectedEntry.value = null
+  if (tapType !== 'none') emit('set-data-type', tapType)
   emit('scroll-to-hour', { date, hour })
 }
 

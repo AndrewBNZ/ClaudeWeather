@@ -24,9 +24,6 @@
 
         <!-- Alert list -->
         <div class="settings-group" style="margin-top: 0.75rem">
-          <div v-if="!customAlerts.length" class="alerts-empty-hint">
-            No alerts yet — tap Add Alert to create one.
-          </div>
           <div v-for="{ alert, i } in sortedAlerts" :key="alert.id" class="alert-list-row" @click="openEditor(i)">
             <span class="alert-list-dot" :style="{ background: alert.color }" />
             <span class="alert-list-title">{{ alert.title || 'Untitled' }}</span>
@@ -59,7 +56,7 @@
       </div>
 
       <!-- ── PAGE: Editor ── -->
-      <div class="alerts-page alerts-page--editor">
+      <div v-if="page === 'editor'" class="alerts-page alerts-page--editor">
 
         <!-- Title / colour / enabled -->
         <div class="settings-group">
@@ -93,6 +90,7 @@
               @click="editingAlert.enabled = !editingAlert.enabled"
             ><span class="toggle-thumb" /></button>
           </div>
+          <AlertTapDataTypePicker v-model="editingAlert.tapDataType" />
         </div>
 
         <!-- ── Criteria ── -->
@@ -270,6 +268,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useSettings } from '../../composables/useSettings.js'
 import RangeSlider from '../RangeSlider.vue'
+import AlertTapDataTypePicker from './AlertTapDataTypePicker.vue'
 
 const props = defineProps({
   active:      { type: Boolean, default: false },
@@ -287,6 +286,7 @@ const sortedAlerts = computed(() =>
 )
 
 const page         = ref('list')
+
 const editingIndex = ref(-1)
 const editingAlert = reactive({})
 
@@ -333,6 +333,7 @@ function makeNewAlert() {
     title:   '',
     color:   '#3b82f6',
     enabled: true,
+    tapDataType:  'none',
     daysOfWeek:   { enabled: false, days: [0, 1, 2, 3, 4, 5, 6] },
     betweenHours: { enabled: false, from: 8, to: 18 },
     temperature:  { enabled: false, min: null, max: null },
@@ -413,6 +414,24 @@ function toggleDay(idx) {
 </script>
 
 <style scoped>
+.slot-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+.slot-scroll::-webkit-scrollbar { display: none; }
+.slot-scroll :deep(.data-point-grid) {
+  flex-wrap: nowrap;
+  align-items: center;
+  padding-bottom: 2px;
+}
+.slot-scroll :deep(.data-point-opt) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .alerts-panel {
   overflow: hidden;
   height: 100%;
