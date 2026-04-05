@@ -151,7 +151,7 @@ const dataSlots = computed(() => {
       let value = '–'
       if (cfg.hourlyKey && d[cfg.hourlyKey] != null) {
         const raw = cfg.scale ? cfg.scale(d[cfg.hourlyKey], up) : d[cfg.hourlyKey]
-        const dec = cfg.getDecimals ? cfg.getDecimals(up) : (cfg.decimals ?? 0)
+        const dec = Math.min(cfg.getDecimals ? cfg.getDecimals(up) : (cfg.decimals ?? 0), 1)
         value = Number(raw).toFixed(dec)
       }
       const unit = cfg.getUnit ? cfg.getUnit(up) : ''
@@ -323,7 +323,7 @@ const tiles = computed(() => {
 
 .sc-inner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 24px;
 }
@@ -331,7 +331,7 @@ const tiles = computed(() => {
 /* Left column */
 .sc-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 10px;
   flex: 1;
@@ -342,6 +342,7 @@ const tiles = computed(() => {
   line-height: 1;
   filter: drop-shadow(0 2px 8px rgba(0,0,0,0.45));
   flex-shrink: 0;
+  margin-top: 3px;
 }
 
 .sc-temp-group {
@@ -399,7 +400,7 @@ const tiles = computed(() => {
 
 .sc-data-grid {
   display: grid;
-  grid-template-columns: 20px 3ch auto auto;
+  grid-template-columns: 20px 3.5ch auto auto;
   align-items: center;
   gap: 7px 5px;
   font-size: 0.85rem;
