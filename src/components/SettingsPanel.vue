@@ -1,12 +1,8 @@
 <template>
   <Teleport to="body">
-  <Transition name="settings-sheet-overlay" @leave="onSheetLeave">
+  <Transition name="settings-sheet-overlay">
     <div v-if="isOpen" class="settings-sheet-overlay" @click.self="$emit('close')">
-      <div ref="sheetRef" class="settings-dropdown" @click.stop>
-        <!-- Drag handle -->
-        <div class="settings-handle-bar" @touchstart.passive="onDragStart" @mousedown="onDragStart">
-          <div class="settings-handle"></div>
-        </div>
+      <div class="settings-dropdown" @click.stop>
         <div class="settings-header" :class="{ 'settings-header--sub': subPanel }">
           <!-- Back button (sub-panel only) -->
           <button v-if="subPanel" class="settings-header-back" @click.stop="navigateBack()" aria-label="Back">
@@ -62,6 +58,16 @@
               <div class="unit-pill">
                 <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
                 <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="setting-label">Style</div>
+                <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list with dividers' }}</div>
+              </div>
+              <div class="unit-pill">
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'cards' }]" @click="cardStyle = 'cards'">Cards</button>
+                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
               </div>
             </div>
           </div>
@@ -195,6 +201,8 @@
               </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+          </div>
+          <div class="settings-group">
             <div class="setting-row">
               <div>
                 <div class="setting-label">Reset</div>
@@ -288,6 +296,7 @@ defineExpose({
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
   openModelModal:     () => navigate('forecastModel'),
   openToSubPanel:     (sub) => jumpToSubPanel(sub),
+  openTab:            (tabName) => { tab.value = tabName; subPanel.value = null; activePane.value = tabName; prevPane.value = null },
 })
 
 function openWhatsNew() { showWhatsNew.value = true }
@@ -295,7 +304,7 @@ function openWhatsNew() { showWhatsNew.value = true }
 const appVersion = __APP_VERSION__
 
 const {
-  theme, timeFormat, showSim,
+  theme, cardStyle, timeFormat, showSim,
   cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
   toggleCard, reorderCards,
 } = useSettings()
@@ -496,67 +505,6 @@ function onBodyTouchEnd(e) {
 const dataTypesModalOpen = ref(false)
 const resetConfirmOpen   = ref(false)
 
-// ── Drag-to-dismiss ───────────────────────────────────────────────────────────
-const sheetRef         = ref(null)
-const dragStartY       = ref(0)
-const dragDelta        = ref(0)
-const dragDismissOffset = ref(0)   // px already dragged when dismiss fires
-
-function onSheetLeave(el, done) {
-  const sheet = el.querySelector('.settings-dropdown')
-  if (!sheet) { done(); return }
-  const startPx = dragDismissOffset.value
-  dragDismissOffset.value = 0
-  // Force a synchronous paint at the start position before transitioning
-  sheet.style.transition = 'none'
-  sheet.style.transform  = `translateY(${startPx}px)`
-  // eslint-disable-next-line no-unused-expressions
-  sheet.getBoundingClientRect() // flush layout
-  sheet.style.transition = 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)'
-  sheet.style.transform  = 'translateY(100%)'
-  sheet.addEventListener('transitionend', () => {
-    sheet.style.transition = ''
-    sheet.style.transform  = ''
-    done()
-  }, { once: true })
-}
-
-function onDragStart(e) {
-  dragStartY.value = e.touches ? e.touches[0].clientY : e.clientY
-  dragDelta.value  = 0
-
-  const onMove = (e) => {
-    const y = e.touches ? e.touches[0].clientY : e.clientY
-    dragDelta.value = Math.max(0, y - dragStartY.value)
-    if (sheetRef.value) sheetRef.value.style.transform = `translateY(${dragDelta.value}px)`
-  }
-
-  const onEnd = () => {
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onEnd)
-    document.removeEventListener('touchmove', onMove)
-    document.removeEventListener('touchend', onEnd)
-
-    if (dragDelta.value > 120) {
-      dragDismissOffset.value = dragDelta.value
-      emit('close')
-    } else {
-      if (sheetRef.value) {
-        sheetRef.value.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
-        sheetRef.value.style.transform  = ''
-        sheetRef.value.addEventListener('transitionend', () => {
-          if (sheetRef.value) sheetRef.value.style.transition = ''
-        }, { once: true })
-      }
-    }
-  }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onEnd)
-  document.addEventListener('touchmove', onMove, { passive: true })
-  document.addEventListener('touchend', onEnd)
-}
-
 // ── Reset ─────────────────────────────────────────────────────────────────────
 function resetAll() { try { localStorage.clear() } catch {}; window.location.reload() }
 </script>
@@ -578,8 +526,6 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   width: 100%;
   max-width: 640px;
   height: 92dvh;
-  height: 92vh;
-  height: 92dvh;
   background: var(--sheet-bg);
   border-radius: 20px 20px 0 0;
   border: 1px solid var(--panel-border);
@@ -588,21 +534,6 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-/* ── Drag handle ─────────────────────────────────────────────────────────── */
-.settings-handle-bar {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0 6px;
-  flex-shrink: 0;
-  cursor: grab;
-}
-.settings-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--sheet-handle);
-  border-radius: 9999px;
 }
 
 .settings-tabs {
@@ -1184,7 +1115,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 /* ── Reset confirm ───────────────────────────────────────────────────────── */
 .reset-confirm-body {
-  padding: 0 20px 16px;
+  padding: 16px 20px 16px;
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-secondary);

@@ -234,7 +234,7 @@ function colorTextColor(hex) {
   border-radius: 20px 20px 0 0;
   width:         100%;
   max-width:     480px;
-  height:        50dvh;
+  height: 65dvh;
   overflow:      hidden;
   display:       flex;
   flex-direction: column;

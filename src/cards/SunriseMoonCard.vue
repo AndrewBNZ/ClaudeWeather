@@ -2,7 +2,7 @@
   <div class="card sunrise-moon-card">
     <div class="sm-row">
       <!-- Sunrise/Sunset section -->
-      <div class="sm-section sm-sun">
+      <button class="sm-section sm-sun sm-sun-btn" @click="showSunSheet = true">
         <div class="sm-section-title">Sun</div>
         <div class="sm-sun-arc">
           <svg viewBox="0 0 100 58" class="sun-arc-svg">
@@ -12,72 +12,101 @@
             <line x1="5" y1="46" x2="5" y2="54" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" stroke-linecap="round"/>
             <line x1="95" y1="46" x2="95" y2="54" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" stroke-linecap="round"/>
             <!-- Arc track -->
-            <path d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="2.5"/>
+            <path d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="5"/>
             <!-- Progress arc -->
-            <path v-if="sunProgress > 0" :d="sunProgressArc" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+            <path v-if="sunProgress > 0" :d="sunProgressArc" fill="none" stroke="#FFC107" stroke-width="5" stroke-linecap="round"/>
             <!-- Sun glow halo -->
-            <circle v-if="sunProgress >= 0 && sunProgress <= 1" :cx="sunDotX" :cy="sunDotY" r="7" fill="#fbbf24" opacity="0.25"/>
+            <circle v-if="sunProgress >= 0 && sunProgress <= 1" :cx="sunDotX" :cy="sunDotY" r="7" fill="#FFC107" opacity="0.25"/>
             <!-- Sun dot -->
-            <circle v-if="sunProgress >= 0 && sunProgress <= 1" :cx="sunDotX" :cy="sunDotY" r="4" fill="#fbbf24"/>
+            <circle v-if="sunProgress >= 0 && sunProgress <= 1" :cx="sunDotX" :cy="sunDotY" r="4" fill="#FFC107"/>
+            <!-- Day length inside arch -->
+            <text x="50" y="40" text-anchor="middle" font-size="14" fill="currentColor" opacity="0.45">{{ dayLength }}</text>
           </svg>
         </div>
         <div class="sm-sun-times">
           <div class="sm-time-col sm-time-rise">
-            <span class="sm-time-label">Rise</span>
             <span class="sm-time-val">{{ sunriseFormatted }}</span>
+            <span class="sm-time-label">Sunrise</span>
           </div>
-          <div class="sm-time-center">{{ dayLength }}</div>
           <div class="sm-time-col sm-time-set">
-            <span class="sm-time-label">Set</span>
             <span class="sm-time-val">{{ sunsetFormatted }}</span>
+            <span class="sm-time-label">Sunset</span>
           </div>
         </div>
-      </div>
+      </button>
 
       <!-- Moon section -->
-      <div class="sm-section sm-moon">
+      <button class="sm-section sm-moon sm-moon-btn" @click="showMoonSheet = true">
         <div class="sm-section-title">Moon</div>
         <div class="sm-moon-vis">
           <svg viewBox="0 0 40 40" width="56" height="56" class="moon-svg">
-            <circle cx="20" cy="20" r="18" fill="#1e293b" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>
-            <path v-if="moonPath" :d="moonPath" fill="#e2e8f0" opacity="0.95"/>
+            <defs>
+              <clipPath id="moon-clip">
+                <circle cx="20" cy="20" r="18"/>
+              </clipPath>
+            </defs>
+            <circle cx="20" cy="20" r="18" fill="#7C4DFF" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>
+            <path v-if="moonPath" :d="moonPath" fill="#E040FB" opacity="0.95" clip-path="url(#moon-clip)"/>
           </svg>
         </div>
         <div class="sm-moon-info">
           <div class="sm-moon-name">{{ phaseName }}</div>
-          <div class="sm-moon-illum">{{ illumination }}% lit &middot; {{ moonAge }}d old</div>
-          <div class="sm-moon-next">
-            <span class="sm-moon-next-item">
-              <span class="sm-moon-next-label">Full</span>
-              <span class="sm-moon-next-val">{{ daysToFullMoon }}</span>
-            </span>
-            <span class="sm-moon-next-sep">·</span>
-            <span class="sm-moon-next-item">
-              <span class="sm-moon-next-label">New</span>
-              <span class="sm-moon-next-val">{{ daysToNewMoon }}</span>
-            </span>
-          </div>
+          <div class="sm-moon-sub">{{ illumination }}% illuminated</div>
         </div>
-      </div>
+      </button>
     </div>
+
+    <Teleport to="body">
+      <Transition name="sun-sheet">
+        <SunDetailSheet
+          v-if="showSunSheet"
+          :daily="daily"
+          :lat="lat"
+          :lon="lng"
+          :time-format="timeFormat"
+          :utc-offset="utcOffset"
+          @close="showSunSheet = false"
+        />
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition name="moon-sheet">
+        <MoonDetailSheet
+          v-if="showMoonSheet"
+          :daily="daily"
+          :lat="lat"
+          :lon="lng"
+          :time-format="timeFormat"
+          :utc-offset="utcOffset"
+          @close="showMoonSheet = false"
+        />
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { getMoonPhase, moonPathForPhase, moonPhaseName, moonIllumination, LUNAR_PERIOD_DAYS } from '../utils/moonPhase.js'
+import { computed, ref } from 'vue'
+import { getMoonPhase, moonPathForPhase, moonPhaseName, moonIllumination } from '../utils/moonPhase.js'
+import MoonDetailSheet from './MoonDetailSheet.vue'
+import SunDetailSheet from './SunDetailSheet.vue'
+
+const showSunSheet  = ref(false)
+const showMoonSheet = ref(false)
 
 const props = defineProps({
   daily:      { type: Object, default: null },
   selectedDay:{ type: Number, default: 0 },
   lat:        { type: Number, default: 0 },
+  lng:        { type: Number, default: 0 },
   timeFormat: { type: String, default: '12h' },
   utcOffset:  { type: Number, default: 0 },  // seconds
 })
 
-// Sunrise/sunset for selected day
-const sunrise = computed(() => props.daily?.sunrise?.[props.selectedDay] ?? null)
-const sunset  = computed(() => props.daily?.sunset?.[props.selectedDay] ?? null)
+// Sunrise/sunset always for today (day 0) — card shows current day only
+const sunrise = computed(() => props.daily?.sunrise?.[0] ?? null)
+const sunset  = computed(() => props.daily?.sunset?.[0] ?? null)
 
 function formatTime(isoStr, format) {
   if (!isoStr) return '—'
@@ -131,7 +160,7 @@ const sunProgressArc = computed(() => {
   return `M 5,50 A 45,45 0 0,1 ${end.x.toFixed(1)},${end.y.toFixed(1)}`
 })
 
-// Moon phase (for the selected day using sunrise date as reference)
+// Moon phase always for today (day 0)
 const moonReferenceMs = computed(() => {
   const src = sunrise.value
   if (!src) return Date.now()
@@ -142,22 +171,6 @@ const phase        = computed(() => getMoonPhase(moonReferenceMs.value))
 const moonPath     = computed(() => moonPathForPhase(phase.value, props.lat))
 const phaseName    = computed(() => moonPhaseName(phase.value))
 const illumination = computed(() => moonIllumination(phase.value))
-
-const moonAge = computed(() => (phase.value * LUNAR_PERIOD_DAYS).toFixed(1))
-
-const daysToFullMoon = computed(() => {
-  const d = phase.value < 0.5
-    ? (0.5 - phase.value) * LUNAR_PERIOD_DAYS
-    : (1.5 - phase.value) * LUNAR_PERIOD_DAYS
-  const r = Math.round(d)
-  return r === 0 ? 'Tonight' : `${r}d`
-})
-
-const daysToNewMoon = computed(() => {
-  const d = (1 - phase.value) * LUNAR_PERIOD_DAYS
-  const r = Math.round(d)
-  return r === 0 ? 'Tonight' : `${r}d`
-})
 </script>
 
 <style scoped>
@@ -175,16 +188,14 @@ const daysToNewMoon = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
 .sm-section-title {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  align-self: flex-start;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* Sun arc */
@@ -195,20 +206,45 @@ const daysToNewMoon = computed(() => {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-around;
 }
 .sm-time-col {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1px;
 }
-.sm-time-rise { align-items: flex-start; }
-.sm-time-set  { align-items: flex-end; }
-.sm-time-label  { font-size: 0.65rem; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
-.sm-time-val    { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-.sm-time-center { font-size: 0.72rem; color: var(--text-faint); text-align: center; }
+.sm-time-rise { align-items: center; }
+.sm-time-set  { align-items: center; }
+.sm-time-label  { font-size: 0.8rem; color: var(--text-muted); }
+.sm-time-val    { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+
+/* Sun button */
+.sm-sun-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.sm-sun-btn:hover { background: var(--btn-hover); }
 
 /* Moon */
+.sm-moon-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+.sm-moon-btn:hover { background: var(--btn-hover); }
+
 .sm-moon-vis { display: flex; justify-content: center; }
 .moon-svg { display: block; }
 
@@ -218,21 +254,6 @@ const daysToNewMoon = computed(() => {
   align-items: center;
   gap: 2px;
 }
-.sm-moon-name  { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-.sm-moon-illum { font-size: 0.72rem; color: var(--text-faint); }
-
-.sm-moon-next {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
-.sm-moon-next-item {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
-}
-.sm-moon-next-label { font-size: 0.65rem; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.05em; }
-.sm-moon-next-val   { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-.sm-moon-next-sep   { font-size: 0.7rem; color: var(--text-faint); }
+.sm-moon-name { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+.sm-moon-sub  { font-size: 0.8rem; color: var(--text-muted); }
 </style>

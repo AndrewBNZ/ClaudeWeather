@@ -170,16 +170,16 @@ onUnmounted(() => {
 }
 
 .radar-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted, #64748b);
   margin-left: auto;
 }
 
 .radar-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 6px;

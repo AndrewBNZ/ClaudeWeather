@@ -93,13 +93,19 @@ const current = computed(() => STEPS[props.step] ?? STEPS[0])
 const displayStepCount = computed(() => STEPS.length)
 const displayStepIndex = computed(() => props.step ?? 0)
 
-const spotRect  = ref(null)
-const windowW   = ref(window.innerWidth)
-const windowH   = ref(window.innerHeight)
-const isMobile  = computed(() => windowW.value <= MOBILE_BREAKPOINT)
+const spotRect         = ref(null)
+const panelSearchBottom = ref(null)
+const windowW          = ref(window.innerWidth)
+const windowH          = ref(window.innerHeight)
+const isMobile         = computed(() => windowW.value <= MOBILE_BREAKPOINT)
 
 const PAD    = 10
 const CARD_W = 290
+
+function measurePanelSearch() {
+  const el = document.querySelector('.current-loc-item') ?? document.querySelector('.sheet-search')
+  panelSearchBottom.value = el ? el.getBoundingClientRect().bottom : null
+}
 
 function measure() {
   if (props.step === null) { spotRect.value = null; return }
@@ -116,10 +122,21 @@ watch(() => props.step, async () => {
   setTimeout(measure, 350) // retry after transitions settle
 }, { immediate: true })
 
+watch(() => props.panelOpen, async (open) => {
+  if (open) {
+    await nextTick()
+    measurePanelSearch()
+    setTimeout(measurePanelSearch, 350)
+  } else {
+    panelSearchBottom.value = null
+  }
+})
+
 function onResize() {
   windowW.value = window.innerWidth
   windowH.value = window.innerHeight
   measure()
+  if (props.panelOpen) measurePanelSearch()
 }
 
 onMounted(() => window.addEventListener('resize', onResize, { passive: true }))
@@ -146,9 +163,10 @@ const cardStyle = computed(() => {
   const vh = windowH.value
   const base = { width: `${CARD_W}px` }
 
-  // While the locations panel is open, sit at the top of the screen above the panel
+  // While the locations panel is open, position below the search box
   if (props.panelOpen && props.step === 1) {
-    return { ...base, top: '16px', left: '50%', transform: 'translateX(-50%)' }
+    const searchBottom = (panelSearchBottom.value ?? (vh * 0.08 + 110)) + 12
+    return { ...base, top: `${Math.round(searchBottom)}px`, left: '50%', transform: 'translateX(-50%)' }
   }
 
   if (!spotRect.value) {

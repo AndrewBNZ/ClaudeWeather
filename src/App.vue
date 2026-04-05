@@ -85,18 +85,18 @@
             :pws-data-active="!!(pwsData || tempestData)"
             :pws-name="activePwsStation?.name ?? null"
             @panel-change="conditionsOpen = $event"
-            @open-settings="sub => { settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel(sub)) }"
+            @open-settings="sub => { settingsOpen = true; panelOpen = false; nextTick(() => sub === 'layout' ? settingsPanel?.openTab('layout') : settingsPanel?.openToSubPanel(sub)) }"
           />
 
           <WeatherScene
             @grass-color="grassColor = $event"
+            @open-sun-sheet="showSunSheet = true"
+            @open-moon-sheet="showMoonSheet = true"
             :weather-code="mergedCurrent.weather_code"
             :wind-speed="mergedCurrent.wind_speed_10m"
             :cloud-cover="mergedCurrent.cloud_cover"
             :sunrise="todaySunrise"
             :sunset="todaySunset"
-            :modal-sunrise="selectedSunrise"
-            :modal-sunset="selectedSunset"
             :lat="location?.lat ?? 0"
             :utc-offset="weatherData.utc_offset_seconds ?? 0"
             :preview-tod="previewTod"
@@ -153,7 +153,7 @@
         </div>
 
         <!-- Card stack -->
-        <div class="card-stack">
+        <div class="card-stack" :class="{ 'card-stack--flat': cardStyle === 'flat' }">
           <Transition name="weather-fade" appear>
             <div class="card-stack-inner">
               <CardRenderer
@@ -193,7 +193,7 @@
                 @day-selected="selectedDay = $event"
                 @forecast-data-point="forecastDataPoint = $event"
                 @open-data-types="settingsPanel?.openDataTypesModal()"
-                @open-model-modal="settingsPanel?.openModelModal()"
+                @open-model-modal="settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel('forecastModel'))"
                 @refresh="loadWeather(false, true)"
                 @scroll-to-hour="onScrollToHour"
                 @open-alert-editor="onOpenAlertEditor"
@@ -203,14 +203,23 @@
           </Transition>
         </div>
 
+        <!-- Customise Layout -->
+        <div class="customise-layout-row" :class="{ 'customise-layout-row--flat': cardStyle === 'flat' }">
+          <button class="customise-layout-btn" data-settings-btn @click="settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openTab('layout'))">Customise Layout</button>
+        </div>
+
         <!-- Data footer -->
         <div class="data-footer">
-          Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
-          · <button class="footer-model-btn" @click="settingsPanel?.openModelModal()">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
-          <template v-if="updatedAt"> · Fetched {{ updatedAt }}</template>
-          <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
-            <span :class="{ spinning: loading }">↻</span>
-          </button>
+          <div class="data-footer-row">
+            Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+            · <button class="footer-model-btn" data-settings-btn @click="settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel('forecastModel'))">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
+          </div>
+          <div v-if="updatedAt || canManualRefresh" class="data-footer-row">
+            <template v-if="updatedAt">Fetched {{ updatedAt }}</template>
+            <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
+              <span :class="{ spinning: loading }">↻</span>
+            </button>
+          </div>
         </div>
       </template>
 
@@ -262,12 +271,38 @@
     />
 
     <UpdateBanner />
+
+    <!-- Sun / Moon detail sheets -->
+    <Transition name="sun-sheet">
+      <SunDetailSheet
+        v-if="showSunSheet"
+        :daily="weatherData?.daily ?? null"
+        :lat="location?.lat ?? 0"
+        :lon="location?.lon ?? 0"
+        :time-format="timeFormat"
+        :utc-offset="weatherData?.utc_offset_seconds ?? 0"
+        @close="showSunSheet = false"
+      />
+    </Transition>
+    <Transition name="moon-sheet">
+      <MoonDetailSheet
+        v-if="showMoonSheet"
+        :daily="weatherData?.daily ?? null"
+        :lat="location?.lat ?? 0"
+        :lon="location?.lon ?? 0"
+        :time-format="timeFormat"
+        :utc-offset="weatherData?.utc_offset_seconds ?? 0"
+        @close="showMoonSheet = false"
+      />
+    </Transition>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, shallowReactive, nextTick } from 'vue'
 import WeatherScene               from './components/WeatherScene.vue'
+import SunDetailSheet             from './cards/SunDetailSheet.vue'
+import MoonDetailSheet            from './cards/MoonDetailSheet.vue'
 import SceneConditionsOverlay     from './components/SceneConditionsOverlay.vue'
 import CardRenderer               from './components/CardRenderer.vue'
 import LocationsPanel    from './components/LocationsPanel.vue'
@@ -285,7 +320,7 @@ import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composabl
 import UpdateBanner from './components/UpdateBanner.vue'
 
 const {
-  timeFormat, showSim,
+  timeFormat, showSim, cardStyle,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
   dailyForecastLayout, hourlyForecastLayout, warningsConfig,
   customAlertsConfig, customAlerts,
@@ -463,11 +498,13 @@ const activeTempestStation = computed(() => {
   return s?.type === 'tempest' ? s : null
 })
 
-// ── Sunrise/sunset for WeatherScene ───────────────────────────────────────────
-const todaySunrise    = computed(() => weatherData.value?.daily?.sunrise?.[0] ?? null)
-const todaySunset     = computed(() => weatherData.value?.daily?.sunset?.[0] ?? null)
-const selectedSunrise = computed(() => weatherData.value?.daily?.sunrise?.[selectedDay.value] ?? null)
-const selectedSunset  = computed(() => weatherData.value?.daily?.sunset?.[selectedDay.value] ?? null)
+// ── Sunrise/sunset ────────────────────────────────────────────────────────────
+const todaySunrise = computed(() => weatherData.value?.daily?.sunrise?.[0] ?? null)
+const todaySunset  = computed(() => weatherData.value?.daily?.sunset?.[0] ?? null)
+
+// ── Celestial detail sheets ───────────────────────────────────────────────────
+const showSunSheet  = ref(false)
+const showMoonSheet = ref(false)
 
 // ── Tutorial ──────────────────────────────────────────────────────────────────
 const tutorialStep = ref(
@@ -971,6 +1008,34 @@ if (!isGeoActive.value) {
   .card-stack { padding: 16px 16px 40px; }
 }
 
+/* ── Flat card style ─────────────────────────────────────────────────────── */
+.card-stack--flat {
+}
+
+.card-stack--flat .card-stack-inner {
+  gap: 0;
+}
+
+.card-stack--flat .card {
+  background: transparent;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.light-theme .card-stack--flat {
+  background: #ffffff;
+}
+
+.light-theme .card-stack--flat .card {
+  box-shadow: 0 1px 0 #e5e7eb;
+}
+
+.card-stack--flat .card:last-child {
+  box-shadow: none;
+}
+
 /* ── Sim panel (positioned inside scene-block) ───────────────────────────── */
 .sim-bar {
   position: absolute;
@@ -1227,15 +1292,40 @@ if (!isGeoActive.value) {
 }
 .add-location-btn:hover { background: rgba(56, 189, 248, 0.22); }
 
+/* ── Customise Layout ───────────────────────────────────────────────────── */
+.customise-layout-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 16px 0;
+}
+
+.customise-layout-btn {
+  background: var(--btn-bg);
+  border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 7px 18px;
+  cursor: pointer;
+}
+.customise-layout-btn:hover { color: var(--text); }
+.customise-layout-row--flat { padding-top: 16px; }
+
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 .data-footer {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 2px;
   font-size: 0.78rem;
   color: var(--text-faint);
   padding: 8px 0 16px;
+}
+.data-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 .data-footer a { color: var(--text-faint); text-decoration: none; }
 .data-footer a:hover { color: var(--text-muted); }

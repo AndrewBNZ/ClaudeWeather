@@ -2,6 +2,15 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.3",
+    entries: [
+      "🌛 Improved Sun & Moon card",
+      "🌞 Tap the Sun or Moon for more details",
+      "🗃️ Added style setting - for cards or a flat view",
+      "🖌️ Improvements to app style and consistency",
+   ],
+  },
+  {
     version: "1.2.2",
     entries: ["🖌️ Re-styling locations and settings panels"],
   },

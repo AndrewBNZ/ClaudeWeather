@@ -25,6 +25,7 @@ const SCENE_OVERLAY_LAYOUT_KEY    = `${P}-scene-overlay-layout`
 const WARNINGS_CONFIG_KEY         = `${P}-warnings-config`
 const CUSTOM_ALERTS_KEY           = `${P}-custom-alerts`
 const CUSTOM_ALERTS_CONFIG_KEY    = `${P}-custom-alerts-config`
+const CARD_STYLE_KEY              = `${P}-card-style`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -101,7 +102,7 @@ export const TILE_META = {
 export const CARD_META = {
   combinedHourly:  { icon: '🕐', label: 'Hourly Forecast' },
   dailyForecast:   { icon: '📅', label: 'Daily Forecast' },
-  sunriseMoon:     { icon: '🌙', label: 'Sunrise & Moon' },
+  sunriseMoon:     { icon: '🌙', label: 'Sun & Moon' },
   radar:           { icon: '🛰️', label: 'Radar' },
   customAlerts:    { icon: '🔔', label: 'Custom Alerts' },
   weatherWarnings: { icon: '⚠️', label: 'Weather Warnings' },
@@ -272,6 +273,7 @@ applyTheme(theme.value)
 
 export function isAutoNight() { const h = new Date().getHours(); return h < 6 || h >= 20 }
 
+const cardStyle      = ref(localStorage.getItem(CARD_STYLE_KEY) ?? 'cards')
 const cardConfig     = ref(loadCardConfig())
 const tileConfig     = ref(loadTileConfig())
 const unitPrefs      = ref(loadUnitPrefs())
@@ -294,6 +296,7 @@ const customAlerts         = ref(loadCustomAlerts())
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
+watch(cardStyle,     (v) => localStorage.setItem(CARD_STYLE_KEY, v))
 watch(cardConfig,    (v) => { try { localStorage.setItem(CARDS_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(tileConfig,    (v) => { try { localStorage.setItem(TILES_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(unitPrefs,     (v) => { try { localStorage.setItem(UNIT_PREFS_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
@@ -418,7 +421,7 @@ function reorderCards(from, to) {
 
 export function useSettings() {
   return {
-    theme, resolvedTheme, timeFormat, hourlyFirst, showSim, showDailySummary,
+    theme, resolvedTheme, cardStyle, timeFormat, hourlyFirst, showSim, showDailySummary,
     tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
     dailyForecastLayout, hourlyForecastLayout,
     UNIT_OPTIONS, TILE_META, CARD_META,

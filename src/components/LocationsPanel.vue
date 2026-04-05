@@ -1,17 +1,12 @@
 <template>
   <Teleport to="body">
-    <Transition name="sheet-overlay" @leave="onSheetLeave">
+    <Transition name="sheet-overlay">
       <div
         v-if="isOpen"
         class="locations-sheet-overlay"
         @click.self="emit('close')"
       >
           <div ref="sheetRef" class="locations-sheet" @click.stop>
-            <!-- Drag handle -->
-            <div class="sheet-handle-bar" @touchstart.passive="onDragStart" @mousedown="onDragStart">
-              <div class="sheet-handle"></div>
-            </div>
-
             <!-- Header -->
             <div class="sheet-header">
               <span class="sheet-title">Locations</span>
@@ -101,69 +96,6 @@ import LocationSearch from './LocationSearch.vue'
 
 const searchRef = ref(null)
 
-// ── Drag-to-dismiss ──────────────────────────────────────────────────────────
-const dragStartY       = ref(0)
-const dragDelta        = ref(0)
-const isDragging       = ref(false)
-const sheetRef         = ref(null)
-const dragDismissOffset = ref(0)
-
-function onSheetLeave(el, done) {
-  const sheet = el.querySelector('.locations-sheet')
-  if (!sheet) { done(); return }
-  const startPx = dragDismissOffset.value
-  dragDismissOffset.value = 0
-  sheet.style.transition = 'none'
-  sheet.style.transform  = `translateY(${startPx}px)`
-  sheet.getBoundingClientRect() // flush layout
-  sheet.style.transition = 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)'
-  sheet.style.transform  = 'translateY(100%)'
-  sheet.addEventListener('transitionend', () => {
-    sheet.style.transition = ''
-    sheet.style.transform  = ''
-    done()
-  }, { once: true })
-}
-
-function onDragStart(e) {
-  dragStartY.value = e.touches ? e.touches[0].clientY : e.clientY
-  dragDelta.value  = 0
-  isDragging.value = true
-
-  const onMove = (e) => {
-    const y = e.touches ? e.touches[0].clientY : e.clientY
-    dragDelta.value = Math.max(0, y - dragStartY.value)
-    if (sheetRef.value) sheetRef.value.style.transform = `translateY(${dragDelta.value}px)`
-  }
-
-  const onEnd = () => {
-    isDragging.value = false
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup', onEnd)
-    document.removeEventListener('touchmove', onMove)
-    document.removeEventListener('touchend', onEnd)
-
-    if (dragDelta.value > 120) {
-      dragDismissOffset.value = dragDelta.value
-      emit('close')
-    } else {
-      // Snap back
-      if (sheetRef.value) {
-        sheetRef.value.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
-        sheetRef.value.style.transform  = ''
-        sheetRef.value.addEventListener('transitionend', () => {
-          if (sheetRef.value) sheetRef.value.style.transition = ''
-        }, { once: true })
-      }
-    }
-  }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup', onEnd)
-  document.addEventListener('touchmove', onMove, { passive: true })
-  document.addEventListener('touchend', onEnd)
-}
-
 const props = defineProps({
   locations:       { type: Array,   required: true },
   activeLocation:  { type: Object,  default: null },
@@ -243,27 +175,13 @@ function geoLocate() {
   box-shadow: 0 -4px 48px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Drag handle ─────────────────────────────────────────────────────────── */
-.sheet-handle-bar {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0 6px;
-  flex-shrink: 0;
-  cursor: grab;
-}
-.sheet-handle {
-  width: 36px;
-  height: 4px;
-  background: var(--sheet-handle);
-  border-radius: 9999px;
-}
-
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .sheet-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 16px 10px;
+  padding: 10px 14px 10px 16px;
+  border-bottom: 1px solid var(--panel-border);
   flex-shrink: 0;
 }
 .sheet-title {
@@ -289,7 +207,7 @@ function geoLocate() {
 
 /* ── Search section ──────────────────────────────────────────────────────── */
 .sheet-search {
-  padding: 0 12px 10px;
+  padding: 10px 12px 10px;
   flex-shrink: 0;
 }
 .sheet-search :deep(.search-input) {

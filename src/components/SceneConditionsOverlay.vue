@@ -1,6 +1,6 @@
 <template>
-  <div class="sc-overlay" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
-    <div class="sc-inner">
+  <div class="sc-overlay">
+    <div class="sc-inner" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
         <span v-if="sceneOverlayLayout.showIcon" class="sc-icon">{{ info.emoji }}</span>
@@ -312,13 +312,10 @@ const tiles = computed(() => {
   position: absolute;
   inset: 0;
   z-index: 5;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  -webkit-touch-callout: none;
-  user-select: none;
 }
 
 .sc-inner {
@@ -326,6 +323,10 @@ const tiles = computed(() => {
   align-items: flex-start;
   justify-content: center;
   gap: 24px;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 /* Left column */
@@ -468,7 +469,7 @@ const tiles = computed(() => {
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  height: 50dvh;
+  height: 65dvh;
   overflow: hidden;
 }
 
