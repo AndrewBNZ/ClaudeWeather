@@ -273,7 +273,7 @@ function summarizeCriteria(alert) {
   justify-content: center;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 1400px) {
   .alert-modal-overlay { align-items: center; }
 }
 
@@ -290,7 +290,7 @@ function summarizeCriteria(alert) {
   overflow: hidden;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 1400px) {
   .alert-modal {
     border-radius: 1rem;
   }

@@ -223,7 +223,7 @@ function colorTextColor(hex) {
   z-index:         1000;
 }
 
-@media (min-width: 480px) {
+@media (min-width: 1400px) {
   .ww-modal-overlay { align-items: center; }
 }
 
@@ -242,7 +242,7 @@ function colorTextColor(hex) {
   border-top:    4px solid var(--severity-color);
 }
 
-@media (min-width: 480px) {
+@media (min-width: 1400px) {
   .ww-modal {
     border-radius: 1rem;
   }
