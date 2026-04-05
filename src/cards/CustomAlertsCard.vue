@@ -89,6 +89,7 @@ const showMode = computed(() => props.customAlertsConfig?.show ?? 'always')
 const matchedAlerts = computed(() => {
   if (!props.customAlertResults) return []
   return [...props.customAlertResults.values()]
+    .sort((a, b) => (a.alert.title || '').localeCompare(b.alert.title || ''))
 })
 
 function hexToRgba(hex, alpha) {

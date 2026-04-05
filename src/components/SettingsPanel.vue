@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-  <Transition name="settings-sheet-overlay">
+  <Transition name="settings-sheet-overlay" @leave="onSheetLeave">
     <div v-if="isOpen" class="settings-sheet-overlay" @click.self="$emit('close')">
       <div ref="sheetRef" class="settings-dropdown" @click.stop>
         <!-- Drag handle -->
@@ -31,7 +31,7 @@
         <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="switchTab('layout')">Layout</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"     @click="switchTab('data')">Data</button>
       </div>
-      <div class="settings-body" :data-slide="slideDir">
+      <div class="settings-body" :data-slide="slideDir" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
         <!-- Display tab -->
         <div class="settings-tab-pane" :data-pane="'display'" :class="paneClass('display')">
           <div class="settings-group">
@@ -444,14 +444,55 @@ function switchTab(name) {
   navigate(name)
 }
 
+// ── Swipe left/right to switch top-level tabs ─────────────────────────────────
+let swipeTouchStartX = 0
+let swipeTouchStartY = 0
+
+function onBodyTouchStart(e) {
+  swipeTouchStartX = e.touches[0].clientX
+  swipeTouchStartY = e.touches[0].clientY
+}
+
+function onBodyTouchEnd(e) {
+  if (subPanel.value || animating.value) return
+  const dx = e.changedTouches[0].clientX - swipeTouchStartX
+  const dy = e.changedTouches[0].clientY - swipeTouchStartY
+  // Only act if horizontal movement dominates and exceeds threshold
+  if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+  const order = TOP_TABS
+  const cur   = order.indexOf(tab.value)
+  const next  = dx < 0 ? cur + 1 : cur - 1
+  if (next >= 0 && next < order.length) navigate(order[next])
+}
+
 const dataTypesModalOpen = ref(false)
 const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
 
 // ── Drag-to-dismiss ───────────────────────────────────────────────────────────
-const sheetRef   = ref(null)
-const dragStartY = ref(0)
-const dragDelta  = ref(0)
+const sheetRef         = ref(null)
+const dragStartY       = ref(0)
+const dragDelta        = ref(0)
+const dragDismissOffset = ref(0)   // px already dragged when dismiss fires
+
+function onSheetLeave(el, done) {
+  const sheet = el.querySelector('.settings-dropdown')
+  if (!sheet) { done(); return }
+  const startPx = dragDismissOffset.value
+  dragDismissOffset.value = 0
+  // Force a synchronous paint at the start position before transitioning
+  sheet.style.transition = 'none'
+  sheet.style.transform  = `translateY(${startPx}px)`
+  // eslint-disable-next-line no-unused-expressions
+  sheet.getBoundingClientRect() // flush layout
+  sheet.style.transition = 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)'
+  sheet.style.transform  = 'translateY(100%)'
+  sheet.addEventListener('transitionend', () => {
+    sheet.style.transition = ''
+    sheet.style.transform  = ''
+    done()
+  }, { once: true })
+}
 
 function onDragStart(e) {
   dragStartY.value = e.touches ? e.touches[0].clientY : e.clientY
@@ -470,7 +511,7 @@ function onDragStart(e) {
     document.removeEventListener('touchend', onEnd)
 
     if (dragDelta.value > 120) {
-      if (sheetRef.value) sheetRef.value.style.transform = ''
+      dragDismissOffset.value = dragDelta.value
       emit('close')
     } else {
       if (sheetRef.value) {

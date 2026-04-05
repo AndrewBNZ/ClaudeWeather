@@ -27,7 +27,7 @@
           <div v-if="!customAlerts.length" class="alerts-empty-hint">
             No alerts yet — tap Add Alert to create one.
           </div>
-          <div v-for="(alert, i) in customAlerts" :key="alert.id" class="alert-list-row" @click="openEditor(i)">
+          <div v-for="{ alert, i } in sortedAlerts" :key="alert.id" class="alert-list-row" @click="openEditor(i)">
             <span class="alert-list-dot" :style="{ background: alert.color }" />
             <span class="alert-list-title">{{ alert.title || 'Untitled' }}</span>
             <div class="alert-list-actions">
@@ -280,6 +280,12 @@ const emit = defineEmits(['page-change'])
 
 const { customAlerts, customAlertsConfig, unitPrefs } = useSettings()
 
+const sortedAlerts = computed(() =>
+  customAlerts.value
+    .map((alert, i) => ({ alert, i }))
+    .sort((a, b) => (a.alert.title || '').localeCompare(b.alert.title || ''))
+)
+
 const page         = ref('list')
 const editingIndex = ref(-1)
 const editingAlert = reactive({})
@@ -504,10 +510,12 @@ function toggleDay(idx) {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  margin: 0.6rem 0 0.1rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 0.5rem;
+  margin: 0.4rem 0 0.1rem;
+  padding: 10px 20px;
+  min-height: 60px;
+  box-sizing: border-box;
   border: 1px dashed var(--btn-border, rgba(255,255,255,0.15));
+  border-radius: 0.5rem;
   background: transparent;
   color: var(--text-muted, rgba(255,255,255,0.5));
   font-size: 0.84rem;
@@ -515,7 +523,7 @@ function toggleDay(idx) {
   cursor: pointer;
   transition: opacity 0.15s;
 }
-.alerts-add-btn:hover { opacity: 0.75; }
+.alerts-add-btn:hover { color: var(--text, #fff); }
 
 /* ── Editor page ── */
 .alert-title-input {

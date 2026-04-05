@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <Transition name="sheet-overlay">
+    <Transition name="sheet-overlay" @leave="onSheetLeave">
       <div
         v-if="isOpen"
         class="locations-sheet-overlay"
@@ -102,10 +102,28 @@ import LocationSearch from './LocationSearch.vue'
 const searchRef = ref(null)
 
 // ── Drag-to-dismiss ──────────────────────────────────────────────────────────
-const dragStartY  = ref(0)
-const dragDelta   = ref(0)
-const isDragging  = ref(false)
-const sheetRef    = ref(null)
+const dragStartY       = ref(0)
+const dragDelta        = ref(0)
+const isDragging       = ref(false)
+const sheetRef         = ref(null)
+const dragDismissOffset = ref(0)
+
+function onSheetLeave(el, done) {
+  const sheet = el.querySelector('.locations-sheet')
+  if (!sheet) { done(); return }
+  const startPx = dragDismissOffset.value
+  dragDismissOffset.value = 0
+  sheet.style.transition = 'none'
+  sheet.style.transform  = `translateY(${startPx}px)`
+  sheet.getBoundingClientRect() // flush layout
+  sheet.style.transition = 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)'
+  sheet.style.transform  = 'translateY(100%)'
+  sheet.addEventListener('transitionend', () => {
+    sheet.style.transition = ''
+    sheet.style.transform  = ''
+    done()
+  }, { once: true })
+}
 
 function onDragStart(e) {
   dragStartY.value = e.touches ? e.touches[0].clientY : e.clientY
@@ -126,7 +144,7 @@ function onDragStart(e) {
     document.removeEventListener('touchend', onEnd)
 
     if (dragDelta.value > 120) {
-      if (sheetRef.value) sheetRef.value.style.transform = ''
+      dragDismissOffset.value = dragDelta.value
       emit('close')
     } else {
       // Snap back
