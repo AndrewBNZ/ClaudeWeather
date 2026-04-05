@@ -50,7 +50,7 @@ defineEmits(['update:modelValue'])
   border: 1px solid var(--card-border);
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;

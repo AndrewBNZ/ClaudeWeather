@@ -10,7 +10,6 @@
       :show="layout.showDataPointPicker"
       :options="pickerOptions"
       :model-value="activeDataPoint"
-      inset
       @update:model-value="selectDataPoint"
     />
 
@@ -458,9 +457,9 @@ watch(() => props.focusHour, (absHour) => {
 }
 
 .hf-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* ── Scroll container ────────────────────────────────────────────────── */
@@ -485,9 +484,9 @@ watch(() => props.focusHour, (absHour) => {
   position: absolute;
   top: 1px;
   white-space: nowrap;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 .hf-scroll {
@@ -590,7 +589,7 @@ watch(() => props.focusHour, (absHour) => {
 }
 
 .hf-row-time .hf-cell {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-faint);
   height: 26px;

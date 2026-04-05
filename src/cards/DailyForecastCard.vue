@@ -430,9 +430,9 @@ function barStyleSimple(i) {
 }
 
 .daily-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 /* ── Forecast grid: sticky labels + scrollable days ── */
@@ -532,9 +532,9 @@ function barStyleSimple(i) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-faint);
   text-align: center;
   white-space: nowrap;
   flex-shrink: 0;
