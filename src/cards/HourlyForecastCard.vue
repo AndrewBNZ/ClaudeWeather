@@ -64,7 +64,6 @@
             }"
           >
             <div class="hf-bar-area">
-              <span v-if="layout.showConditions" class="hf-emoji">{{ hourEmojis[slot.index] ?? '' }}</span>
               <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell">
                 <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
                   <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
@@ -84,6 +83,17 @@
         </div>
 
         <!-- Configurable other data rows -->
+        <div v-if="layout.showConditions" class="hf-row hf-row-generic">
+          <div
+            v-for="slot in allHoursArr"
+            :key="'wx-' + slot.index"
+            class="hf-col hf-cell"
+            :class="{
+              'hf-col-current':   isCurrent(slot.index),
+              'hf-col-day-start': isDayStart(slot.index),
+            }"
+          ><span class="wx-icon">{{ hourEmojis[slot.index] ?? '' }}</span></div>
+        </div>
         <template v-for="pt in visibleOtherPoints" :key="pt.type">
 
           <!-- Wind: directional arrow + speed value -->
@@ -548,8 +558,6 @@ watch(() => props.focusHour, (absHour) => {
 }
 
 
-.hf-emoji { font-size: 20px; line-height: 1; margin-bottom: 5px; }
-
 .hf-bar-track {
   position: relative;
   width: 10px;
@@ -609,6 +617,7 @@ watch(() => props.focusHour, (absHour) => {
 }
 .hf-wind-arrow svg { width: 10px; height: 10px; }
 .hf-wind-speed { font-size: 0.8rem; }
+.wx-icon { font-size: 1rem; }
 
 /* Generic row: inherits inline :style color */
 .hf-row-generic .hf-cell { font-size: 0.8rem; }

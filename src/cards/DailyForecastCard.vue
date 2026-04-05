@@ -14,9 +14,11 @@
       <!-- Sticky left column: icons only -->
       <div class="labels-col">
         <div class="lbl-day-row"></div>
-        <div v-if="layout.showConditions" class="lbl-wx-row"></div>
         <div class="lbl-temp-row"></div>
-        <div v-if="visibleOtherPoints.length" class="lbl-stats-wrap">
+        <div v-if="visibleOtherPoints.length || layout.showConditions" class="lbl-stats-wrap">
+          <div v-if="layout.showConditions" class="lbl-stat-row">
+            <span class="stat-icon" v-html="TILE_ICONS['sceneConditions']"></span>
+          </div>
           <div
             v-for="pt in visibleOtherPoints"
             :key="pt.type"
@@ -40,7 +42,6 @@
             @click="emit('day-selected', i)"
           >
             <div class="day-lbl">{{ dayLabel(date) }}</div>
-            <div v-if="layout.showConditions" class="wx-icon">{{ wxEmoji(i) }}</div>
 
             <div class="temp-wrap">
               <!-- Value above bar -->
@@ -63,7 +64,8 @@
               <span class="t-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
             </div>
 
-            <div v-if="visibleOtherPoints.length" class="stats">
+            <div v-if="visibleOtherPoints.length || layout.showConditions" class="stats">
+              <div v-if="layout.showConditions" class="wx-icon stat-row">{{ wxEmoji(i) }}</div>
               <template v-for="pt in visibleOtherPoints" :key="pt.type">
                 <!-- Rain probability -->
                 <div v-if="pt.type === 'rainProb'" class="stat-row" :style="{ color: rainColor }">
@@ -438,7 +440,6 @@ function barStyleSimple(i) {
 /* ── Forecast grid: sticky labels + scrollable days ── */
 .forecast-grid {
   --h-day:  20px;
-  --h-wx:   28px;
   --h-temp: 115px;
   --h-stat: 18px;
   display: flex;
@@ -461,10 +462,6 @@ function barStyleSimple(i) {
   flex-shrink: 0;
 }
 
-.lbl-wx-row {
-  height: var(--h-wx);
-  flex-shrink: 0;
-}
 
 .lbl-temp-row {
   height: var(--h-temp);
@@ -544,16 +541,11 @@ function barStyleSimple(i) {
   font-weight: 600;
 }
 
-/* ── Condition icon ───────────────────────────────── */
+/* ── Condition icon (now inside stats, first stat-row) ── */
 .wx-icon {
-  height: var(--h-wx);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
+  height: var(--h-stat);
+  font-size: 1rem;
   line-height: 1;
-  flex-shrink: 0;
-  margin-bottom: 5px;
 }
 
 /* ── Temperature section ──────────────────────────── */
@@ -645,6 +637,9 @@ function barStyleSimple(i) {
 .stat-icon :deep(svg) {
   width: 14px;
   height: 14px;
+}
+.wx-icon {
+  font-size: 1rem;
 }
 
 /* ── Show scrollbar on non-touch devices ──────────── */
