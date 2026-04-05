@@ -257,14 +257,6 @@ function colorTextColor(hex) {
   padding:       12px 16px 1.25rem;
 }
 
-@media (pointer: coarse) {
-  .ww-modal-body {
-    scrollbar-width: none;
-  }
-  .ww-modal-body::-webkit-scrollbar {
-    display: none;
-  }
-}
 
 /* Header */
 .ww-modal-header {
