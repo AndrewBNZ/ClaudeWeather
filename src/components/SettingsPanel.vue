@@ -7,30 +7,29 @@
         <div class="settings-handle-bar" @touchstart.passive="onDragStart" @mousedown="onDragStart">
           <div class="settings-handle"></div>
         </div>
-        <div class="settings-header">
-          <span class="settings-panel-title">Settings</span>
-          <button class="settings-tab-close" @click="$emit('close')">✕</button>
+        <div class="settings-header" :class="{ 'settings-header--sub': subPanel }">
+          <!-- Back button (sub-panel only) -->
+          <button v-if="subPanel" class="settings-header-back" @click.stop="navigateBack()" aria-label="Back">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <!-- Title -->
+          <span v-if="!subPanel" class="settings-panel-title">Settings</span>
+          <span v-else class="settings-panel-title settings-panel-title--sub">{{ subPanelTitle }}</span>
+          <!-- Right-side actions -->
+          <div class="settings-header-actions">
+            <button
+              v-if="subPanel === 'customAlerts' && alertsEditorPage === 'editor'"
+              class="setting-action-btn sub-panel-save-btn"
+              :disabled="!customAlertsRef?.canSave"
+              @click="customAlertsRef?.saveAlert()"
+            >Save</button>
+            <button class="settings-tab-close" @click="$emit('close')">✕</button>
+          </div>
         </div>
       <div v-if="!subPanel" class="settings-tabs">
         <button :class="['settings-tab', { active: tab === 'display' }]"  @click="switchTab('display')">Display</button>
         <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="switchTab('layout')">Layout</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"     @click="switchTab('data')">Data</button>
-      </div>
-      <div v-else class="sub-panel-nav">
-        <button class="sub-panel-back" @click.stop="navigateBack()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
-        </button>
-        <span class="sub-panel-title-bar">
-          <span v-if="CARD_ICONS[subPanel]" class="sub-panel-title-icon" v-html="CARD_ICONS[subPanel]"></span>
-          {{ subPanelTitle }}
-        </span>
-        <button
-          v-if="subPanel === 'customAlerts' && alertsEditorPage === 'editor'"
-          class="setting-action-btn sub-panel-save-btn"
-          :disabled="!customAlertsRef?.canSave"
-          @click="customAlertsRef?.saveAlert()"
-        >Save</button>
       </div>
       <div class="settings-body" :data-slide="slideDir">
         <!-- Display tab -->
@@ -65,6 +64,8 @@
                 <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
               </div>
             </div>
+          </div>
+          <div class="settings-group">
             <div class="setting-row">
               <div>
                 <div class="setting-label">What's New</div>
@@ -162,40 +163,33 @@
         <!-- Data tab -->
         <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
           <div class="settings-group">
-            <div class="setting-row">
+            <button class="setting-row setting-row--nav" @click="navigate('forecastModel')">
               <div>
                 <div class="setting-label">Forecast model</div>
-                <div class="setting-hint">Experiment to find the best model for your area</div>
+                <div class="setting-hint">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</div>
               </div>
-              <button class="model-picker-btn" @click="modelInfoOpen = true">
-                {{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}
-                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-              </button>
-            </div>
-            <div class="setting-row">
+              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="setting-row setting-row--nav" @click="navigate('pwsKey')">
               <div>
                 <div class="setting-label">Weather Underground PWS</div>
                 <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
               </div>
-              <div class="setting-row-controls">
-                <button v-if="pwsEnabled" class="setting-action-btn" @click="pwsKeyModalOpen = true">{{ pwsApiKey ? 'Manage →' : 'Set key →' }}</button>
-                <button class="toggle-switch" :class="{ on: pwsEnabled }" @click="pwsEnabled = !pwsEnabled">
-                  <span class="toggle-thumb" />
-                </button>
-              </div>
-            </div>
-            <div class="setting-row">
+              <button class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
+                <span class="toggle-thumb" />
+              </button>
+              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="setting-row setting-row--nav" @click="navigate('tempestToken')">
               <div>
                 <div class="setting-label">Tempest PWS</div>
                 <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
               </div>
-              <div class="setting-row-controls">
-                <button v-if="tempestEnabled" class="setting-action-btn" @click="tempestTokenModalOpen = true">{{ tempestToken ? 'Manage →' : 'Set token →' }}</button>
-                <button class="toggle-switch" :class="{ on: tempestEnabled }" @click="tempestEnabled = !tempestEnabled">
-                  <span class="toggle-thumb" />
-                </button>
-              </div>
-            </div>
+              <button class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
+                <span class="toggle-thumb" />
+              </button>
+              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
             <div class="setting-row">
               <div>
                 <div class="setting-label">Reset</div>
@@ -204,6 +198,21 @@
               <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
             </div>
           </div>
+        </div>
+
+        <!-- Forecast Model data sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'forecastModel'" :class="paneClass('forecastModel')">
+          <ForecastModelSettings />
+        </div>
+
+        <!-- Weather Underground PWS data sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'pwsKey'" :class="paneClass('pwsKey')">
+          <PwsKeySettings />
+        </div>
+
+        <!-- Tempest PWS data sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'tempestToken'" :class="paneClass('tempestToken')">
+          <TempestTokenSettings />
         </div>
 
       </div>
@@ -239,24 +248,10 @@
     </div>
   </transition>
 
-  <!-- Forecast model modal -->
-  <transition name="modal-fade">
-    <ForecastModelModal v-if="modelInfoOpen" @close="modelInfoOpen = false" />
-  </transition>
-
-  <!-- Tempest token modal -->
-  <transition name="modal-fade">
-    <TempestTokenModal v-if="tempestTokenModalOpen" @close="tempestTokenModalOpen = false" />
-  </transition>
-
-  <!-- PWS API key modal -->
-  <transition name="modal-fade">
-    <PwsKeyModal v-if="pwsKeyModalOpen" @close="pwsKeyModalOpen = false" />
-  </transition>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useSettings, CARD_META } from '../composables/useSettings.js'
 import { CARD_ICONS } from '../utils/tileIcons.js'
 import { showWhatsNew } from '../composables/useWhatsNew.js'
@@ -266,11 +261,11 @@ import HourlyForecastSettings    from './settings/HourlyForecastSettings.vue'
 import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
 import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import CustomAlertsSettings      from './settings/CustomAlertsSettings.vue'
-import DataTypesModal      from './settings/DataTypesModal.vue'
-import UnitsModal          from './settings/UnitsModal.vue'
-import ForecastModelModal  from './settings/ForecastModelModal.vue'
-import PwsKeyModal         from './settings/PwsKeyModal.vue'
-import TempestTokenModal   from './settings/TempestTokenModal.vue'
+import ForecastModelSettings from './settings/ForecastModelSettings.vue'
+import PwsKeySettings        from './settings/PwsKeySettings.vue'
+import TempestTokenSettings  from './settings/TempestTokenSettings.vue'
+import DataTypesModal        from './settings/DataTypesModal.vue'
+import UnitsModal            from './settings/UnitsModal.vue'
 
 const props = defineProps({
   isOpen:          Boolean,
@@ -281,7 +276,7 @@ const emit = defineEmits(['close'])
 defineExpose({
   openUnitsModal:     () => { unitsModalOpen.value = true },
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
-  openModelModal:     () => { modelInfoOpen.value = true },
+  openModelModal:     () => navigate('forecastModel'),
   openToSubPanel:     (sub) => navigate(sub),
 })
 
@@ -345,7 +340,7 @@ function _onCardTouchEnd() {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings' }
+const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground PWS', tempestToken: 'Tempest PWS' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -354,6 +349,17 @@ const subPanelTitle  = computed(() => {
 })
 
 const customAlertsRef = ref(null)
+
+watch(() => props.isOpen, (open) => {
+  if (!open) {
+    tab.value           = 'display'
+    subPanel.value      = null
+    activePane.value    = 'display'
+    prevPane.value      = null
+    alertsEditorPage.value  = 'list'
+    alertsEditorTitle.value = ''
+  }
+})
 
 function onAlertsPageChange({ page, title }) {
   alertsEditorPage.value  = page
@@ -397,8 +403,11 @@ function navigate(target) {
   }
   activePane.value = target
   // sync tab / subPanel for header logic
+  const DATA_SUBPANELS = ['forecastModel', 'pwsKey', 'tempestToken']
   if (toTop) {
     tab.value = target; subPanel.value = null
+  } else if (DATA_SUBPANELS.includes(target)) {
+    tab.value = 'data'; subPanel.value = target
   } else {
     tab.value = 'layout'; subPanel.value = target
   }
@@ -411,11 +420,12 @@ function navigateBack() {
     customAlertsRef.value?.cancelEditor()
     return
   }
-  const target = 'layout'
+  const DATA_SUBPANELS = ['forecastModel', 'pwsKey', 'tempestToken']
+  const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : 'layout'
   prevPane.value   = activePane.value
   slideDir.value   = 'back'
   activePane.value = target
-  tab.value = 'layout'; subPanel.value = null
+  tab.value = target; subPanel.value = null
   _runAnim()
 }
 
@@ -434,12 +444,9 @@ function switchTab(name) {
   navigate(name)
 }
 
-const dataTypesModalOpen    = ref(false)
-const unitsModalOpen        = ref(false)
-const resetConfirmOpen      = ref(false)
-const modelInfoOpen         = ref(false)
-const pwsKeyModalOpen       = ref(false)
-const tempestTokenModalOpen = ref(false)
+const dataTypesModalOpen = ref(false)
+const unitsModalOpen     = ref(false)
+const resetConfirmOpen   = ref(false)
 
 // ── Drag-to-dismiss ───────────────────────────────────────────────────────────
 const sheetRef   = ref(null)
@@ -570,13 +577,43 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   justify-content: space-between;
   padding: 10px 14px 10px 16px;
   border-bottom: 1px solid var(--panel-border);
+  gap: 8px;
+}
+
+/* Sub-panel variant: back btn on left, centred title, actions on right */
+.settings-header--sub {
+  padding-left: 8px;
+}
+
+.settings-header-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.settings-header-back:hover { color: var(--text); background: var(--btn-hover); }
+
+.settings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .settings-panel-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
+  flex: 1;
 }
+
 
 .settings-tab-close {
   background: var(--btn-bg);
@@ -701,7 +738,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   justify-content: space-between;
   gap: 16px;
   padding: 10px 20px;
-  min-height: 52px;
+  min-height: 60px;
   box-sizing: border-box;
 }
 .setting-row + .setting-row {
@@ -725,6 +762,21 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   color: var(--text);
 }
 .setting-row--nav:hover { background: var(--btn-hover); }
+
+.setting-row--selectable {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  justify-content: space-between;
+}
+.setting-row--selectable:hover { background: var(--btn-hover); }
+.setting-row--selectable.active .setting-label { color: var(--accent, #4fa3e3); }
+.setting-checkmark { color: var(--accent, #4fa3e3); flex-shrink: 0; }
 
 .setting-row-nav-btn {
   flex: 1;
@@ -766,6 +818,10 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   flex-shrink: 0;
   transition: color 0.15s;
 }
+
+/* Toggle + chevron pairing on nav rows */
+.setting-row--nav > div:first-child { flex: 1; min-width: 0; }
+.setting-row--nav .toggle-switch { flex-shrink: 0; }
 
 .setting-row-controls {
   display: flex;
@@ -1217,65 +1273,13 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 .page-break-remove:hover { color: #f87171; background: rgba(248,113,113,0.1); }
 
-/* ── Layout sub-panel nav ────────────────────────────────────────────────── */
-.sub-panel-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px 0 6px;
-  border-bottom: 1px solid var(--panel-border);
-  min-height: 44px;
-}
-
-.sub-panel-back {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 6px 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: color 0.15s, background 0.15s;
-  flex-shrink: 0;
-}
-.sub-panel-back:hover { color: var(--text); background: var(--btn-hover); }
-
-.sub-panel-title-bar {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  text-align: center;
-  padding-right: 60px; /* offset for back btn width */
-}
-
 .sub-panel-save-btn {
   flex-shrink: 0;
-  margin-right: 2px;
+  height: 28px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
-/* When save btn is present it balances the Back btn — remove the title offset */
-.sub-panel-nav:has(.sub-panel-save-btn) .sub-panel-title-bar {
-  padding-right: 0;
-}
-
-.sub-panel-title-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-.sub-panel-title-icon svg {
-  width: 16px;
-  height: 16px;
-}
 
 .data-point-grid {
   display: flex;

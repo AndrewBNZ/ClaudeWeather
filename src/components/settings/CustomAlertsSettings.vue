@@ -450,7 +450,7 @@ function toggleDay(idx) {
   align-items: center;
   gap: 0.55rem;
   padding: 10px 20px;
-  min-height: 52px;
+  min-height: 60px;
   box-sizing: border-box;
   border-top: 1px solid var(--row-border, rgba(255,255,255,0.07));
   cursor: pointer;
@@ -467,7 +467,7 @@ function toggleDay(idx) {
 
 .alert-list-title {
   flex: 1;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

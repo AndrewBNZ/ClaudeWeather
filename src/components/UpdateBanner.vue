@@ -16,12 +16,15 @@
           <span class="whats-new-title">What's New</span>
         </div>
         <div class="whats-new-scroll">
-          <template v-for="group in newEntries" :key="group.version">
-            <div class="whats-new-version-label">v{{ group.version }}</div>
-            <ul class="whats-new-list">
-              <li v-for="(entry, i) in group.entries" :key="i">{{ entry }}</li>
-            </ul>
+          <template v-if="newEntries.length">
+            <template v-for="group in newEntries" :key="group.version">
+              <div class="whats-new-version-label">v{{ group.version }}</div>
+              <ul class="whats-new-list">
+                <li v-for="(entry, i) in group.entries" :key="i">{{ entry }}</li>
+              </ul>
+            </template>
           </template>
+          <p v-else class="whats-new-empty">No release notes for v{{ currentVersion }}.</p>
         </div>
         <button class="whats-new-close" @click="showWhatsNew = false">Got it</button>
       </div>
@@ -241,6 +244,14 @@ onMounted(() => {
 }
 .whats-new-close:hover {
   background: rgba(56, 189, 248, 0.25);
+}
+
+.whats-new-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  padding: 24px 0;
 }
 
 .modal-fade-enter-from,

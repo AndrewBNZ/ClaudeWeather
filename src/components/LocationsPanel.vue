@@ -43,6 +43,7 @@
                       <span v-if="isGeoActive && geoLocationName" class="loc-geo-sub">{{ geoLocationName }}</span>
                     </span>
                   </button>
+                  <svg v-if="isGeoActive" class="setting-checkmark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                 </li>
               </ul>
 
@@ -66,7 +67,7 @@
                     :title="loc.pwsStation ? 'Change PWS station' : 'Set PWS station'"
                     @click.stop="emit('open-pws-picker', loc)"
                   >
-                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 -1 20 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                       <line x1="7" y1="18" x2="13" y2="18"/>
                       <line x1="10" y1="18" x2="10" y2="11.5"/>
                       <path d="M7 11a4.2 4.2 0 0 1 6 0"/>
@@ -74,7 +75,17 @@
                       <circle cx="10" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
                     </svg>
                   </button>
-                  <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">✕</button>
+                  <button class="loc-delete" @click.stop="emit('delete', loc)" title="Remove">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6M14 11v6"/>
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                  <span class="loc-checkmark-slot">
+                    <svg v-if="!isGeoActive && isActive(loc)" class="setting-checkmark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -156,8 +167,8 @@ const geoLoading = ref(false)
 
 function isActive(loc) {
   return props.activeLocation &&
-    loc.lat === props.activeLocation.lat &&
-    loc.lon === props.activeLocation.lon
+    loc.lat == props.activeLocation.lat &&
+    loc.lon == props.activeLocation.lon
 }
 
 function onLocationSelected(payload) {
@@ -296,16 +307,12 @@ function geoLocate() {
   display: flex;
   align-items: center;
   transition: background 0.15s;
-  overflow: hidden;
-  height: 50px;
+  min-height: 60px;
 }
 .sheet-item + .sheet-item {
   border-top: 1px solid var(--row-border);
 }
 .sheet-item:hover { background: var(--btn-hover); }
-.sheet-item.active {
-  background: rgba(56, 189, 248, 0.18);
-}
 
 /* ── Primary button inside each card ────────────────────────────────────── */
 .sheet-item-btn {
@@ -314,7 +321,7 @@ function geoLocate() {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 13px 14px;
+  padding: 10px 20px;
   background: none;
   border: none;
   color: var(--text);
@@ -370,29 +377,42 @@ function geoLocate() {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 13px 8px;
+  padding: 10px 8px;
   color: var(--text-muted);
-  transition: color 0.15s;
+  opacity: 0.35;
+  line-height: 0;
+  transition: color 0.15s, opacity 0.15s;
   flex-shrink: 0;
   display: flex;
   align-items: center;
 }
-.loc-pws-btn:hover { color: #38bdf8; }
-.loc-pws-btn.has-station { color: #38bdf8; }
+.loc-pws-btn:hover { color: #38bdf8; opacity: 0.75; }
+.loc-pws-btn.has-station { color: #38bdf8; opacity: 1; }
+
+
+.loc-checkmark-slot {
+  width: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 
 .loc-delete {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  opacity: 0.35;
   cursor: pointer;
-  padding: 13px 14px;
-  transition: color 0.15s;
+  padding: 10px 14px;
+  line-height: 0;
+  border-radius: 0.25rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  transition: opacity 0.15s, color 0.15s;
 }
-.loc-delete:hover { color: #f87171; }
+.loc-delete:hover { opacity: 0.75; color: #f87171; }
 
 </style>
 
