@@ -446,7 +446,9 @@ const tiles = computed(() => {
   position: fixed;
   inset: 0;
   z-index: 249;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* ── Conditions panel (bottom sheet) ───────────────────────────────────── */
@@ -459,14 +461,13 @@ const tiles = computed(() => {
   max-width: 640px;
   bottom: 0;
   z-index: 250;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-bottom: none;
-  border-radius: 16px 16px 0 0;
+  background: var(--panel-bg, #1e2130);
+  border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
+  border-radius: 20px 20px 0 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  height: 50dvh;
   overflow: hidden;
 }
 
@@ -483,17 +484,15 @@ const tiles = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px 10px 16px;
-  border-bottom: 1px solid var(--panel-divider);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   flex-shrink: 0;
 }
 
 .cond-title {
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--text);
 }
 
 .cond-condition-row {
@@ -512,13 +511,14 @@ const tiles = computed(() => {
 .cond-close {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: inherit;
+  opacity: 0.45;
   font-size: 1rem;
-  padding: 2px 4px;
+  padding: 0.2rem 0.4rem;
   cursor: pointer;
-  transition: color 0.15s;
+  line-height: 1;
 }
-.cond-close:hover { color: var(--text); }
+.cond-close:hover { opacity: 0.8; }
 
 .cond-scroll {
   overflow-y: auto;
