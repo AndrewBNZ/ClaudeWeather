@@ -26,12 +26,12 @@
             <button class="settings-tab-close" @click="$emit('close')">✕</button>
           </div>
         </div>
-      <div class="settings-tabs" :class="{ 'settings-tabs--collapsed': subPanel, 'settings-tabs--seq-forward': navDir === 'forward', 'settings-tabs--seq-back': navDir === 'back' }">
+      <div class="settings-tabs" :class="{ 'settings-tabs--collapsed': subPanel, 'settings-tabs--seq-forward': navDir === 'forward', 'settings-tabs--seq-back': seqBack }">
         <button :class="['settings-tab', { active: tab === 'display' }]"  @click="switchTab('display')">Display</button>
         <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="switchTab('layout')">Layout</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"     @click="switchTab('data')">Data</button>
       </div>
-      <div class="settings-body" :data-slide="slideDir" :class="{ 'settings-body--navigating': navigating, 'settings-body--seq-back': navDir === 'back' }" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
+      <div class="settings-body" :data-slide="slideDir" :class="{ 'settings-body--navigating': navigating, 'settings-body--seq-back': seqBack }" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
         <!-- Display tab -->
         <div class="settings-tab-pane" :data-pane="'display'" :class="paneClass('display')">
           <div class="settings-group">
@@ -180,9 +180,9 @@
                 <div class="setting-label">Weather Underground PWS</div>
                 <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
               </div>
-              <button class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
+              <div class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
                 <span class="toggle-thumb" />
-              </button>
+              </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
             <button class="setting-row setting-row--nav" @click="navigate('tempestToken')">
@@ -190,9 +190,9 @@
                 <div class="setting-label">Tempest PWS</div>
                 <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
               </div>
-              <button class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
+              <div class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
                 <span class="toggle-thumb" />
-              </button>
+              </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
             <div class="setting-row">
@@ -387,7 +387,8 @@ const navigating   = ref(false)       // true only during an explicit navigation
 
 const SLIDE_DURATION = 280
 const TABS_DURATION  = 240
-const navDir = ref(null)  // 'forward' | 'back' | null — drives sequenced tab/pane delay
+const navDir  = ref(null)   // 'forward' | 'back' | null — drives sequenced tab/pane delay
+const seqBack = ref(false)  // true only when leaving a sub-panel (tabs need to expand first)
 
 function paneClass(name) {
   if (name === activePane.value) return 'settings-tab-pane--active'
@@ -414,6 +415,7 @@ function navigate(target) {
   } else {
     slideDir.value = 'forward'
   }
+  seqBack.value    = !fromTop && toTop  // only sequence when leaving a sub-panel
   activePane.value = target
   // sync tab / subPanel for header logic
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
@@ -441,6 +443,7 @@ function navigateBack() {
   const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : DISPLAY_SUBPANELS.includes(subPanel.value) ? 'display' : 'layout'
   prevPane.value   = activePane.value
   slideDir.value   = 'back'
+  seqBack.value    = true
   activePane.value = target
   tab.value = target; subPanel.value = null
   _runAnim()
@@ -453,10 +456,13 @@ function _runAnim() {
   const total = SLIDE_DURATION + TABS_DURATION
   nextTick(() => {
     setTimeout(() => {
-      prevPane.value   = null
-      animating.value  = false
+      prevPane.value  = null
+      animating.value = false
+    }, SLIDE_DURATION)
+    setTimeout(() => {
       navigating.value = false
       navDir.value     = null
+      seqBack.value    = false
     }, total)
   })
 }
