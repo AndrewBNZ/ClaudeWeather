@@ -237,8 +237,8 @@ const sunEvents = computed(() => {
     if (!timePart) return null
     const [h, m] = timePart.split(':').map(Number)
     if (props.timeFormat === '24h') return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
+    const ampm = h >= 12 ? 'pm' : 'am'
+    return `${h % 12 || 12}:${String(m).padStart(2, '0')}${ampm}`
   }
   const sunrises = props.daily.sunrise ?? []
   const sunsets  = props.daily.sunset  ?? []

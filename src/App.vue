@@ -1005,7 +1005,8 @@ if (!isGeoActive.value) {
 }
 
 @media (min-width: 600px) {
-  .card-stack { padding: 16px 16px 40px; }
+  .card-stack { padding: 16px; }
+  .card-stack--flat { padding-bottom: 40px; }
 }
 
 /* ── Flat card style ─────────────────────────────────────────────────────── */

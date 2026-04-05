@@ -2,7 +2,7 @@
 // The version must match package.json exactly.
 export default [
   {
-    version: "1.2.3",
+    version: "1.2.4",
     entries: [
       "🌛 Improved Sun & Moon card",
       "🌞 Tap the Sun or Moon for more details",

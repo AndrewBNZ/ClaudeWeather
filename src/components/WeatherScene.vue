@@ -17,7 +17,7 @@
     </Transition>
 
     <!-- Sun -->
-    <div class="sun" :style="{ opacity: sunOpacity }" @click.stop="$emit('open-sun-sheet')" />
+    <div class="sun" :style="{ opacity: sunOpacity, pointerEvents: sunOpacity === 0 ? 'none' : 'auto' }" @click.stop="$emit('open-sun-sheet')" />
 
     <!-- Shooting star -->
     <div
@@ -28,7 +28,7 @@
     />
 
     <!-- Moon (phase-accurate SVG) -->
-    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity }" @click.stop="$emit('open-moon-sheet')">
+    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity, pointerEvents: moonOpacity === 0 ? 'none' : 'auto' }" @click.stop="$emit('open-moon-sheet')">
       <circle cx="20" cy="20" r="20" fill="#1a237e" />
       <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
       <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />

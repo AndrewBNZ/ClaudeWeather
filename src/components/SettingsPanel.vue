@@ -43,6 +43,8 @@
                 <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
               </div>
             </div>
+         </div>
+         <div class="settings-group">
             <button class="setting-row setting-row--nav" @click="navigate('units')">
               <div>
                 <div class="setting-label">Units</div>
@@ -173,7 +175,15 @@
 
         <!-- Data tab -->
         <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
+          <div class="settings-section-heading">Forecast Data</div>
           <div class="settings-group">
+            <div class="setting-row setting-row--nav" style="cursor:default;">
+              <div>
+                <div class="setting-label">Forecast provider</div>
+                <div class="setting-hint">{{ WEATHER_PROVIDERS.find(p => p.id === getWeatherProvider())?.label }}</div>
+              </div>
+              <div class="setting-chevron-placeholder"></div>
+            </div>
             <button class="setting-row setting-row--nav" @click="navigate('forecastModel')">
               <div>
                 <div class="setting-label">Forecast model</div>
@@ -181,22 +191,25 @@
               </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            <button class="setting-row setting-row--nav" @click="navigate('pwsKey')">
+          </div>
+          <div class="settings-section-heading">Personal Weather Stations</div>
+          <div class="settings-group">
+            <button class="setting-row setting-row--nav" @click="navigate('tempestToken')">
               <div>
-                <div class="setting-label">Weather Underground PWS</div>
-                <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
+                <div class="setting-label">Tempest</div>
+                <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
               </div>
-              <div class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
+              <div class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
                 <span class="toggle-thumb" />
               </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
-            <button class="setting-row setting-row--nav" @click="navigate('tempestToken')">
+            <button class="setting-row setting-row--nav" @click="navigate('pwsKey')">
               <div>
-                <div class="setting-label">Tempest PWS</div>
-                <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
+                <div class="setting-label">Weather Underground</div>
+                <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
               </div>
-              <div class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
+              <div class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
                 <span class="toggle-thumb" />
               </div>
               <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -220,12 +233,12 @@
 
         <!-- Weather Underground PWS data sub-panel -->
         <div class="settings-tab-pane" :data-pane="'pwsKey'" :class="paneClass('pwsKey')">
-          <PwsKeySettings />
+          <PwsKeySettings @back="navigateBack()" />
         </div>
 
         <!-- Tempest PWS data sub-panel -->
         <div class="settings-tab-pane" :data-pane="'tempestToken'" :class="paneClass('tempestToken')">
-          <TempestTokenSettings />
+          <TempestTokenSettings @back="navigateBack()" />
         </div>
 
       </div>
@@ -264,6 +277,7 @@ import { useSettings, CARD_META } from '../composables/useSettings.js'
 import { CARD_ICONS } from '../utils/tileIcons.js'
 import { showWhatsNew } from '../composables/useWhatsNew.js'
 import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
+import { WEATHER_PROVIDERS, getWeatherProvider } from '../services/weatherApi.js'
 import DailyForecastSettings      from './settings/DailyForecastSettings.vue'
 import HourlyForecastSettings    from './settings/HourlyForecastSettings.vue'
 import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
@@ -359,7 +373,7 @@ function _onCardTouchEnd() {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground PWS', tempestToken: 'Tempest PWS' }
+const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -767,6 +781,15 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   flex-shrink: 0;
 }
 
+.settings-section-heading {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 0 4px;
+}
+
 .setting-row {
   display: flex;
   align-items: center;
@@ -867,12 +890,14 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 .setting-label {
   font-size: 0.9rem;
+  line-height: 1.3;
   color: var(--text);
   font-weight: 500;
 }
 
 .setting-hint {
   font-size: 0.75rem;
+  line-height: 1.3;
   color: var(--text-faint);
   margin-top: 2px;
 }
@@ -1140,9 +1165,9 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 .pws-key-input:focus { border-color: #38bdf8; }
 
 .pws-key-about { display: flex; flex-direction: column; gap: 8px; }
-.pws-key-about p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
-.pws-key-about strong { color: inherit; font-weight: 600; }
-.pws-key-about em { font-style: normal; color: inherit; }
+.pws-key-about p { margin: 0; font-size: 0.75rem; color: var(--text-faint); line-height: 1.5; }
+.pws-key-about strong { color: var(--text-faint); font-weight: 600; }
+.pws-key-about em { font-style: normal; color: var(--text-faint); }
 
 .pws-key-hint { font-size: 0.78rem; color: var(--text-faint); line-height: 1.5; }
 .pws-key-actions { display: flex; gap: 8px; justify-content: flex-end; }
