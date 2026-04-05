@@ -47,13 +47,13 @@
                 <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
               </div>
             </div>
-            <div class="setting-row">
+            <button class="setting-row setting-row--nav" @click="navigate('units')">
               <div>
                 <div class="setting-label">Units</div>
                 <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
               </div>
-              <button class="setting-action-btn" @click="unitsModalOpen = true">Manage →</button>
-            </div>
+              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
             <div class="setting-row">
               <div>
                 <div class="setting-label">Time format</div>
@@ -83,6 +83,11 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- Units display sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'units'" :class="paneClass('units')">
+          <UnitsSettings />
         </div>
 
         <!-- Layout tab -->
@@ -221,11 +226,6 @@
   </Transition>
   </Teleport>
 
-  <!-- Units modal -->
-  <transition name="modal-fade">
-    <UnitsModal v-if="unitsModalOpen" @close="unitsModalOpen = false" />
-  </transition>
-
   <!-- Data Types modal -->
   <transition name="modal-fade">
     <DataTypesModal v-if="dataTypesModalOpen" @close="dataTypesModalOpen = false" />
@@ -265,7 +265,7 @@ import ForecastModelSettings from './settings/ForecastModelSettings.vue'
 import PwsKeySettings        from './settings/PwsKeySettings.vue'
 import TempestTokenSettings  from './settings/TempestTokenSettings.vue'
 import DataTypesModal        from './settings/DataTypesModal.vue'
-import UnitsModal            from './settings/UnitsModal.vue'
+import UnitsSettings         from './settings/UnitsSettings.vue'
 
 const props = defineProps({
   isOpen:          Boolean,
@@ -274,7 +274,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 defineExpose({
-  openUnitsModal:     () => { unitsModalOpen.value = true },
+  openUnitsModal:     () => navigate('units'),
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
   openModelModal:     () => navigate('forecastModel'),
   openToSubPanel:     (sub) => navigate(sub),
@@ -340,7 +340,7 @@ function _onCardTouchEnd() {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground PWS', tempestToken: 'Tempest PWS' }
+const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground PWS', tempestToken: 'Tempest PWS' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -403,11 +403,14 @@ function navigate(target) {
   }
   activePane.value = target
   // sync tab / subPanel for header logic
-  const DATA_SUBPANELS = ['forecastModel', 'pwsKey', 'tempestToken']
+  const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
+  const DISPLAY_SUBPANELS = ['units']
   if (toTop) {
     tab.value = target; subPanel.value = null
   } else if (DATA_SUBPANELS.includes(target)) {
     tab.value = 'data'; subPanel.value = target
+  } else if (DISPLAY_SUBPANELS.includes(target)) {
+    tab.value = 'display'; subPanel.value = target
   } else {
     tab.value = 'layout'; subPanel.value = target
   }
@@ -420,8 +423,9 @@ function navigateBack() {
     customAlertsRef.value?.cancelEditor()
     return
   }
-  const DATA_SUBPANELS = ['forecastModel', 'pwsKey', 'tempestToken']
-  const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : 'layout'
+  const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
+  const DISPLAY_SUBPANELS = ['units']
+  const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : DISPLAY_SUBPANELS.includes(subPanel.value) ? 'display' : 'layout'
   prevPane.value   = activePane.value
   slideDir.value   = 'back'
   activePane.value = target
@@ -466,7 +470,6 @@ function onBodyTouchEnd(e) {
 }
 
 const dataTypesModalOpen = ref(false)
-const unitsModalOpen     = ref(false)
 const resetConfirmOpen   = ref(false)
 
 // ── Drag-to-dismiss ───────────────────────────────────────────────────────────
