@@ -26,12 +26,12 @@
             <button class="settings-tab-close" @click="$emit('close')">✕</button>
           </div>
         </div>
-      <div v-if="!subPanel" class="settings-tabs">
+      <div class="settings-tabs" :class="{ 'settings-tabs--collapsed': subPanel, 'settings-tabs--seq-forward': navDir === 'forward', 'settings-tabs--seq-back': navDir === 'back' }">
         <button :class="['settings-tab', { active: tab === 'display' }]"  @click="switchTab('display')">Display</button>
         <button :class="['settings-tab', { active: tab === 'layout' }]"   @click="switchTab('layout')">Layout</button>
         <button :class="['settings-tab', { active: tab === 'data' }]"     @click="switchTab('data')">Data</button>
       </div>
-      <div class="settings-body" :data-slide="slideDir" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
+      <div class="settings-body" :data-slide="slideDir" :class="{ 'settings-body--navigating': navigating, 'settings-body--seq-back': navDir === 'back' }" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
         <!-- Display tab -->
         <div class="settings-tab-pane" :data-pane="'display'" :class="paneClass('display')">
           <div class="settings-group">
@@ -68,10 +68,10 @@
           <div class="settings-group">
             <div class="setting-row">
               <div>
-                <div class="setting-label">What's New</div>
-                <div class="setting-hint">Installed version: {{ appVersion }}</div>
+                <div class="setting-label">Installed version</div>
+                <div class="setting-hint">{{ appVersion }}</div>
               </div>
-              <button class="setting-action-btn" @click="openWhatsNew">View →</button>
+              <button class="setting-action-btn" @click="openWhatsNew">What's New →</button>
             </div>
             <div class="setting-row">
               <div>
@@ -273,11 +273,21 @@ const props = defineProps({
   editAlertId:     { type: String, default: null },
 })
 const emit = defineEmits(['close'])
+function jumpToSubPanel(sub) {
+  const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
+  const DISPLAY_SUBPANELS = ['units']
+  activePane.value = sub
+  prevPane.value   = null
+  if (DATA_SUBPANELS.includes(sub))    { tab.value = 'data';    subPanel.value = sub }
+  else if (DISPLAY_SUBPANELS.includes(sub)) { tab.value = 'display'; subPanel.value = sub }
+  else                                  { tab.value = 'layout';  subPanel.value = sub }
+}
+
 defineExpose({
   openUnitsModal:     () => navigate('units'),
   openDataTypesModal: () => { dataTypesModalOpen.value = true },
   openModelModal:     () => navigate('forecastModel'),
-  openToSubPanel:     (sub) => navigate(sub),
+  openToSubPanel:     (sub) => jumpToSubPanel(sub),
 })
 
 function openWhatsNew() { showWhatsNew.value = true }
@@ -369,12 +379,15 @@ function onAlertsPageChange({ page, title }) {
 // ── Panel slide navigation ────────────────────────────────────────────────────
 // activePane tracks which pane is visible; prevPane is the one animating out.
 // slideDir drives CSS: 'forward' → new pane slides in from right; 'back' → from left.
-const activePane = ref('display')   // display | layout | data | <subpanel key>
-const prevPane   = ref(null)
-const slideDir   = ref('forward')
-const animating  = ref(false)
+const activePane   = ref('display')   // display | layout | data | <subpanel key>
+const prevPane     = ref(null)
+const slideDir     = ref('forward')
+const animating    = ref(false)
+const navigating   = ref(false)       // true only during an explicit navigation, not on initial open
 
 const SLIDE_DURATION = 280
+const TABS_DURATION  = 240
+const navDir = ref(null)  // 'forward' | 'back' | null — drives sequenced tab/pane delay
 
 function paneClass(name) {
   if (name === activePane.value) return 'settings-tab-pane--active'
@@ -434,12 +447,17 @@ function navigateBack() {
 }
 
 function _runAnim() {
-  animating.value = true
+  animating.value  = true
+  navigating.value = true
+  navDir.value     = slideDir.value
+  const total = SLIDE_DURATION + TABS_DURATION
   nextTick(() => {
     setTimeout(() => {
-      prevPane.value  = null
-      animating.value = false
-    }, SLIDE_DURATION)
+      prevPane.value   = null
+      animating.value  = false
+      navigating.value = false
+      navDir.value     = null
+    }, total)
   })
 }
 
@@ -584,6 +602,16 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 .settings-tabs {
   display: flex;
   border-bottom: 1px solid var(--panel-border);
+  max-height: 52px;
+  overflow: hidden;
+}
+
+/* Only animate tabs when explicitly navigating (not on sheet open) */
+.settings-tabs--seq-forward,
+.settings-tabs--seq-back {
+  transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity    0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              border-bottom-color 0.28s;
 }
 
 .settings-tab {
@@ -614,6 +642,24 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 .settings-tab.active { color: var(--text); }
 .settings-tab.active::after { opacity: 1; }
+
+.settings-tabs--collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  border-bottom-color: transparent;
+  pointer-events: none;
+}
+
+/* Forward: collapse tabs after pane slides in */
+.settings-tabs--seq-forward.settings-tabs--collapsed {
+  transition-delay: 280ms;
+}
+
+/* Back: expand tabs immediately (pane slides in after) */
+.settings-tabs--seq-back {
+  transition-delay: 0ms;
+}
 
 .settings-header {
   display: flex;
@@ -721,6 +767,10 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   opacity: 0;
   pointer-events: none;
 }
+/* Back: delay outgoing pane until tabs have expanded */
+.settings-body--seq-back[data-slide='back'] .settings-tab-pane--leaving {
+  transition-delay: 240ms;
+}
 
 /* Pane waiting off-screen (not participating in current transition) */
 .settings-tab-pane--hidden {
@@ -729,11 +779,15 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   transition: none;
 }
 
-/* Incoming pane start position — applied before transition begins */
-[data-slide='forward'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
+/* Incoming pane start position — applied before transition begins (only during navigation, not on initial open) */
+.settings-body--navigating[data-slide='forward'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
   animation: slide-in-right 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
-[data-slide='back'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
+/* Back: pane slides in after tabs have expanded */
+.settings-body--navigating.settings-body--seq-back[data-slide='back'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
+  animation: slide-in-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) 240ms both;
+}
+.settings-body--navigating:not(.settings-body--seq-back)[data-slide='back'] .settings-tab-pane--active:not(.settings-tab-pane--leaving) {
   animation: slide-in-left 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
