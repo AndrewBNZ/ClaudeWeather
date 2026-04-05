@@ -793,7 +793,7 @@ function onVisibilityChange() { if (document.visibilityState === 'visible') chec
 document.addEventListener('visibilitychange', onVisibilityChange)
 
 function onDocumentClick(e) {
-  if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]') && !e.target.closest('.modal-overlay')) {
+  if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]') && !e.target.closest('.modal-overlay') && !e.target.closest('.alert-modal-overlay')) {
     settingsOpen.value = false
   }
   if (panelOpen.value && !e.target.closest('.locations-sheet') && !e.target.closest('[data-locations-btn]')) {

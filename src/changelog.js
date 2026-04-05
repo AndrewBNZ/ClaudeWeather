@@ -2,6 +2,10 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.2",
+    entries: ["🖌️ Re-styling locations and settings panels"],
+  },
+  {
     version: "1.2.0",
     entries: ["🔔 Create custom alerts for specific weather conditions"],
   },
