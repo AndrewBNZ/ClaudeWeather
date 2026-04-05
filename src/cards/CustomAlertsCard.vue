@@ -30,8 +30,8 @@
   <Teleport to="body">
     <Transition name="alert-modal">
       <div v-if="selectedEntry" class="alert-modal-overlay" @click.self="selectedEntry = null">
-        <div class="alert-modal">
-          <div class="alert-modal-header" :style="{ borderTopColor: selectedEntry.alert.color }">
+        <div class="alert-modal" :style="{ borderTopColor: selectedEntry.alert.color }">
+          <div class="alert-modal-header">
             <div class="alert-modal-header-text">
               <span class="alert-modal-title">{{ selectedEntry.alert.title || 'Untitled' }}</span>
               <span v-if="summarizeCriteria(selectedEntry.alert)" class="alert-modal-criteria">{{ summarizeCriteria(selectedEntry.alert) }}</span>
@@ -278,10 +278,11 @@ function summarizeCriteria(alert) {
 .alert-modal {
   background: var(--panel-bg, #1e2130);
   border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
+  border-top: 4px solid transparent;
   border-radius: 20px 20px 0 0;
   width: 100%;
   max-width: 560px;
-  max-height: 80dvh;
+  height: 50dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -290,7 +291,6 @@ function summarizeCriteria(alert) {
 @media (min-width: 480px) {
   .alert-modal {
     border-radius: 1rem;
-    max-height: 75dvh;
   }
 }
 
@@ -299,7 +299,6 @@ function summarizeCriteria(alert) {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-top: 3px solid transparent;
   border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   flex-shrink: 0;
 }
@@ -333,7 +332,7 @@ function summarizeCriteria(alert) {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.6;
+  opacity: 0.45;
   background: none;
   border: none;
   color: inherit;
@@ -341,7 +340,7 @@ function summarizeCriteria(alert) {
   padding: 0.2rem 0.4rem;
   line-height: 1;
 }
-.alert-modal-edit:hover { opacity: 1; }
+.alert-modal-edit:hover { opacity: 0.8; }
 
 .alert-modal-close {
   font-size: 1rem;

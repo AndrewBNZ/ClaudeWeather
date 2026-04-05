@@ -17,14 +17,14 @@
       <!-- Scrollable body -->
       <div class="ww-modal-body">
 
-        <!-- Area -->
-        <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
-
-        <!-- Timing -->
-        <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
-          <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
-          <span>-</span>
-          <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
+        <!-- Area + Timing -->
+        <div class="ww-modal-location">
+          <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
+          <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
+            <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
+            <span>-</span>
+            <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
+          </div>
         </div>
 
         <!-- Area map -->
@@ -47,20 +47,18 @@
             <p>{{ detail.instruction }}</p>
           </div>
 
-          <!-- Issued -->
-          <div v-if="displayEffective" class="ww-modal-next-update">
-            Issued {{ fmt(displayEffective) }}
+          <!-- Issued / Next update / External link -->
+          <div class="ww-modal-footer">
+            <div v-if="displayEffective" class="ww-modal-next-update">
+              Issued {{ fmt(displayEffective) }}
+            </div>
+            <div v-if="detail.parameters?.NextUpdate" class="ww-modal-next-update">
+              Next update {{ fmt(detail.parameters.NextUpdate) }}
+            </div>
+            <a v-if="detail.web" :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">
+              Full details ↗
+            </a>
           </div>
-
-          <!-- Next update -->
-          <div v-if="detail.parameters?.NextUpdate" class="ww-modal-next-update">
-            Next update {{ fmt(detail.parameters.NextUpdate) }}
-          </div>
-
-          <!-- External link -->
-          <a v-if="detail.web" :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">
-            Full details ↗
-          </a>
         </template>
 
       </div>
@@ -195,12 +193,10 @@ function colorTextColor(hex) {
 </script>
 
 <style scoped>
-/* Slide-up transition — overlay fades, sheet translates up */
-.ww-modal-enter-active {
-  transition: opacity 0.25s ease;
-}
+/* Slide-up transition — overlay fades, sheet slides up from bottom */
+.ww-modal-enter-active,
 .ww-modal-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.22s ease;
 }
 .ww-modal-enter-from,
 .ww-modal-leave-to {
@@ -208,25 +204,23 @@ function colorTextColor(hex) {
 }
 .ww-modal-enter-active .ww-modal,
 .ww-modal-leave-active .ww-modal {
-  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.ww-modal-enter-from .ww-modal {
-  transform: translateY(40px);
-}
+.ww-modal-enter-from .ww-modal,
 .ww-modal-leave-to .ww-modal {
-  transform: translateY(40px);
+  transform: translateY(100%);
 }
 
 .ww-modal-overlay {
   position:        fixed;
   inset:           0;
-  background:      rgba(0, 0, 0, 0.6);
+  background:      rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display:         flex;
   align-items:     flex-end;
   justify-content: center;
   z-index:         1000;
-  padding:         1rem;
 }
 
 @media (min-width: 480px) {
@@ -234,28 +228,33 @@ function colorTextColor(hex) {
 }
 
 .ww-modal {
-  background:    var(--panel-bg);
+  background:    var(--panel-bg, #1e2130);
+  border:        1px solid var(--panel-border, rgba(255,255,255,0.08));
   color:         var(--text);
-  border-radius: 1rem;
+  border-radius: 20px 20px 0 0;
   width:         100%;
   max-width:     480px;
-  max-height:    85dvh;
+  height:        50dvh;
   overflow:      hidden;
-  padding:       1.25rem 1.25rem 0;
   display:       flex;
   flex-direction: column;
-  gap:            0;
   box-shadow:    var(--shadow);
-  border-top:    3px solid var(--severity-color);
+  border-top:    4px solid var(--severity-color);
+}
+
+@media (min-width: 480px) {
+  .ww-modal {
+    border-radius: 1rem;
+  }
 }
 
 .ww-modal-body {
   overflow-y:    auto;
+  flex:          1;
   display:       flex;
   flex-direction: column;
   gap:            0.85rem;
-  padding-bottom: 1.25rem;
-  margin-top:    0.85rem;
+  padding:       12px 16px 1.25rem;
 }
 
 @media (pointer: coarse) {
@@ -269,9 +268,12 @@ function colorTextColor(hex) {
 
 /* Header */
 .ww-modal-header {
-  display:     flex;
-  align-items: center;
-  gap:         0.6rem;
+  display:       flex;
+  align-items:   center;
+  gap:           0.6rem;
+  padding:       14px 16px;
+  border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.08));
+  flex-shrink:   0;
 }
 
 .ww-modal-badge {
@@ -289,22 +291,30 @@ function colorTextColor(hex) {
 .ww-modal-title {
   flex:        1;
   font-size:   1rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .ww-modal-close {
   flex-shrink:  0;
-  background:   transparent;
+  background:   none;
   border:       none;
-  color:        var(--text-muted);
+  color:        inherit;
+  opacity:      0.45;
   font-size:    1rem;
   cursor:       pointer;
-  padding:      0;
+  padding:      0.2rem 0.4rem;
   line-height:  1;
 }
+.ww-modal-close:hover { opacity: 0.8; }
 
 /* Area */
+.ww-modal-location {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.2rem;
+}
+
 .ww-modal-area {
   font-size:   0.85rem;
   font-weight: 600;
@@ -354,9 +364,12 @@ function colorTextColor(hex) {
 }
 
 .ww-modal-instruction {
-  background:    var(--card);
+  background:    var(--card-border, rgba(255,255,255,0.08));
   border-radius: 0.5rem;
   padding:       0.75rem;
+}
+:global(.light-theme) .ww-modal-instruction {
+  background: rgba(0, 0, 0, 0.04);
 }
 .ww-instruction-label {
   font-size:     0.7rem;
@@ -386,6 +399,13 @@ function colorTextColor(hex) {
   font-weight:   600;
   background:    var(--btn-bg);
   color:         var(--text-muted);
+}
+
+/* Footer group */
+.ww-modal-footer {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.2rem;
 }
 
 /* Next update */
