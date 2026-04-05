@@ -220,7 +220,7 @@ function colorTextColor(hex) {
   display:         flex;
   align-items:     flex-end;
   justify-content: center;
-  z-index:         1000;
+  z-index:         10000;
 }
 
 @media (min-width: 1400px) {

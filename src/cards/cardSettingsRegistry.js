@@ -19,4 +19,8 @@ export const CARD_SETTINGS_REGISTRY = {
     title:     'Weather Warnings',
     component: defineAsyncComponent(() => import('../components/settings/WeatherWarningsSettings.vue')),
   },
+  radar: {
+    title:     'Radar',
+    component: defineAsyncComponent(() => import('../components/settings/RadarSettings.vue')),
+  },
 }

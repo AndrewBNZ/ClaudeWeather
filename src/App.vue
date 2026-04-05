@@ -336,7 +336,7 @@ const customAlertResults = computed(() => {
 const editAlertId       = ref(null)
 const focusHour         = ref(null)
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
 
 function onOpenCardSettings(cardType) {
   const sub = CARD_SUBPANEL[cardType]

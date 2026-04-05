@@ -173,6 +173,11 @@
           <WeatherWarningsSettings :location-country="props.locationCountry" />
         </div>
 
+        <!-- Radar layout sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'radar'" :class="paneClass('radar')">
+          <RadarSettings />
+        </div>
+
         <!-- Data tab -->
         <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
           <div class="settings-section-heading">Forecast Data</div>
@@ -283,6 +288,7 @@ import HourlyForecastSettings    from './settings/HourlyForecastSettings.vue'
 import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
 import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import CustomAlertsSettings      from './settings/CustomAlertsSettings.vue'
+import RadarSettings            from './settings/RadarSettings.vue'
 import ForecastModelSettings from './settings/ForecastModelSettings.vue'
 import PwsKeySettings        from './settings/PwsKeySettings.vue'
 import TempestTokenSettings  from './settings/TempestTokenSettings.vue'
@@ -323,7 +329,7 @@ const {
   toggleCard, reorderCards,
 } = useSettings()
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
 const CARD_HINTS = {
   combinedHourly:  'Configure the hourly forecast card',
   dailyForecast:   'Configure the daily forecast card',
@@ -373,7 +379,7 @@ function _onCardTouchEnd() {
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest' }
+const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {

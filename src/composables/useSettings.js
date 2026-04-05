@@ -26,6 +26,7 @@ const WARNINGS_CONFIG_KEY         = `${P}-warnings-config`
 const CUSTOM_ALERTS_KEY           = `${P}-custom-alerts`
 const CUSTOM_ALERTS_CONFIG_KEY    = `${P}-custom-alerts-config`
 const CARD_STYLE_KEY              = `${P}-card-style`
+const RADAR_CONFIG_KEY            = `${P}-radar-config`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -125,6 +126,16 @@ function loadWarningsConfig() {
     if (raw && typeof raw === 'object') return { ...DEFAULT_WARNINGS_CONFIG, ...raw }
   } catch {}
   return { ...DEFAULT_WARNINGS_CONFIG }
+}
+
+export const DEFAULT_RADAR_CONFIG = { showWarnings: true }
+
+function loadRadarConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RADAR_CONFIG_KEY))
+    if (raw && typeof raw === 'object') return { ...DEFAULT_RADAR_CONFIG, ...raw }
+  } catch {}
+  return { ...DEFAULT_RADAR_CONFIG }
 }
 
 export const DEFAULT_CUSTOM_ALERTS_CONFIG = { show: 'always' }
@@ -300,6 +311,7 @@ const sceneOverlayLayout   = ref(loadSceneOverlayLayout())
 const warningsConfig       = ref(loadWarningsConfig())
 const customAlertsConfig   = ref(loadCustomAlertsConfig())
 const customAlerts         = ref(loadCustomAlerts())
+const radarConfig          = ref(loadRadarConfig())
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
@@ -323,6 +335,7 @@ watch(sceneOverlayLayout,    (v) => { try { localStorage.setItem(SCENE_OVERLAY_L
 watch(warningsConfig,        (v) => { try { localStorage.setItem(WARNINGS_CONFIG_KEY,      JSON.stringify(v)) } catch {} }, { deep: true })
 watch(customAlertsConfig,    (v) => { try { localStorage.setItem(CUSTOM_ALERTS_CONFIG_KEY,  JSON.stringify(v)) } catch {} }, { deep: true })
 watch(customAlerts,          (v) => { try { localStorage.setItem(CUSTOM_ALERTS_KEY,         JSON.stringify(v)) } catch {} }, { deep: true })
+watch(radarConfig,           (v) => { try { localStorage.setItem(RADAR_CONFIG_KEY,          JSON.stringify(v)) } catch {} }, { deep: true })
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -439,5 +452,6 @@ export function useSettings() {
     sceneOverlayLayout, setSceneOverlaySlot,
     warningsConfig,
     customAlertsConfig, customAlerts,
+    radarConfig,
   }
 }
