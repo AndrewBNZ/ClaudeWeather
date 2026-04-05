@@ -85,6 +85,7 @@
             :pws-data-active="!!(pwsData || tempestData)"
             :pws-name="activePwsStation?.name ?? null"
             @panel-change="conditionsOpen = $event"
+            @open-settings="sub => { settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel(sub)) }"
           />
 
           <WeatherScene

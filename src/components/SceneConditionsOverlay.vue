@@ -35,21 +35,6 @@
   </div>
 
   <Teleport to="body">
-    <div v-if="showSettingsPanel" class="sc-sheet-backdrop" @click="showSettingsPanel = false" />
-    <Transition name="sheet-slide">
-      <div v-if="showSettingsPanel" class="sc-sheet">
-        <div class="cond-header">
-          <span class="cond-title">Current Conditions</span>
-          <button class="cond-close" @click="showSettingsPanel = false">✕</button>
-        </div>
-        <div class="cond-scroll">
-          <SceneConditionsSettings />
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <Teleport to="body">
     <div v-if="showPanel" class="cond-backdrop" @click="showPanel = false" />
     <Transition name="sheet-slide">
       <div v-if="showPanel" class="cond-panel">
@@ -93,7 +78,6 @@ import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { useSettings } from '../composables/useSettings.js'
-import SceneConditionsSettings from './settings/SceneConditionsSettings.vue'
 
 const props = defineProps({
   data:         { type: Object,  required: true },
@@ -104,12 +88,11 @@ const props = defineProps({
   pwsName:      { type: String,  default: null },
 })
 
-const emit = defineEmits(['panel-change'])
+const emit = defineEmits(['panel-change', 'open-settings'])
 
 const { timeFormat, sceneOverlayLayout } = useSettings()
 
-const showPanel         = ref(false)
-const showSettingsPanel = ref(false)
+const showPanel = ref(false)
 
 // ── Tap-and-hold ──────────────────────────────────────────────────────────────
 let holdTimer = null
@@ -121,7 +104,7 @@ function onPointerDown() {
   holdTimer = setTimeout(() => {
     holdFired = true
     navigator.vibrate?.(30)
-    showSettingsPanel.value = true
+    emit('open-settings', 'sceneConditions')
   }, 500)
 }
 
@@ -139,7 +122,7 @@ function onContextMenu() {
   if (props.blocked) return
   if (holdTimer) { clearTimeout(holdTimer); holdTimer = null }
   holdFired = true
-  showSettingsPanel.value = true
+  emit('open-settings', 'sceneConditions')
 }
 
 function onClick() {
@@ -624,42 +607,6 @@ const tiles = computed(() => {
   color: var(--text-faint);
 }
 
-/* ── Bottom sheet transition (shared) ───────────────────────────────────── */
-.sc-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 249;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.sc-sheet {
-  position: fixed;
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: 640px;
-  bottom: 0;
-  z-index: 250;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-bottom: none;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
-  display: flex;
-  flex-direction: column;
-  max-height: 80vh;
-  overflow: hidden;
-}
-
-.sc-sheet-handle {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--panel-border);
-  margin: 10px auto 0;
-  flex-shrink: 0;
-}
 
 .sheet-slide-enter-active,
 .sheet-slide-leave-active {
