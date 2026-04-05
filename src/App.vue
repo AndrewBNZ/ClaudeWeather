@@ -901,7 +901,7 @@ if (!isGeoActive.value) {
 }
 .scene-top-name {
   display: block;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 6px rgba(0,0,0,0.45);
@@ -916,8 +916,7 @@ if (!isGeoActive.value) {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: 2px;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 400;
   color: rgba(255,255,255,0.7);
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);

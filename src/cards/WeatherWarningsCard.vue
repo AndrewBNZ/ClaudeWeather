@@ -36,8 +36,8 @@
         }"
         @click="selectedAlert = alert"
       >
+        <svg class="warning-icon" :style="{ color: alertColor(alert) }" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
         <div class="warning-tile-top">
-          <svg class="warning-icon" :style="{ color: alertColor(alert) }" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
           <div class="warning-headline">{{ alert.headline || alert.event }}</div>
         </div>
         <div class="warning-meta">
@@ -222,6 +222,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 
 /* Alert tiles */
 .warning-tile {
+  position:       relative;
   display:        flex;
   flex-direction: column;
   gap:            0.2rem;
@@ -235,18 +236,20 @@ onUnmounted(() => clearInterval(refreshTimer))
 .warning-tile:active { opacity: 0.7; }
 
 .warning-tile-top {
-  display:     flex;
-  align-items: center;
-  gap:         0.35rem;
-  min-width:   0;
+  display:   flex;
+  min-width: 0;
+  padding-right: 1rem;
 }
 
 .warning-icon {
+  position:   absolute;
+  top:        0.5rem;
+  right:      0.5rem;
   flex-shrink: 0;
 }
 
 .warning-headline {
-  font-size:     0.82rem;
+  font-size:     0.8rem;
   font-weight:   600;
   line-height:   1.3;
   white-space:   nowrap;
@@ -257,7 +260,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 .warning-meta {
   display:    flex;
   gap:        0 0.4rem;
-  font-size:  0.7rem;
+  font-size:  0.8rem;
   opacity:    0.6;
   min-width:  0;
 }

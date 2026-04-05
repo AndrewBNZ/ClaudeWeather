@@ -36,6 +36,9 @@ export const SCENE_OVERLAY_SLOT_OPTIONS = [
 
 export const DEFAULT_SCENE_OVERLAY_LAYOUT = {
   slots: ['condition', 'rainAmount', 'wind'],
+  showIcon:  true,
+  showTemp:  true,
+  showSlots: true,
 }
 
 export const MAIN_DATA_POINT_OPTIONS = DATA_TYPE_LIST

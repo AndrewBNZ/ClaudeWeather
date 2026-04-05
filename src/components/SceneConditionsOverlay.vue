@@ -3,8 +3,8 @@
     <div class="sc-inner">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
-        <span class="sc-icon">{{ info.emoji }}</span>
-        <div class="sc-temp-group">
+        <span v-if="sceneOverlayLayout.showIcon" class="sc-icon">{{ info.emoji }}</span>
+        <div v-if="sceneOverlayLayout.showTemp" class="sc-temp-group">
           <span class="sc-temp">{{ fmt(data.temperature_2m, 1) }}<span class="sc-unit">{{ tempUnit }}</span></span>
           <div v-if="todayHigh != null" class="sc-hl">
             <span>H {{ fmt(todayHigh, 0) }}°</span>
@@ -14,7 +14,7 @@
       </div>
 
       <!-- Right: configurable slots -->
-      <div class="sc-right">
+      <div v-if="sceneOverlayLayout.showSlots" class="sc-right">
         <div v-if="showConditionSlot" class="sc-right-item">{{ info.label }}</div>
         <div v-if="dataSlots.length" class="sc-data-grid">
           <template v-for="slot in dataSlots" :key="slot.type">
@@ -370,7 +370,7 @@ const tiles = computed(() => {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: rgba(255,255,255,0.8);
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);

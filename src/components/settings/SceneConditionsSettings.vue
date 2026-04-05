@@ -1,5 +1,31 @@
 <template>
   <div class="settings-group">
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Condition icon</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: sceneOverlayLayout.showIcon }" @click="sceneOverlayLayout.showIcon = !sceneOverlayLayout.showIcon">
+        <span class="toggle-thumb" />
+      </button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Temperature</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: sceneOverlayLayout.showTemp }" @click="sceneOverlayLayout.showTemp = !sceneOverlayLayout.showTemp">
+        <span class="toggle-thumb" />
+      </button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Slots</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: sceneOverlayLayout.showSlots }" @click="sceneOverlayLayout.showSlots = !sceneOverlayLayout.showSlots">
+        <span class="toggle-thumb" />
+      </button>
+    </div>
+  </div>
+  <div class="settings-group">
   <div v-for="(slot, idx) in sceneOverlayLayout.slots" :key="idx" class="setting-row setting-row--col">
     <div>
       <div class="setting-label">Slot {{ idx + 1 }}</div>

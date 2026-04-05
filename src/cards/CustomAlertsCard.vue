@@ -246,7 +246,7 @@ function summarizeCriteria(alert) {
 .alert-tile:active { opacity: 0.7; }
 
 .alert-tile-title {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -254,7 +254,7 @@ function summarizeCriteria(alert) {
 }
 
 .alert-tile-when {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   opacity: 0.6;
 }
 
