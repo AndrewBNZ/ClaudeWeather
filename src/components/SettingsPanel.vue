@@ -30,67 +30,7 @@
       <div class="settings-body" :data-slide="slideDir" :class="{ 'settings-body--navigating': navigating, 'settings-body--seq-back': seqBack }" @touchstart.passive="onBodyTouchStart" @touchend.passive="onBodyTouchEnd">
         <!-- Display tab -->
         <div class="settings-tab-pane" :data-pane="'display'" :class="paneClass('display')">
-          <div class="settings-group">
-            <div class="setting-row setting-row--col">
-              <div>
-                <div class="setting-label">Theme</div>
-                <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
-              </div>
-              <div class="unit-pill">
-                <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
-                <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
-                <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
-                <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
-              </div>
-            </div>
-         </div>
-         <div class="settings-group">
-            <button class="setting-row setting-row--nav" @click="navigate('units')">
-              <div>
-                <div class="setting-label">Units</div>
-                <div class="setting-hint">{{ unitPrefs.temperature === 'fahrenheit' ? '°F' : '°C' }} · {{ { kmh: 'km/h', mph: 'mph', ms: 'm/s', kn: 'kn' }[unitPrefs.wind] }} · {{ unitPrefs.precipitation === 'inch' ? 'in' : 'mm' }}</div>
-              </div>
-              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Time format</div>
-                <div class="setting-hint">{{ timeFormat === '12h' ? '12-hour (1:00 pm)' : '24-hour (13:00)' }}</div>
-              </div>
-              <div class="unit-pill">
-                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '12h' }]" @click="timeFormat = '12h'">12h</button>
-                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
-              </div>
-            </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Style</div>
-                <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list with dividers' }}</div>
-              </div>
-              <div class="unit-pill">
-                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'cards' }]" @click="cardStyle = 'cards'">Cards</button>
-                <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
-              </div>
-            </div>
-          </div>
-          <div class="settings-group">
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Installed version</div>
-                <div class="setting-hint">{{ appVersion }}</div>
-              </div>
-              <button class="setting-action-btn" @click="openWhatsNew">What's New →</button>
-            </div>
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Weather simulator</div>
-                <div class="setting-hint">Preview weather effects on the scene</div>
-              </div>
-              <button class="toggle-switch" :class="{ on: showSim }" @click="showSim = !showSim">
-                <span class="toggle-thumb" />
-              </button>
-            </div>
-          </div>
+          <DisplayTab @navigate="navigate" />
         </div>
 
         <!-- Units display sub-panel -->
@@ -100,52 +40,7 @@
 
         <!-- Layout tab -->
         <div class="settings-tab-pane" :data-pane="'layout'" :class="paneClass('layout')">
-          <div class="settings-group">
-            <button class="setting-row setting-row--nav" @click="navigate('sceneConditions')">
-              <div class="setting-row-label-group" style="flex:1;min-width:0;">
-                <span class="card-icon" v-html="CARD_ICONS.sceneConditions"></span>
-                <div>
-                  <div class="setting-label">Current Conditions</div>
-                  <div class="setting-hint" style="display: none;">Configure the scene overlay data points</div>
-                </div>
-              </div>
-              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <div v-for="(card, i) in cardConfig" :key="card.type"
-              :data-card-idx="i"
-              class="setting-row setting-row--draggable"
-              :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': CARD_SUBPANEL[card.type] && card.enabled }"
-              draggable="true"
-              @click="CARD_SUBPANEL[card.type] && card.enabled && navigate(CARD_SUBPANEL[card.type])"
-              @dragstart="onCardDragStart($event, i)"
-              @dragover="onCardDragOver($event, i)"
-              @dragend="onCardDragEnd"
-              @drop="onCardDrop($event, i)"
-              @touchstart.passive="onCardTouchStart($event, i)"
-            >
-              <span class="tile-drag-handle">⠿</span>
-              <div class="setting-row-nav-btn setting-row-nav-btn--static">
-                <div class="setting-row-label-group">
-                  <span class="card-icon" v-html="CARD_ICONS[card.type]"></span>
-                  <div>
-                    <div class="setting-label">{{ CARD_META[card.type].label }}</div>
-                    <div class="setting-hint" style="display: none;">{{ CARD_HINTS[card.type] }}</div>
-                  </div>
-                </div>
-              </div>
-              <button class="toggle-switch" :class="{ on: card.enabled }" @click.stop="toggleCard(card.type)">
-                <span class="toggle-thumb" />
-              </button>
-              <button
-                v-if="CARD_SUBPANEL[card.type] && card.enabled"
-                class="setting-chevron-btn"
-                @click.stop="navigate(CARD_SUBPANEL[card.type])"
-              >
-                <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-              <div v-else class="setting-chevron-placeholder"></div>
-            </div>
-          </div>
+          <LayoutTab @navigate="navigate" />
         </div>
 
         <!-- Current Conditions layout sub-panel -->
@@ -155,12 +50,12 @@
 
         <!-- Hourly Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'hourlyForecast'" :class="paneClass('hourlyForecast')">
-          <HourlyForecastSettings />
+          <ForecastSettings type="hourly" />
         </div>
 
         <!-- Daily Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'dailyForecast'" :class="paneClass('dailyForecast')">
-          <DailyForecastSettings />
+          <ForecastSettings type="daily" />
         </div>
 
         <!-- Custom Alerts layout sub-panel -->
@@ -180,55 +75,7 @@
 
         <!-- Data tab -->
         <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
-          <div class="settings-section-heading">Forecast Data</div>
-          <div class="settings-group">
-            <div class="setting-row setting-row--nav" style="cursor:default;">
-              <div>
-                <div class="setting-label">Forecast provider</div>
-                <div class="setting-hint">{{ WEATHER_PROVIDERS.find(p => p.id === getWeatherProvider())?.label }}</div>
-              </div>
-              <div class="setting-chevron-placeholder"></div>
-            </div>
-            <button class="setting-row setting-row--nav" @click="navigate('forecastModel')">
-              <div>
-                <div class="setting-label">Forecast model</div>
-                <div class="setting-hint">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</div>
-              </div>
-              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-          <div class="settings-section-heading">Personal Weather Stations</div>
-          <div class="settings-group">
-            <button class="setting-row setting-row--nav" @click="navigate('tempestToken')">
-              <div>
-                <div class="setting-label">Tempest</div>
-                <div class="setting-hint">{{ tempestEnabled ? (tempestToken ? 'Set stations in locations panel' : 'Set your access token to get started') : 'Tempest data temporarily hidden' }}</div>
-              </div>
-              <div class="toggle-switch" :class="{ on: tempestEnabled }" @click.stop="tempestEnabled = !tempestEnabled">
-                <span class="toggle-thumb" />
-              </div>
-              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <button class="setting-row setting-row--nav" @click="navigate('pwsKey')">
-              <div>
-                <div class="setting-label">Weather Underground</div>
-                <div class="setting-hint">{{ pwsEnabled ? (pwsApiKey ? 'Set stations in locations panel' : 'Set your API key to get started') : 'WU data temporarily hidden' }}</div>
-              </div>
-              <div class="toggle-switch" :class="{ on: pwsEnabled }" @click.stop="pwsEnabled = !pwsEnabled">
-                <span class="toggle-thumb" />
-              </div>
-              <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
-          <div class="settings-group">
-            <div class="setting-row">
-              <div>
-                <div class="setting-label">Reset</div>
-                <div class="setting-hint">Delete all settings and locations</div>
-              </div>
-              <button class="setting-action-btn setting-action-btn--danger" @click="resetConfirmOpen = true">Reset →</button>
-            </div>
-          </div>
+          <DataTab @navigate="navigate" @reset="resetConfirmOpen = true" />
         </div>
 
         <!-- Forecast Model data sub-panel -->
@@ -278,22 +125,19 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import { useSettings, CARD_META } from '../composables/useSettings.js'
-import { CARD_ICONS } from '../utils/tileIcons.js'
-import { showWhatsNew } from '../composables/useWhatsNew.js'
-import { MODELS as OPEN_METEO_MODELS } from '../services/adapters/openMeteo.js'
-import { WEATHER_PROVIDERS, getWeatherProvider } from '../services/weatherApi.js'
-import DailyForecastSettings      from './settings/DailyForecastSettings.vue'
-import HourlyForecastSettings    from './settings/HourlyForecastSettings.vue'
+import ForecastSettings          from './settings/ForecastSettings.vue'
 import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
 import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import CustomAlertsSettings      from './settings/CustomAlertsSettings.vue'
-import RadarSettings            from './settings/RadarSettings.vue'
-import ForecastModelSettings from './settings/ForecastModelSettings.vue'
-import PwsKeySettings        from './settings/PwsKeySettings.vue'
-import TempestTokenSettings  from './settings/TempestTokenSettings.vue'
-import DataTypesModal        from './settings/DataTypesModal.vue'
-import UnitsSettings         from './settings/UnitsSettings.vue'
+import RadarSettings             from './settings/RadarSettings.vue'
+import ForecastModelSettings     from './settings/ForecastModelSettings.vue'
+import PwsKeySettings            from './settings/PwsKeySettings.vue'
+import TempestTokenSettings      from './settings/TempestTokenSettings.vue'
+import DataTypesModal            from './settings/DataTypesModal.vue'
+import UnitsSettings             from './settings/UnitsSettings.vue'
+import DisplayTab                from './settings/tabs/DisplayTab.vue'
+import LayoutTab                 from './settings/tabs/LayoutTab.vue'
+import DataTab                   from './settings/tabs/DataTab.vue'
 
 const props = defineProps({
   isOpen:          Boolean,
@@ -318,63 +162,6 @@ defineExpose({
   openToSubPanel:     (sub) => jumpToSubPanel(sub),
   openTab:            (tabName) => { tab.value = tabName; subPanel.value = null; activePane.value = tabName; prevPane.value = null },
 })
-
-function openWhatsNew() { showWhatsNew.value = true }
-
-const appVersion = __APP_VERSION__
-
-const {
-  theme, cardStyle, timeFormat, showSim,
-  cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel,
-  toggleCard, reorderCards,
-} = useSettings()
-
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
-const CARD_HINTS = {
-  combinedHourly:  'Configure the hourly forecast card',
-  dailyForecast:   'Configure the daily forecast card',
-  sunriseMoon:     'Sunrise, sunset and moon phase',
-  radar:           'Radar map',
-  customAlerts:    'Set up custom weather alerts',
-  weatherWarnings: 'Configure the weather warnings feed',
-}
-
-// ── Card drag-and-drop ────────────────────────────────────────────────────────
-const cardDragIndex = ref(null)
-const cardDragOver  = ref(null)
-let   cardTouchIdx   = null
-let   cardTouchMoved = false
-
-function onCardDragStart(e, i) { cardDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
-function onCardDragOver(e, i)  { e.preventDefault(); cardDragOver.value = i }
-function onCardDragEnd()       { cardDragIndex.value = null; cardDragOver.value = null }
-function onCardDrop(e, i) {
-  e.preventDefault()
-  if (cardDragIndex.value !== null && cardDragIndex.value !== i) reorderCards(cardDragIndex.value, i)
-  cardDragIndex.value = null; cardDragOver.value = null
-}
-function onCardTouchStart(e, i) {
-  if (!e.target.closest('.tile-drag-handle')) return
-  cardTouchIdx = i; cardTouchMoved = false; cardDragIndex.value = i
-  document.addEventListener('touchmove', _onCardTouchMove, { passive: false })
-  document.addEventListener('touchend', _onCardTouchEnd)
-}
-function _onCardTouchMove(e) {
-  e.preventDefault()
-  cardTouchMoved = true
-  const touch = e.touches[0]
-  const el    = document.elementFromPoint(touch.clientX, touch.clientY)
-  const row   = el?.closest('[data-card-idx]')
-  cardDragOver.value = row ? parseInt(row.dataset.cardIdx) : null
-}
-function _onCardTouchEnd() {
-  if (cardTouchMoved && cardTouchIdx !== null && cardDragOver.value !== null && cardTouchIdx !== cardDragOver.value) {
-    reorderCards(cardTouchIdx, cardDragOver.value)
-  }
-  cardTouchIdx = null; cardTouchMoved = false; cardDragIndex.value = null; cardDragOver.value = null
-  document.removeEventListener('touchmove', _onCardTouchMove)
-  document.removeEventListener('touchend', _onCardTouchEnd)
-}
 
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')

@@ -148,7 +148,7 @@ import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { DEFAULT_HOURLY_FORECAST_LAYOUT } from '../composables/useSettings.js'
-import DataPointPicker from '../components/DataPointPicker.vue'
+import DataPointPicker from '../components/ui/DataPointPicker.vue'
 
 const COL_WIDTH = 54
 

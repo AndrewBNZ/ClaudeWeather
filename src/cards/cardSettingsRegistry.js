@@ -2,14 +2,17 @@ import { defineAsyncComponent } from 'vue'
 
 // Maps card types to their settings component and display title.
 // Cards not listed here have no configurable settings (no long-press target).
+// Optional `props` object is forwarded to the settings component via CardSettingsSheet.
 export const CARD_SETTINGS_REGISTRY = {
   dailyForecast: {
     title:     'Daily Forecast',
-    component: defineAsyncComponent(() => import('../components/settings/DailyForecastSettings.vue')),
+    component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
+    props:     { type: 'daily' },
   },
   combinedHourly: {
     title:     'Hourly Forecast',
-    component: defineAsyncComponent(() => import('../components/settings/HourlyForecastSettings.vue')),
+    component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
+    props:     { type: 'hourly' },
   },
   customAlerts: {
     title:     'Custom Alerts',

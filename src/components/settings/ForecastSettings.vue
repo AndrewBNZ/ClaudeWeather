@@ -4,7 +4,7 @@
       <div>
         <div class="setting-label">Title</div>
       </div>
-      <button class="toggle-switch" :class="{ on: hourlyForecastLayout.showTitle }" @click="hourlyForecastLayout.showTitle = !hourlyForecastLayout.showTitle">
+      <button class="toggle-switch" :class="{ on: layout.showTitle }" @click="layout.showTitle = !layout.showTitle">
         <span class="toggle-thumb" />
       </button>
     </div>
@@ -12,15 +12,15 @@
       <div>
         <div class="setting-label">Condition icons</div>
       </div>
-      <button class="toggle-switch" :class="{ on: hourlyForecastLayout.showConditions }" @click="hourlyForecastLayout.showConditions = !hourlyForecastLayout.showConditions">
+      <button class="toggle-switch" :class="{ on: layout.showConditions }" @click="layout.showConditions = !layout.showConditions">
         <span class="toggle-thumb" />
       </button>
     </div>
-    <div class="setting-row">
+    <div v-if="type === 'hourly'" class="setting-row">
       <div>
         <div class="setting-label">Sunrise &amp; sunset</div>
       </div>
-      <button class="toggle-switch" :class="{ on: hourlyForecastLayout.showSunriseSunset }" @click="hourlyForecastLayout.showSunriseSunset = !hourlyForecastLayout.showSunriseSunset">
+      <button class="toggle-switch" :class="{ on: layout.showSunriseSunset }" @click="layout.showSunriseSunset = !layout.showSunriseSunset">
         <span class="toggle-thumb" />
       </button>
     </div>
@@ -29,7 +29,7 @@
         <div class="setting-label">Data point picker</div>
         <div class="setting-hint">Pill buttons to quickly change the bar chart</div>
       </div>
-      <button class="toggle-switch" :class="{ on: hourlyForecastLayout.showDataPointPicker }" @click="hourlyForecastLayout.showDataPointPicker = !hourlyForecastLayout.showDataPointPicker">
+      <button class="toggle-switch" :class="{ on: layout.showDataPointPicker }" @click="layout.showDataPointPicker = !layout.showDataPointPicker">
         <span class="toggle-thumb" />
       </button>
     </div>
@@ -40,10 +40,10 @@
       </div>
       <div class="slot-scroll" ref="mainScrollEl"><div class="data-point-grid">
         <button
-          v-for="opt in HOURLY_MAIN_DATA_POINT_OPTIONS"
+          v-for="opt in mainOptions"
           :key="opt.type"
-          :class="['data-point-opt', { active: hourlyForecastLayout.mainDataPoint === opt.type }]"
-          @click="setHourlyMainDataPoint(opt.type)"
+          :class="['data-point-opt', { active: layout.mainDataPoint === opt.type }]"
+          @click="setMainDataPoint(opt.type)"
         ><span class="tile-svg-icon" v-html="TILE_ICONS[opt.iconKey]"></span>{{ opt.label }}</button>
       </div></div>
     </div>
@@ -75,14 +75,14 @@
     >
       <span class="tile-drag-handle" aria-hidden="true">⠿</span>
       <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[DATA_TYPES[pt.type]?.iconKey ?? pt.type]"></span>{{ POINT_LABELS[pt.type] ?? pt.type }}</span>
-      <button class="check-btn" :class="{ on: pt.enabled || pt.isMain }" :disabled="pt.isMain" @click.stop="!pt.isMain && toggleHourlyOtherPoint(pt.type)" aria-label="Toggle visibility">
+      <button class="check-btn" :class="{ on: pt.enabled || pt.isMain }" :disabled="pt.isMain" @click.stop="!pt.isMain && toggleOtherPoint(pt.type)" aria-label="Toggle visibility">
         <svg v-if="pt.enabled || pt.isMain" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <span class="other-pts-col-divider"></span>
       <button
         class="check-btn" :class="{ on: pt.showInPicker || pt.isMain }"
         :disabled="pt.isMain"
-        @click.stop="!pt.isMain && toggleHourlyOtherPointPicker(pt.type)" aria-label="Toggle in picker"
+        @click.stop="!pt.isMain && toggleOtherPointPicker(pt.type)" aria-label="Toggle in picker"
       >
         <svg v-if="pt.showInPicker || pt.isMain" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -93,14 +93,28 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useSettings, HOURLY_MAIN_DATA_POINT_OPTIONS } from '../../composables/useSettings.js'
+import { useSettings, MAIN_DATA_POINT_OPTIONS, HOURLY_MAIN_DATA_POINT_OPTIONS } from '../../composables/useSettings.js'
 import { TILE_ICONS } from '../../utils/tileIcons.js'
 import { DATA_TYPES, POINT_LABELS } from '../../utils/dataTypes.js'
 
+const props = defineProps({
+  type: { type: String, required: true }, // 'daily' | 'hourly'
+})
+
 const {
-  hourlyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout,
+  toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
   toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints, setHourlyMainDataPoint,
 } = useSettings()
+
+const isDaily = computed(() => props.type === 'daily')
+const layout  = computed(() => isDaily.value ? dailyForecastLayout.value : hourlyForecastLayout.value)
+
+const mainOptions      = computed(() => isDaily.value ? MAIN_DATA_POINT_OPTIONS : HOURLY_MAIN_DATA_POINT_OPTIONS)
+const toggleOtherPoint = computed(() => isDaily.value ? toggleDailyOtherPoint : toggleHourlyOtherPoint)
+const toggleOtherPointPicker = computed(() => isDaily.value ? toggleDailyOtherPointPicker : toggleHourlyOtherPointPicker)
+const reorderOtherPoints = computed(() => isDaily.value ? reorderDailyOtherPoints : reorderHourlyOtherPoints)
+const setMainDataPoint = computed(() => isDaily.value ? setDailyMainDataPoint : setHourlyMainDataPoint)
 
 const mainScrollEl = ref(null)
 
@@ -114,8 +128,8 @@ onMounted(async () => {
 })
 
 const otherPoints = computed(() => {
-  const mainType = hourlyForecastLayout.value.mainDataPoint
-  return hourlyForecastLayout.value.otherDataPoints
+  const mainType = layout.value.mainDataPoint
+  return layout.value.otherDataPoints
     .map((p, i) => ({ ...p, _idx: i, isMain: p.type === mainType }))
 })
 
@@ -129,7 +143,7 @@ function onLayoutDragOver(e, i)  { e.preventDefault(); layoutDragOver.value = i 
 function onLayoutDragEnd()       { layoutDragIndex.value = null; layoutDragOver.value = null }
 function onLayoutDrop(e, i) {
   e.preventDefault()
-  if (layoutDragIndex.value !== null && layoutDragIndex.value !== i) reorderHourlyOtherPoints(layoutDragIndex.value, i)
+  if (layoutDragIndex.value !== null && layoutDragIndex.value !== i) reorderOtherPoints.value(layoutDragIndex.value, i)
   layoutDragIndex.value = null; layoutDragOver.value = null
 }
 function onLayoutTouchStart(e, i) {
@@ -148,7 +162,7 @@ function _onLayoutTouchMove(e) {
 }
 function _onLayoutTouchEnd() {
   if (layoutTouchMoved && layoutTouchIdx !== null && layoutDragOver.value !== null && layoutTouchIdx !== layoutDragOver.value) {
-    reorderHourlyOtherPoints(layoutTouchIdx, layoutDragOver.value)
+    reorderOtherPoints.value(layoutTouchIdx, layoutDragOver.value)
   }
   layoutTouchIdx = null; layoutTouchMoved = false; layoutDragIndex.value = null; layoutDragOver.value = null
   document.removeEventListener('touchmove', _onLayoutTouchMove)

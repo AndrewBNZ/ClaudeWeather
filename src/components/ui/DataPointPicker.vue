@@ -15,8 +15,8 @@
 </template>
 
 <script setup>
-import { DATA_TYPES } from '../utils/dataTypes.js'
-import { TILE_ICONS } from '../utils/tileIcons.js'
+import { DATA_TYPES } from '../../utils/dataTypes.js'
+import { TILE_ICONS } from '../../utils/tileIcons.js'
 
 defineProps({
   show:       { type: Boolean, default: true },

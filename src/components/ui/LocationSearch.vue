@@ -36,7 +36,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { searchLocations, formatLocationName } from '../services/geocoding.js'
+import { searchLocations, formatLocationName } from '../../services/geocoding.js'
 
 const inputRef = ref(null)
 defineExpose({ focus: () => inputRef.value?.focus() })

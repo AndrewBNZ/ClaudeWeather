@@ -92,7 +92,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import LocationSearch from './LocationSearch.vue'
+import LocationSearch from './ui/LocationSearch.vue'
 
 const searchRef = ref(null)
 

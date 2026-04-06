@@ -2,6 +2,13 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.5",
+    entries: [
+      "📡 Show weather warnings on the radar map",
+      "🔔 Jump to hourly chart and data type from a custom alert",
+   ],
+  },
+  {
     version: "1.2.4",
     entries: [
       "🌛 Improved Sun & Moon card",

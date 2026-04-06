@@ -129,7 +129,7 @@ import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES, DATA_TYPE_LIST, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
-import DataPointPicker from '../components/DataPointPicker.vue'
+import DataPointPicker from '../components/ui/DataPointPicker.vue'
 
 // ── Props & emits ───────────────────────────────────────────────────────────
 
