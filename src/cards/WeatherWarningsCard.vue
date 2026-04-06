@@ -49,8 +49,8 @@
 
     <!-- No active alerts (show=always) -->
     <div v-else class="warnings-none">
-      <span class="warnings-none-icon">✅</span>
-      <span>No active weather warnings</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+      <span>No active weather warnings{{ locationFilter === 'location' ? ' (at this location)' : '' }}</span>
     </div>
   </div>
 
@@ -92,11 +92,34 @@ const noFeed     = ref(false)
 const showMode       = computed(() => props.warningsConfig?.show           ?? 'always')
 const locationFilter = computed(() => props.warningsConfig?.locationFilter ?? 'location')
 
-const visibleAlerts = computed(() =>
-  locationFilter.value === 'all'
+const SEVERITY_ORDER = { extreme: 3, severe: 2, moderate: 1, minor: 0 }
+const COLOUR_CODE_ORDER = { red: 3, orange: 2, yellow: 1 }
+
+function alertRank(alert) {
+  const bySeverity = SEVERITY_ORDER[(alert.severity ?? '').toLowerCase()]
+  if (bySeverity != null) return bySeverity
+  return COLOUR_CODE_ORDER[(alert.colourCode ?? '').toLowerCase()] ?? -1
+}
+
+function sortAlerts(list) {
+  return [...list].sort((a, b) => {
+    const rankDiff = alertRank(b) - alertRank(a)
+    if (rankDiff !== 0) return rankDiff
+    const titleA = (a.headline || a.event || '').toLowerCase()
+    const titleB = (b.headline || b.event || '').toLowerCase()
+    if (titleA !== titleB) return titleA.localeCompare(titleB)
+    const areaA = a.areas.map(x => x.desc).filter(Boolean).join(', ').toLowerCase()
+    const areaB = b.areas.map(x => x.desc).filter(Boolean).join(', ').toLowerCase()
+    return areaA.localeCompare(areaB)
+  })
+}
+
+const visibleAlerts = computed(() => {
+  const filtered = locationFilter.value === 'all'
     ? alerts.value
     : filterAlertsForLocation(alerts.value, props.lat, props.lng)
-)
+  return sortAlerts(filtered)
+})
 
 const SEVERITY_COLORS = {
   extreme:  '#d32f2f',
@@ -202,12 +225,11 @@ onUnmounted(() => clearInterval(refreshTimer))
   align-items: center;
   gap:         0.5rem;
   font-size:   0.85rem;
-  opacity:     0.65;
-  padding:     0.25rem 0;
+  opacity:     0.55;
+  padding:     0.2rem 0;
 }
 .warnings-error-icon,
-.warnings-no-feed-icon,
-.warnings-none-icon { font-size: 1rem; flex-shrink: 0; }
+.warnings-no-feed-icon { font-size: 1rem; flex-shrink: 0; }
 
 .warnings-retry-btn {
   margin-left:      auto;

@@ -442,7 +442,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 
 .settings-panel-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text);
   flex: 1;

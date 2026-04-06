@@ -65,8 +65,8 @@
   --text-faint: #94a3b8;
   --sun: #b45309;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-  --app-bg: radial-gradient(ellipse at top, #bfdbfe 0%, #f0f4f8 60%);
-  --header-bg: rgba(248, 250, 255, 0.92);
+  --app-bg: #f0f4f8;
+  --header-bg: rgba(248, 248, 248, 0.92);
   --header-border: rgba(0, 0, 0, 0.08);
   --btn-bg: rgba(0, 0, 0, 0.05);
   --btn-border: rgba(0, 0, 0, 0.1);

@@ -36,7 +36,7 @@
 
   <!-- ── Criteria ── -->
   <div class="criteria-section-label">Criteria</div>
-  <div class="criteria-hint">An alert fires when all enabled criteria match.</div>
+  <div class="criteria-hint">An alert is active when all enabled criteria match.</div>
 
   <div class="settings-group" style="margin-top: 0.75rem">
 

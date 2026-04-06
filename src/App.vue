@@ -242,7 +242,7 @@
         :api-key="pwsEnabled ? pwsApiKey : ''"
         :tempest-token="tempestEnabled ? tempestToken : ''"
         :current-station="pwsPickerLoc.pwsStation ?? null"
-        @select="pwsPickerLoc = onSetPws(pwsPickerLoc, $event)"
+        @select="onPwsSelect($event)"
         @close="pwsPickerLoc = null"
       />
     </transition>
@@ -260,7 +260,7 @@
       @location-selected="onLocationSelected"
       @geo-locate="onGeoLocate"
       @searching="tutSearching = $event"
-      @open-pws-picker="pwsPickerLoc = $event"
+      @open-pws-picker="pwsPickerLoc = markRaw({ ...$event })"
     />
 
     <TutorialGuide
@@ -300,7 +300,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, shallowReactive, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, shallowReactive, nextTick, markRaw } from 'vue'
 import WeatherScene               from './components/WeatherScene.vue'
 import SunDetailSheet             from './cards/SunDetailSheet.vue'
 import MoonDetailSheet            from './cards/MoonDetailSheet.vue'
@@ -666,23 +666,25 @@ async function loadPwsData() {
   }
 }
 
+function onPwsSelect(station) {
+  const updated = onSetPws(pwsPickerLoc.value, station)
+  setTimeout(() => { pwsPickerLoc.value = markRaw(updated) }, 0)
+}
+
 function onSetPws(loc, station) {
-  let updatedLoc = loc
-  savedLocations.value = savedLocations.value.map(l => {
-    if (l.lat !== loc.lat || l.lon !== loc.lon) return l
-    const updated = { ...l }
-    if (station) updated.pwsStation = station
-    else delete updated.pwsStation
-    updatedLoc = updated
-    return updated
-  })
+  const updated = { ...loc }
+  if (station) updated.pwsStation = station
+  else delete updated.pwsStation
+  savedLocations.value = savedLocations.value.map(l =>
+    (l.lat === loc.lat && l.lon === loc.lon) ? updated : l
+  )
   persistLocations(savedLocations.value)
   if (location.value?.lat === loc.lat && location.value?.lon === loc.lon) {
     if (station?.type === 'tempest') { pwsData.value = null; syncTempestWs() }
     else if (station) { disconnectTempest(); loadPwsData() }
     else { pwsData.value = null; disconnectTempest() }
   }
-  return updatedLoc
+  return updated
 }
 
 watch(pwsEnabled, (v) => {
@@ -843,7 +845,7 @@ function onDocumentClick(e) {
   if (settingsOpen.value && !e.target.closest('.settings-dropdown') && !e.target.closest('[data-settings-btn]') && !e.target.closest('.modal-overlay') && !e.target.closest('.alert-modal-overlay')) {
     settingsOpen.value = false
   }
-  if (panelOpen.value && !e.target.closest('.locations-sheet') && !e.target.closest('[data-locations-btn]')) {
+  if (panelOpen.value && !e.target.closest('.locations-sheet') && !e.target.closest('[data-locations-btn]') && !e.target.closest('.modal-overlay')) {
     panelOpen.value = false
     tutSearching.value = false
   }

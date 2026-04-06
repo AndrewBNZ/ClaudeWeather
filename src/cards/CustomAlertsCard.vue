@@ -44,23 +44,27 @@
             </div>
           </div>
           <div class="alert-modal-body">
-            <div
-              v-for="day in selectedEntry.matchesByDay"
-              :key="day.date"
-              class="alert-day-group"
-            >
-              <div class="alert-day-label">{{ formatDate(day.date) }}</div>
-              <div class="alert-hours">
-                <span
-                  v-for="range in groupConsecutiveHours(day.hours)"
-                  :key="range.start"
-                  class="alert-hour-chip alert-hour-chip--clickable"
-                  :style="{
-                    background: hexToRgba(selectedEntry.alert.color, 0.18),
-                    color: selectedEntry.alert.color,
-                  }"
-                  @click="navigateToHour(day.date, range.start)"
-                >{{ range.start === range.end ? formatHour(range.start) : `${formatHour(range.start)}–${formatHour(range.end)}` }}</span>
+            <div class="settings-group">
+              <div
+                v-for="day in selectedEntry.matchesByDay"
+                :key="day.date"
+                class="setting-row alert-day-row"
+              >
+                <div class="alert-day-inner">
+                  <div class="setting-label">{{ formatDate(day.date) }}</div>
+                  <div class="alert-hours">
+                    <span
+                      v-for="range in groupConsecutiveHours(day.hours)"
+                      :key="range.start"
+                      class="alert-hour-chip alert-hour-chip--clickable"
+                      :style="{
+                        background: hexToRgba(selectedEntry.alert.color, 0.18),
+                        color: selectedEntry.alert.color,
+                      }"
+                      @click="navigateToHour(day.date, range.start)"
+                    >{{ range.start === range.end ? formatHour(range.start) : `${formatHour(range.start)}–${formatHour(range.end)}` }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -278,16 +282,17 @@ function summarizeCriteria(alert) {
 }
 
 .alert-modal {
-  background: var(--panel-bg, #1e2130);
+  background: var(--sheet-bg, #1e2130);
   border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   border-top: 4px solid transparent;
   border-radius: 20px 20px 0 0;
   width: 100%;
-  max-width: 560px;
-  height: 50dvh;
+  max-width: 480px;
+  height: 65dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
 
 @media (min-width: 1400px) {
@@ -359,19 +364,23 @@ function summarizeCriteria(alert) {
 .alert-modal-body {
   overflow-y: auto;
   flex: 1;
-  padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
+  padding: 12px 16px 1.25rem;
 }
 
-.alert-day-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  opacity: 0.5;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 0.45rem;
+.alert-day-row {
+  min-height: unset;
+  align-items: flex-start;
+}
+
+.alert-day-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 2px 0;
 }
 
 .alert-hours {

@@ -278,7 +278,7 @@ const tiles = computed(() => {
 }
 
 .cond-subtitle {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text);
   font-weight: 500;
 }
@@ -354,7 +354,7 @@ const tiles = computed(() => {
 }
 
 .cond-tile-value {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text);
   line-height: 1.2;

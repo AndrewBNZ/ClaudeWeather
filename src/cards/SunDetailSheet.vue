@@ -264,7 +264,7 @@ const sunProgress = computed(() => {
 })
 
 const sunDotPos      = computed(() => arcPoint(Math.min(Math.max(sunProgress.value, 0), 1)))
-const sunProgressEnd = computed(() => sunProgress.value > 0 ? sunDotPos.value : null)
+const sunProgressEnd = computed(() => sunProgress.value > 0 && sunProgress.value <= 1 ? sunDotPos.value : null)
 
 const dawnArc    = computed(() => dawnMins.value    != null ? arcPoint(Math.max(minsToT(dawnMins.value),   -0.15)) : null)
 const sunriseArc = computed(() => sunriseMins.value != null ? arcPoint(0) : null)

@@ -231,13 +231,20 @@ const moonProgress = computed(() => {
   let rise = riseSet.value.rise
   let set  = riseSet.value.set
 
-  // After midnight the moon may have risen yesterday — check yesterday's window
-  if (!rise || now < rise.getTime()) {
+  // If rise is in the future and set is before rise, the rise found belongs to the
+  // next cycle — the moon actually rose yesterday. Use yesterday's rise with today's set.
+  // Also handle the case where today has no rise at all (rise is null).
+  const needsYesterday = !rise || (set && rise.getTime() > set.getTime() && now < rise.getTime())
+  if (needsYesterday) {
     const yesterday = new Date(refDate.value.getTime() - 86400000)
     const prev = moonRiseSet(yesterday, props.lat, props.lon, props.utcOffset)
-    if (prev.rise && prev.set && now >= prev.rise.getTime() && now <= prev.set.getTime()) {
+    if (prev.rise) {
       rise = prev.rise
-      set  = prev.set
+      if (!set) set = prev.set
+      // Correct for JD interpolation pushing the rise past midnight by one day
+      if (set && rise.getTime() > set.getTime()) {
+        rise = new Date(rise.getTime() - 86400000)
+      }
     }
   }
 
@@ -246,7 +253,7 @@ const moonProgress = computed(() => {
 })
 
 const moonDotPos      = computed(() => arcPoint(Math.min(Math.max(moonProgress.value, 0), 1)))
-const moonProgressEnd = computed(() => moonProgress.value > 0 ? moonDotPos.value : null)
+const moonProgressEnd = computed(() => moonProgress.value > 0 && moonProgress.value <= 1 ? moonDotPos.value : null)
 
 // ── Key phases ────────────────────────────────────────────────────────────────
 

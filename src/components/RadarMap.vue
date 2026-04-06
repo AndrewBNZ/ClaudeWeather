@@ -31,6 +31,7 @@
         :class="{ 'radar-picker--below': pickerPos.flipped }"
         :style="{ left: pickerPos.x + 'px', top: pickerPos.y + 'px' }"
       >
+        <div class="radar-picker-title">Multiple warnings — tap to view</div>
         <button
           v-for="alert in pickerAlerts"
           :key="alert.id"
@@ -121,6 +122,19 @@ const SEVERITY_COLORS = {
   minor:    '#1565c0',
 }
 
+const SEVERITY_ORDER = { extreme: 3, severe: 2, moderate: 1, minor: 0 }
+const COLOUR_CODE_ORDER = { red: 3, orange: 2, yellow: 1 }
+
+function severityRank(alert) {
+  const bySeverity = SEVERITY_ORDER[(alert.severity ?? '').toLowerCase()]
+  if (bySeverity != null) return bySeverity
+  return COLOUR_CODE_ORDER[(alert.colourCode ?? '').toLowerCase()] ?? -1
+}
+
+function sortedByPriority(alerts) {
+  return [...alerts].sort((a, b) => severityRank(a) - severityRank(b))
+}
+
 function alertColor(alert) {
   return alert.colourHex ?? SEVERITY_COLORS[(alert.severity ?? '').toLowerCase()] ?? '#546e7a'
 }
@@ -170,7 +184,7 @@ function renderWarnings() {
   warningLayers = []
   map.off('click', onMapClick)
 
-  for (const alert of props.alerts) {
+  for (const alert of sortedByPriority(props.alerts)) {
     const color = alertColor(alert)
     for (const area of alert.areas) {
       for (const polygon of area.polygons) {
@@ -211,7 +225,7 @@ function onMapClick(e) {
   // Prefer above click; flip below if too close to top
   const y = point.y > 120 ? point.y : point.y + 10
   pickerPos.value = { x, y, flipped: point.y <= 120 }
-  pickerAlerts.value = hits
+  pickerAlerts.value = sortedByPriority(hits).reverse()
 }
 
 function openFromPicker(alert) {
@@ -366,6 +380,14 @@ onUnmounted(() => {
   transform: translate(-50%, 10px);
 }
 
+.radar-picker-title {
+  padding: 5px 10px 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+
 .radar-picker-item {
   display: flex;
   align-items: center;
@@ -381,6 +403,9 @@ onUnmounted(() => {
   border-radius: 7px;
   line-height: 1.3;
   transition: background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .radar-picker-item:hover {

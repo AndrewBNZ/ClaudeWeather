@@ -185,7 +185,7 @@ function geoLocate() {
   flex-shrink: 0;
 }
 .sheet-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text);
 }
@@ -321,6 +321,7 @@ function geoLocate() {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  margin-top: -2px;
 }
 .loc-pws-btn:hover { color: #38bdf8; opacity: 0.75; }
 .loc-pws-btn.has-station { color: #38bdf8; opacity: 1; }

@@ -181,6 +181,7 @@ export async function fetchAlerts(country, feedOverride = null) {
       const detail = await fetchAlertDetail(alert.link)
       if (detail.areas?.length) alert.areas = detail.areas
       if (detail.parameters?.ColourCodeHex) alert.colourHex = detail.parameters.ColourCodeHex
+      if (detail.parameters?.ColourCode) alert.colourCode = detail.parameters.ColourCode
     }))
 
     cache.set(raw, { alerts, fetchedAt: Date.now() })

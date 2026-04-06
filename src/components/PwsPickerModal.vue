@@ -3,7 +3,7 @@
     <div class="modal-dialog modal-dialog--wide">
       <div class="pws-modal-header">
         <div class="pws-modal-header-text">
-          <span class="pws-modal-title">Weather Station</span>
+          <span class="pws-modal-title">Personal Weather Station</span>
           <span class="pws-modal-subtitle">{{ loc.name }}</span>
         </div>
         <button class="pws-modal-close" @click="emit('close')">✕</button>
@@ -273,6 +273,7 @@ watch(() => props.tempestToken, (v) => {
 
 /* Source selector */
 .pws-source-row { gap: 0; min-height: unset; }
+.pws-source-row .unit-pill-opt { white-space: nowrap; }
 .pws-pill-disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* Warning / loading rows */

@@ -4,9 +4,14 @@
 
       <!-- Header -->
       <div class="ww-modal-header">
-        <div class="ww-modal-badge" :style="{ background: alertColor(alert), color: colorTextColor(alertColor(alert)) }">
+        <div
+          class="ww-modal-badge"
+          :style="alert.severity && alert.severity !== 'Alert'
+            ? { background: alertColor(alert), color: colorTextColor(alertColor(alert)) }
+            : { background: 'transparent', color: alertColor(alert) }"
+        >
           <template v-if="alert.severity && alert.severity !== 'Alert'">{{ alert.severity }}</template>
-          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:block">
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:block">
             <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
           </svg>
         </div>
@@ -17,47 +22,56 @@
       <!-- Scrollable body -->
       <div class="ww-modal-body">
 
-        <!-- Area + Timing -->
-        <div class="ww-modal-location">
-          <div v-if="displayArea" class="ww-modal-area">{{ displayArea }}</div>
-          <div v-if="displayOnset || displayExpires" class="ww-modal-meta">
-            <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
-            <span>-</span>
-            <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
+        <!-- Area + Timing + Map + Description -->
+        <div v-if="displayArea || displayOnset || displayExpires || hasPolygons || detailLoading || displayDescription" class="settings-group">
+          <div v-if="displayArea" class="setting-row ww-area-row">
+            <span class="setting-label">{{ displayArea }}</span>
+          </div>
+          <div v-if="displayOnset || displayExpires" class="setting-row ww-timing-row">
+            <span class="ww-timing-value">
+              <span v-if="displayOnset">{{ fmt(displayOnset) }}</span>
+              <span v-if="displayOnset && displayExpires"> – </span>
+              <span v-if="displayExpires">{{ fmt(displayExpires) }}</span>
+            </span>
+          </div>
+          <div v-if="hasPolygons" ref="mapEl" class="ww-modal-map ww-modal-map--ingroup" />
+
+          <!-- Loading detail -->
+          <div v-if="detailLoading" class="ww-modal-loading">
+            <div class="ww-skeleton" />
+            <div class="ww-skeleton ww-skeleton--short" />
+            <div class="ww-skeleton" />
+          </div>
+          <div v-else-if="displayDescription" class="setting-row ww-text-row">
+            <p class="ww-modal-section">{{ displayDescription }}</p>
           </div>
         </div>
 
-        <!-- Area map -->
-        <div v-if="hasPolygons" ref="mapEl" class="ww-modal-map" />
-
-        <!-- Loading detail -->
-        <div v-if="detailLoading" class="ww-modal-loading">
-          <div class="ww-skeleton" />
-          <div class="ww-skeleton ww-skeleton--short" />
-          <div class="ww-skeleton" />
-        </div>
-
-        <template v-else>
-          <!-- Description -->
-          <p v-if="displayDescription" class="ww-modal-section">{{ displayDescription }}</p>
-
+        <template v-if="!detailLoading">
           <!-- Instruction -->
-          <div v-if="detail.instruction" class="ww-modal-instruction">
-            <div class="ww-instruction-label">What to do</div>
-            <p>{{ detail.instruction }}</p>
+          <div v-if="detail.instruction" class="settings-group">
+            <div class="setting-row ww-text-row">
+              <div class="ww-text-row-inner">
+                <div class="ww-instruction-label">What to do</div>
+                <p class="ww-modal-section">{{ detail.instruction }}</p>
+              </div>
+            </div>
           </div>
 
           <!-- Issued / Next update / External link -->
-          <div class="ww-modal-footer">
-            <div v-if="displayEffective" class="ww-modal-next-update">
-              Issued {{ fmt(displayEffective) }}
+          <div v-if="displayEffective || detail.parameters?.NextUpdate || detail.web" class="settings-group">
+            <div v-if="displayEffective" class="setting-row ww-meta-row">
+              <span class="ww-timing-label">Issued</span>
+              <span class="ww-timing-value">{{ fmt(displayEffective) }}</span>
             </div>
-            <div v-if="detail.parameters?.NextUpdate" class="ww-modal-next-update">
-              Next update {{ fmt(detail.parameters.NextUpdate) }}
+            <div v-if="detail.parameters?.NextUpdate" class="setting-row ww-meta-row">
+              <span class="ww-timing-label">Next update</span>
+              <span class="ww-timing-value">{{ fmt(detail.parameters.NextUpdate) }}</span>
             </div>
-            <a v-if="detail.web" :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">
-              Full details ↗
-            </a>
+            <div v-if="detail.web" class="setting-row ww-meta-row">
+              <span class="ww-timing-label">Source</span>
+              <a :href="detail.web" target="_blank" rel="noopener" class="ww-modal-link">Full details ↗</a>
+            </div>
           </div>
         </template>
 
@@ -228,7 +242,7 @@ function colorTextColor(hex) {
 }
 
 .ww-modal {
-  background:    var(--panel-bg, #1e2130);
+  background:    var(--sheet-bg, #1e2130);
   border:        1px solid var(--panel-border, rgba(255,255,255,0.08));
   color:         var(--text);
   border-radius: 20px 20px 0 0;
@@ -253,16 +267,15 @@ function colorTextColor(hex) {
   flex:          1;
   display:       flex;
   flex-direction: column;
-  gap:            0.85rem;
+  gap:            0.75rem;
   padding:       12px 16px 1.25rem;
 }
-
 
 /* Header */
 .ww-modal-header {
   display:       flex;
   align-items:   center;
-  gap:           0.6rem;
+  gap:           0rem;
   padding:       14px 16px;
   border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   flex-shrink:   0;
@@ -300,26 +313,28 @@ function colorTextColor(hex) {
 }
 .ww-modal-close:hover { opacity: 0.8; }
 
-/* Area */
-.ww-modal-location {
-  display:        flex;
-  flex-direction: column;
-  gap:            0.2rem;
+/* Area / timing rows */
+.ww-area-row { min-height: unset; }
+.ww-timing-row,
+.ww-meta-row {
+  min-height: unset;
+  justify-content: space-between;
+  gap: 12px;
 }
-
-.ww-modal-area {
-  font-size:   0.85rem;
-  font-weight: 600;
-  opacity:     0.75;
+.ww-area-row { padding-bottom: 4px; }
+.ww-area-row + .ww-timing-row {
+  border-top: none;
+  padding-top: 0;
 }
-
-/* Timing meta */
-.ww-modal-meta {
-  display:   flex;
-  flex-wrap: wrap;
-  gap:       0.25rem 0.75rem;
-  font-size: 0.85rem;
-  opacity:   0.6;
+.ww-timing-label {
+  font-size:   0.82rem;
+  color:       var(--text-faint);
+  flex-shrink: 0;
+}
+.ww-timing-value {
+  font-size:   0.82rem;
+  color:       var(--text-muted);
+  text-align:  right;
 }
 
 /* Area map */
@@ -330,6 +345,10 @@ function colorTextColor(hex) {
   border-radius: 0.5rem;
   overflow:      hidden;
   border:        1px solid var(--card-border);
+}
+.ww-modal-map--ingroup {
+  margin: 0 12px;
+  border-radius: 0.5rem;
 }
 
 /* Loading */
@@ -346,7 +365,10 @@ function colorTextColor(hex) {
   50%       { opacity: 0.4 }
 }
 
-/* Body sections */
+/* Text content rows */
+.ww-text-row { min-height: unset; align-items: flex-start; }
+.ww-text-row-inner { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; }
+
 .ww-modal-section {
   font-size:   0.85rem;
   line-height: 1.55;
@@ -355,63 +377,20 @@ function colorTextColor(hex) {
   white-space: pre-wrap;
 }
 
-.ww-modal-instruction {
-  background:    var(--card-border, rgba(255,255,255,0.08));
-  border-radius: 0.5rem;
-  padding:       0.75rem;
-}
-:global(.light-theme) .ww-modal-instruction {
-  background: rgba(0, 0, 0, 0.04);
-}
 .ww-instruction-label {
-  font-size:     0.7rem;
-  font-weight:   700;
+  font-size:      0.7rem;
+  font-weight:    700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  opacity:       0.5;
-  margin-bottom: 0.4rem;
-}
-.ww-modal-instruction p {
-  font-size:   0.85rem;
-  line-height: 1.5;
-  margin:      0;
-  white-space: pre-wrap;
-}
-
-/* Pills */
-.ww-modal-pills {
-  display:   flex;
-  flex-wrap: wrap;
-  gap:       0.4rem;
-}
-.ww-pill {
-  padding:       0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size:     0.72rem;
-  font-weight:   600;
-  background:    var(--btn-bg);
-  color:         var(--text-muted);
-}
-
-/* Footer group */
-.ww-modal-footer {
-  display:        flex;
-  flex-direction: column;
-  gap:            0.2rem;
-}
-
-/* Next update */
-.ww-modal-next-update {
-  font-size: 0.85rem;
-  opacity:   0.45;
+  opacity:        0.5;
 }
 
 /* External link */
 .ww-modal-link {
-  display:     inline-block;
-  font-size:   0.85rem;
-  color:       var(--text-muted);
+  font-size:       0.82rem;
+  color:           var(--text-muted);
   text-decoration: none;
+  text-align:      right;
 }
 .ww-modal-link:hover { color: var(--text); }
 </style>
