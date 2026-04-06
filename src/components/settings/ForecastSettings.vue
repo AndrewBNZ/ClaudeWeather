@@ -16,6 +16,16 @@
         <span class="toggle-thumb" />
       </button>
     </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Chart style</div>
+        <div class="setting-hint">Traditional bars or floating icons</div>
+      </div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: layout.chartStyle !== 'icons' }]" @click="layout.chartStyle = 'bar'">Bars</button>
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: layout.chartStyle === 'icons' }]" @click="layout.chartStyle = 'icons'">Icons</button>
+      </div>
+    </div>
     <div v-if="type === 'hourly'" class="setting-row">
       <div>
         <div class="setting-label">Sunrise &amp; sunset</div>
@@ -27,7 +37,7 @@
     <div class="setting-row">
       <div>
         <div class="setting-label">Data point picker</div>
-        <div class="setting-hint">Pill buttons to quickly change the bar chart</div>
+        <div class="setting-hint">Quickly change the data shown on the chart</div>
       </div>
       <button class="toggle-switch" :class="{ on: layout.showDataPointPicker }" @click="layout.showDataPointPicker = !layout.showDataPointPicker">
         <span class="toggle-thumb" />
@@ -36,7 +46,7 @@
     <div class="setting-row setting-row--col">
       <div>
         <div class="setting-label">Main data point</div>
-        <div class="setting-hint">Shown as the primary bar chart</div>
+        <div class="setting-hint">Shown on the chart by default</div>
       </div>
       <div class="slot-scroll" ref="mainScrollEl"><div class="data-point-grid">
         <button
@@ -49,8 +59,11 @@
     </div>
   </div>
   <div class="settings-group settings-group--tile-list">
-    <div class="setting-row settings-group__header" style="border-bottom: none; padding-bottom: 2px;">
-      <div class="setting-label">Other data points</div>
+    <div class="setting-row settings-group__header" style="border-bottom: none; padding-top: 2px; padding-bottom: 2px;">
+      <div>
+        <div class="setting-label">Other data points</div>
+        <div class="setting-hint">Show additional data below the chart, and in the picker</div>
+      </div>
     </div>
   <div class="other-pts-header">
     <span class="setting-hint">Drag to reorder</span>
@@ -171,6 +184,7 @@ function _onLayoutTouchEnd() {
 </script>
 
 <style scoped>
+
 .slot-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

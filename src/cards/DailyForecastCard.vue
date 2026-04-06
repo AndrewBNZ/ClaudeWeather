@@ -15,8 +15,8 @@
       <div class="labels-col">
         <div class="lbl-day-row"></div>
         <div class="lbl-temp-row"></div>
-        <div v-if="visibleOtherPoints.length || layout.showConditions" class="lbl-stats-wrap">
-          <div v-if="layout.showConditions" class="lbl-stat-row">
+        <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle !== 'icons')" class="lbl-stats-wrap">
+          <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="lbl-stat-row">
             <span class="stat-icon" v-html="TILE_ICONS['sceneConditions']"></span>
           </div>
           <div
@@ -43,29 +43,39 @@
           >
             <div class="day-lbl">{{ dayLabel(date) }}</div>
 
-            <div class="temp-wrap">
-              <!-- Value above bar -->
-              <div v-if="activeDataPoint === 'wind'" class="t-hi t-wind-val">
-                <span v-if="windDirs[i] != null" class="wind-dir-arrow">
-                  <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
-                       :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
-                    <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <polygon points="7,2 4,7 10,7" fill="currentColor"/>
-                  </svg>
-                </span>
-                <span>{{ fmtMainValue(i) }}</span>
-              </div>
-              <span v-else class="t-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
-              <!-- Bar -->
-              <div class="bar-track">
-                <div class="bar-fill" :style="FLOATING_BAR_TYPES.has(activeDataPoint) ? barStyle(i) : barStyleSimple(i)" />
-              </div>
-              <!-- Low value — always rendered to keep flex layout consistent; hidden for non-range types -->
-              <span class="t-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
+            <div class="temp-wrap" :class="{ 'temp-wrap--icons': layout.chartStyle === 'icons' }">
+              <template v-if="layout.chartStyle !== 'icons'">
+                <!-- Value above bar -->
+                <div v-if="activeDataPoint === 'wind'" class="t-hi t-wind-val">
+                  <span v-if="windDirs[i] != null" class="wind-dir-arrow">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                         :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
+                      <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span>{{ fmtMainValue(i) }}</span>
+                </div>
+                <span v-else class="t-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
+                <!-- Bar -->
+                <div class="bar-track">
+                  <div class="bar-fill" :style="FLOATING_BAR_TYPES.has(activeDataPoint) ? barStyle(i) : barStyleSimple(i)" />
+                </div>
+                <!-- Low value — always rendered to keep flex layout consistent; hidden for non-range types -->
+                <span class="t-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
+              </template>
+              <template v-else>
+                <!-- Icons chart style: floating icon with hi/lo labels -->
+                <div class="icon-float-group" :style="iconGroupStyle(i)">
+                  <span class="icon-val-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
+                  <span class="wx-float-icon">{{ wxEmoji(i) }}</span>
+                  <span class="icon-val-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
+                </div>
+              </template>
             </div>
 
-            <div v-if="visibleOtherPoints.length || layout.showConditions" class="stats">
-              <div v-if="layout.showConditions" class="wx-icon stat-row">{{ wxEmoji(i) }}</div>
+            <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle !== 'icons')" class="stats">
+              <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="wx-icon stat-row">{{ wxEmoji(i) }}</div>
               <template v-for="pt in visibleOtherPoints" :key="pt.type">
                 <!-- Rain probability -->
                 <div v-if="pt.type === 'rainProb'" class="stat-row" :style="{ color: rainColor }">
@@ -402,6 +412,33 @@ function barStyle(i) {
   }
 }
 
+// ── Icons chart style — vertical icon position ────────────────────────────────
+
+// The icon group is ~52px tall (hi label ~16px + icon ~20px + lo label ~16px).
+// We position its centre within the track area of temp-wrap (excludes top/bottom padding).
+// topPct is 0% = highest value position, 100% = lowest.
+const ICON_GROUP_H = 52 // px — approximate height of icon group
+const ICON_TRACK_H = 115 // matches --h-temp
+
+function iconGroupStyle(i) {
+  const lo    = globalTempMin.value
+  const hi    = globalTempMax.value
+  const range = hi - lo || 1
+  let ratio   // 0 = top of track (highest), 1 = bottom (lowest)
+  if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
+    const val  = mainHi.value[i] ?? hi
+    ratio = (hi - val) / range
+  } else {
+    const val    = mainHi.value[i] ?? 0
+    const maxVal = globalMainMax.value || 1
+    ratio = 1 - val / maxVal
+  }
+  // Clamp so icon group never clips outside the container
+  const usable = ICON_TRACK_H - ICON_GROUP_H
+  const topPx  = Math.max(0, Math.min(usable, ratio * usable))
+  return { top: `${topPx}px` }
+}
+
 // ── Simple bottom-up bar (rain / wind / uv) ──────────────────────────────────
 
 const globalMainMax = computed(() => {
@@ -572,6 +609,41 @@ function barStyleSimple(i) {
 }
 .t-lo {
   font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* ── Icons chart style ────────────────────────────── */
+.temp-wrap--icons {
+  position: relative;
+  overflow: visible;
+}
+
+.icon-float-group {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.wx-float-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.icon-val-hi {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.icon-val-lo {
+  font-size: 0.8rem;
   color: var(--text-muted);
   line-height: 1.2;
 }

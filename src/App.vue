@@ -1,42 +1,42 @@
 <template>
-  <div class="app-shell">
-    <!-- Sticky top bar — location name + action buttons, always visible above scroll -->
+  <div class="app-shell" :class="{ 'app-shell--landscape': isLandscapeLayout }">
+    <!-- Top bar — position:absolute over app-shell in portrait, over scene-block in landscape via CSS -->
     <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled }">
-        <button
-          data-locations-btn
-          class="scene-top-btn"
-          :class="{ active: panelOpen }"
-          :disabled="conditionsOpen"
-          @click="panelOpen = !panelOpen; settingsOpen = false"
-          title="Saved locations"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-            <circle cx="12" cy="9" r="2.5"/>
-          </svg>
-        </button>
+      <button
+        data-locations-btn
+        class="scene-top-btn"
+        :class="{ active: panelOpen }"
+        :disabled="conditionsOpen"
+        @click="panelOpen = !panelOpen; settingsOpen = false"
+        title="Saved locations"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
+      </button>
       <div class="scene-top-location">
-          <span class="scene-top-name">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
-          <span v-if="weatherData && localDateTime" class="scene-top-datetime">{{ localDateTime }}</span>
-        </div>
-        <button
-          data-settings-btn
-          class="scene-top-btn"
-          data-tut="settings"
-          :class="{ active: settingsOpen }"
-          :disabled="conditionsOpen"
-          @click="settingsOpen = !settingsOpen; panelOpen = false"
-          title="Settings"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="4" y1="12" x2="20" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-            <circle cx="10" cy="6" r="2.5" fill="currentColor" stroke="none"/>
-            <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-            <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
-          </svg>
-        </button>
+        <span class="scene-top-name">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
+        <span v-if="weatherData && localDateTime" class="scene-top-datetime">{{ localDateTime }}</span>
+      </div>
+      <button
+        data-settings-btn
+        class="scene-top-btn"
+        data-tut="settings"
+        :class="{ active: settingsOpen }"
+        :disabled="conditionsOpen"
+        @click="settingsOpen = !settingsOpen; panelOpen = false"
+        title="Settings"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+          <circle cx="10" cy="6" r="2.5" fill="currentColor" stroke="none"/>
+          <circle cx="16" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+          <circle cx="8" cy="18" r="2.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Scrollable content area -->
@@ -72,9 +72,9 @@
         <button class="retry-btn" @click="loadWeather(false, true)">Try again</button>
       </div>
 
-      <!-- Main weather content -->
       <template v-else-if="weatherData">
-        <!-- Scene block — scrolls away as user scrolls down -->
+
+        <!-- Scene block — scrolls away in portrait; sticky sidebar in landscape -->
         <div class="scene-block" :style="{ '--grass-color': grassColor }">
           <SceneConditionsOverlay
             v-if="mergedCurrent"
@@ -84,10 +84,10 @@
             :blocked="panelOpen || settingsOpen"
             :pws-data-active="!!(pwsData || tempestData)"
             :pws-name="activePwsStation?.name ?? null"
+            :landscape="isLandscapeLayout"
             @panel-change="conditionsOpen = $event"
             @open-settings="sub => { settingsOpen = true; panelOpen = false; nextTick(() => sub === 'layout' ? settingsPanel?.openTab('layout') : settingsPanel?.openToSubPanel(sub)) }"
           />
-
           <WeatherScene
             @grass-color="grassColor = $event"
             @open-sun-sheet="showSunSheet = true"
@@ -108,8 +108,21 @@
             :force-aurora="simAurora"
             :force-fog="simFog"
           />
+          <!-- Data footer — landscape only, overlaid bottom-left of scene -->
+          <div v-if="isLandscapeLayout" class="scene-data-footer">
+            <div class="data-footer-row">
+              Data from <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a>
+              · <button class="footer-model-btn" data-settings-btn @click="settingsOpen = true; panelOpen = false; nextTick(() => settingsPanel?.openToSubPanel('forecastModel'))">{{ OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label }}</button>
+            </div>
+            <div v-if="updatedAt || canManualRefresh" class="data-footer-row">
+              <template v-if="updatedAt">Fetched {{ updatedAt }}</template>
+              <button v-if="canManualRefresh" class="refresh-btn" @click="loadWeather(false, true)" :disabled="loading" title="Refresh">
+                <span :class="{ spinning: loading }">↻</span>
+              </button>
+            </div>
+          </div>
 
-          <!-- Sim panel overlay — shown when simulator is enabled -->
+          <!-- Sim panel overlay -->
           <div v-if="showSim" class="sim-bar">
             <div v-if="simExpanded" class="sim-panel">
               <div class="sim-header">
@@ -151,6 +164,9 @@
             </button>
           </div>
         </div>
+
+        <!-- Cards column (wraps cards+footer so landscape can flex them beside scene) -->
+        <div class="cards-column">
 
         <!-- Card stack -->
         <div class="card-stack" :class="{ 'card-stack--flat': cardStyle === 'flat' }">
@@ -222,6 +238,8 @@
             </button>
           </div>
         </div>
+
+        </div><!-- end cards-column -->
       </template>
 
     </div>
@@ -325,7 +343,18 @@ const {
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
   dailyForecastLayout, hourlyForecastLayout, warningsConfig,
   customAlertsConfig, customAlerts,
+  landscapeMode,
 } = useSettings()
+
+// ── Landscape / tablet layout ─────────────────────────────────────────────────
+const mq        = window.matchMedia('(min-width: 900px)')
+const mqMatches = ref(mq.matches)
+function onMqChange(e) { mqMatches.value = e.matches }
+const isLandscapeLayout = computed(() => {
+  if (landscapeMode.value === 'off')    return false
+  if (landscapeMode.value === 'always') return true
+  return mqMatches.value
+})
 
 // ── Card stack ────────────────────────────────────────────────────────────────
 const enabledCards      = computed(() => cardConfig.value.filter(c => c.enabled))
@@ -361,7 +390,7 @@ function onScrollToHour({ date, hour }) {
     const root = scrollRootEl.value
     const el   = document.querySelector('.hourly-forecast-card')
     if (!el || !root) return
-    const TOP_BAR_OFFSET = 64
+    const TOP_BAR_OFFSET = isLandscapeLayout.value ? 0 : 64
     const elRect   = el.getBoundingClientRect()
     const rootRect = root.getBoundingClientRect()
     root.scrollTo({ top: root.scrollTop + elRect.top - rootRect.top - TOP_BAR_OFFSET, behavior: 'smooth' })
@@ -824,6 +853,7 @@ onMounted(() => {
   autoTimer    = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
   refreshTimer = setInterval(() => { tickNow.value = Date.now(); if (location.value && isStale()) loadWeather(true, true) }, 30_000)
   scrollRootEl.value?.addEventListener('scroll', onScrollRoot, { passive: true })
+  mq.addEventListener('change', onMqChange)
 
   if (isGeoActive.value) {
     loading.value = true
@@ -836,7 +866,10 @@ onMounted(() => {
   }
 })
 
-function onScrollRoot() { topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 35 }
+function onScrollRoot() {
+  if (isLandscapeLayout.value) { topBarScrolled.value = false; return }
+  topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 35
+}
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
 document.addEventListener('visibilitychange', onVisibilityChange)
@@ -865,6 +898,7 @@ onUnmounted(() => {
   window.removeEventListener('online',  onOnline)
   window.removeEventListener('offline', onOffline)
   scrollRootEl.value?.removeEventListener('scroll', onScrollRoot)
+  mq.removeEventListener('change', onMqChange)
 })
 
 // Restore last active location on load
@@ -913,6 +947,11 @@ if (!isGeoActive.value) {
   max-width: 640px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* transparent wrapper — fills width in portrait, scrollable column in landscape */
+.cards-column {
+  width: 100%;
 }
 
 .scene-top-bar {
@@ -1034,19 +1073,11 @@ if (!isGeoActive.value) {
   border-radius: 0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }
 
 .light-theme .card-stack--flat {
   background: #ffffff;
-}
-
-.light-theme .card-stack--flat .card {
-  box-shadow: 0 1px 0 #e5e7eb;
-}
-
-.card-stack--flat .card:last-child {
-  box-shadow: none;
 }
 
 /* ── Sim panel (positioned inside scene-block) ───────────────────────────── */
@@ -1361,4 +1392,120 @@ if (!isGeoActive.value) {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinning { display: inline-block; animation: spin 0.8s linear infinite; }
-</style>
+
+/* ── Landscape / tablet two-column layout ──────────────────────────────── */
+
+/* scroll-root becomes a flex row containing scene-block + cards-column */
+.app-shell--landscape .scroll-root {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  overflow-y: auto;
+}
+
+/* Left: scene card — sticky within the scrolling row */
+.app-shell--landscape .scene-block {
+  position: sticky;
+  top: 12px;
+  width: clamp(300px, 48%, 680px);
+  flex-shrink: 0;
+  height: calc(100dvh - 24px);
+  max-width: none;
+  margin: 12px 0 12px 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Right: cards fill remaining width */
+.app-shell--landscape .cards-column {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Top bar in landscape: pin over the scene card (12px margin offset) */
+.app-shell--landscape .scene-top-bar {
+  top: 12px;
+  left: 12px;
+  width: clamp(300px, 48%, 680px);
+  max-width: 680px;
+  transform: none;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-shell--landscape .scene-top-bar.scrolled {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.app-shell--landscape .scene-top-bar.scrolled .scene-top-datetime {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-shell--landscape .card-stack-inner {
+  max-width: none;
+}
+.app-shell--landscape .card-stack {
+  padding: 12px;
+}
+.app-shell--landscape .data-footer {
+  display: none;
+}
+.app-shell--landscape .customise-layout-row {
+  padding-bottom: 16px;
+}
+
+.scene-data-footer {
+  position: absolute;
+  bottom: 3px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.35);
+  z-index: 10;
+}
+.scene-data-footer a,
+.scene-data-footer .footer-model-btn,
+.scene-data-footer .refresh-btn {
+  color: rgba(255, 255, 255, 0.35);
+}
+.scene-data-footer a:hover,
+.scene-data-footer .footer-model-btn:hover,
+.scene-data-footer .refresh-btn:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Non-touch (mouse): show a subtle persistent scrollbar on the cards side */
+@media (hover: hover) and (pointer: fine) {
+  .app-shell--landscape .scroll-root {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+  .app-shell--landscape .scroll-root::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+  .app-shell--landscape .scroll-root::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .app-shell--landscape .scroll-root::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+  .app-shell--landscape .scroll-root::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+  }
+}
+
+/* Touch: restore native overlay scrollbar (appears during scrolling, then fades) */
+@media (hover: none) and (pointer: coarse) {
+  .app-shell--landscape .scroll-root {
+    scrollbar-width: auto;
+  }
+  .app-shell--landscape .scroll-root::-webkit-scrollbar {
+    display: unset;
+  }
+}</style>

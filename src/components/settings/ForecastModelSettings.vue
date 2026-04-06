@@ -1,5 +1,6 @@
 <template>
-  <div class="setting-hint">You may need to experiment to find the best model for your location. If unsure, select Auto, or ECMWF.</div>
+  <div class="setting-hint">You may need to experiment to find the best model for your location.  Auto might not be the best fit in all locations.</div>
+  <div class="setting-hint">To get started, <strong>Auto</strong>, or <strong>ECMWF</strong> are recommended.</div>
   <div class="settings-group">
     <button
       v-for="m in OPEN_METEO_MODELS"

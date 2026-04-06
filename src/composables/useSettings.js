@@ -27,6 +27,7 @@ const CUSTOM_ALERTS_KEY           = `${P}-custom-alerts`
 const CUSTOM_ALERTS_CONFIG_KEY    = `${P}-custom-alerts-config`
 const CARD_STYLE_KEY              = `${P}-card-style`
 const RADAR_CONFIG_KEY            = `${P}-radar-config`
+const LANDSCAPE_MODE_KEY          = `${P}-landscape-mode`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -58,6 +59,7 @@ export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
   showDataPointPicker: true,
+  chartStyle:          'bar',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST.filter(t => !t.isMap).map(t => ({ type: t.id, enabled: DEFAULT_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_PICKER_ENABLED.has(t.id) })),
 }
@@ -70,6 +72,7 @@ export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showConditions:      true,
   showDataPointPicker: false,
   showSunriseSunset:   false,
+  chartStyle:          'bar',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST
     .filter(t => !t.isMap && t.hourlyKey != null)
@@ -312,6 +315,7 @@ const warningsConfig       = ref(loadWarningsConfig())
 const customAlertsConfig   = ref(loadCustomAlertsConfig())
 const customAlerts         = ref(loadCustomAlerts())
 const radarConfig          = ref(loadRadarConfig())
+const landscapeMode        = ref(localStorage.getItem(LANDSCAPE_MODE_KEY) ?? 'auto')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
@@ -336,6 +340,7 @@ watch(warningsConfig,        (v) => { try { localStorage.setItem(WARNINGS_CONFIG
 watch(customAlertsConfig,    (v) => { try { localStorage.setItem(CUSTOM_ALERTS_CONFIG_KEY,  JSON.stringify(v)) } catch {} }, { deep: true })
 watch(customAlerts,          (v) => { try { localStorage.setItem(CUSTOM_ALERTS_KEY,         JSON.stringify(v)) } catch {} }, { deep: true })
 watch(radarConfig,           (v) => { try { localStorage.setItem(RADAR_CONFIG_KEY,          JSON.stringify(v)) } catch {} }, { deep: true })
+watch(landscapeMode,         (v) => localStorage.setItem(LANDSCAPE_MODE_KEY, v))
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -453,5 +458,6 @@ export function useSettings() {
     warningsConfig,
     customAlertsConfig, customAlerts,
     radarConfig,
+    landscapeMode,
   }
 }

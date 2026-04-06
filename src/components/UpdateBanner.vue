@@ -14,17 +14,24 @@
       <div class="whats-new-modal">
         <div class="whats-new-header">
           <span class="whats-new-title">What's New</span>
+          <div class="whats-new-nav">
+            <button class="wn-nav-btn" :disabled="viewIndex >= changelog.length - 1" @click="viewIndex++" title="Older release">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span class="wn-nav-version">v{{ changelog[viewIndex].version }}</span>
+            <button class="wn-nav-btn" :disabled="viewIndex === 0" @click="viewIndex--" title="Newer release">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <button class="wn-nav-btn" :disabled="viewIndex === 0" @click="viewIndex = 0" title="Jump to latest">
+              <!-- double-right chevron -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+            </button>
+          </div>
         </div>
         <div class="whats-new-scroll">
-          <template v-if="newEntries.length">
-            <template v-for="group in newEntries" :key="group.version">
-              <div class="whats-new-version-label">v{{ group.version }}</div>
-              <ul class="whats-new-list">
-                <li v-for="(entry, i) in group.entries" :key="i">{{ entry }}</li>
-              </ul>
-            </template>
-          </template>
-          <p v-else class="whats-new-empty">No release notes for v{{ currentVersion }}.</p>
+          <ul class="whats-new-list">
+            <li v-for="(entry, i) in changelog[viewIndex].entries" :key="i">{{ entry }}</li>
+          </ul>
         </div>
         <button class="whats-new-close" @click="showWhatsNew = false">Got it</button>
       </div>
@@ -33,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRegisterSW } from 'virtual:pwa-register/vue'
 import changelog from '../changelog.js'
 import { APP_STORAGE_PREFIX } from '../config.js'
@@ -58,20 +65,12 @@ function semverGt(a, b) {
   return false
 }
 
-const lastSeenVersion = ref(null)
-
-// All changelog entries newer than the last seen version, newest first.
-// Falls back to current version when already up to date (e.g. opened from settings).
-const newEntries = computed(() => {
-  if (lastSeenVersion.value && lastSeenVersion.value !== currentVersion) {
-    return changelog.filter(e => semverGt(e.version, lastSeenVersion.value))
-  }
-  return changelog.filter(e => e.version === currentVersion)
-})
+// Index into changelog (0 = newest). Reset to 0 each time modal opens.
+const viewIndex = ref(0)
+watch(showWhatsNew, (val) => { if (val) viewIndex.value = 0 })
 
 onMounted(() => {
   const stored = localStorage.getItem(VERSION_KEY)
-  lastSeenVersion.value = stored
   if (stored && stored !== currentVersion) {
     const hasEntries = changelog.some(e => semverGt(e.version, stored))
     if (hasEntries) showWhatsNew.value = true
@@ -166,6 +165,7 @@ onMounted(() => {
   padding: 24px;
   width: 100%;
   max-width: 360px;
+  height: 340px;
   max-height: 80dvh;
   display: flex;
   flex-direction: column;
@@ -174,7 +174,8 @@ onMounted(() => {
 
 .whats-new-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 16px;
   flex-shrink: 0;
@@ -186,6 +187,42 @@ onMounted(() => {
   color: #fff;
 }
 
+.whats-new-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.wn-nav-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.wn-nav-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+.wn-nav-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.wn-nav-version {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(56, 189, 248, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 48px;
+  text-align: center;
+}
+
 .whats-new-scroll {
   overflow-y: auto;
   flex: 1;
@@ -194,17 +231,6 @@ onMounted(() => {
 }
 .whats-new-scroll::-webkit-scrollbar { display: none; }
 
-.whats-new-version-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: rgba(56, 189, 248, 0.85);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 8px;
-}
-.whats-new-version-label:not(:first-child) {
-  margin-top: 16px;
-}
 
 .whats-new-list {
   list-style: none;

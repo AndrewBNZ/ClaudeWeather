@@ -34,11 +34,22 @@
     <div class="setting-row">
       <div>
         <div class="setting-label">Style</div>
-        <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list with dividers' }}</div>
+        <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list of weather info' }}</div>
       </div>
       <div class="unit-pill">
         <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'cards' }]" @click="cardStyle = 'cards'">Cards</button>
         <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
+      </div>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Wide layout</div>
+        <div class="setting-hint">{{ { auto: 'Two columns on tablet and desktop', always: 'Always two columns', off: 'Always single column' }[landscapeMode] }}</div>
+      </div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'auto' }]"   @click="landscapeMode = 'auto'">Auto</button>
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'always' }]" @click="landscapeMode = 'always'">Always</button>
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'off' }]"    @click="landscapeMode = 'off'">Off</button>
       </div>
     </div>
   </div>
@@ -68,7 +79,7 @@ import { showWhatsNew } from '../../../composables/useWhatsNew.js'
 
 defineEmits(['navigate'])
 
-const { theme, cardStyle, timeFormat, showSim, unitPrefs } = useSettings()
+const { theme, cardStyle, timeFormat, showSim, unitPrefs, landscapeMode } = useSettings()
 
 const appVersion = __APP_VERSION__
 

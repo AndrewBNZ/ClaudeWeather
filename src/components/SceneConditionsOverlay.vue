@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-overlay">
+  <div class="sc-overlay" :style="landscape ? { alignItems: 'flex-start', paddingTop: '42%' } : {}"  >
     <div class="sc-inner" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
@@ -59,6 +59,7 @@ const props = defineProps({
   blocked:      { type: Boolean, default: false },
   pwsDataActive:{ type: Boolean, default: false },
   pwsName:      { type: String,  default: null },
+  landscape:    { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['panel-change', 'open-settings'])
@@ -150,6 +151,7 @@ function fmt(v, decimals) {
   align-items: center;
   justify-content: center;
 }
+
 
 .sc-inner {
   display: flex;

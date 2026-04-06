@@ -269,6 +269,17 @@ function colorTextColor(hex) {
   flex-direction: column;
   gap:            0.75rem;
   padding:       12px 16px 1.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.ww-modal-body::-webkit-scrollbar { width: 4px; }
+.ww-modal-body::-webkit-scrollbar-track { background: transparent; }
+.ww-modal-body::-webkit-scrollbar-thumb {
+  background:    rgba(255,255,255,0.12);
+  border-radius: 2px;
+}
+.ww-modal-body::-webkit-scrollbar-thumb:hover {
+  background:    rgba(255,255,255,0.22);
 }
 
 /* Header */

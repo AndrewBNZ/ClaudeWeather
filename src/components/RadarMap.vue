@@ -509,6 +509,10 @@ onUnmounted(() => {
   border-radius: 0 !important;
   margin: 0 !important;
   animation: radar-expand 0.2s ease;
+  /* Restore background when expanded in flat style (card bg is transparent in flat mode) */
+  background: var(--panel-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 @keyframes radar-expand {

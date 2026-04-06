@@ -45,14 +45,14 @@ export const id    = 'open-meteo'
 export const label = 'Open-Meteo'
 
 export const MODELS = [
-  { value: 'best_match',           label: 'Auto',  hint: 'Open-Meteo will select what they think is best for your location' },
-  { value: 'ecmwf_ifs',            label: 'ECMWF HRES',     hint: 'Very good global model; excellent worldwide (9km high resolution)' },
-  { value: 'gfs_seamless',         label: 'NOAA GFS',          hint: 'Good global coverage; best for the USA; longest range at 16 days' },
-  { value: 'icon_seamless',        label: 'DWD ICON',          hint: 'Excellent for Europe, especially Central Europe and Alpine regions' },
-  { value: 'gem_seamless',         label: 'GEM (Canada)',       hint: 'Best for Canada, North America, and the Arctic' },
-  { value: 'meteofrance_seamless', label: 'Météo-France',       hint: 'Finest resolution for France and W. Europe; note: 4-day forecast limit' },
-  { value: 'ukmo_seamless',        label: 'UK Met Office',      hint: 'Best for the UK, Ireland, and North Atlantic; note: 4-hour data delay' },
-  { value: 'jma_seamless',         label: 'JMA (Japan)',        hint: 'Best for Japan, Korea, and Western Pacific typhoon tracking' },
+  { value: 'best_match',           label: 'Auto',           hint: 'Automatically selects the best model for your location' },
+  { value: 'ecmwf_ifs',            label: 'ECMWF HRES',     hint: 'High-resolution reliable global model (9 km)' },
+  { value: 'gfs_seamless',         label: 'NOAA GFS',       hint: 'Best for the USA; 16-day range; good global coverage' },
+  { value: 'icon_seamless',        label: 'DWD ICON',       hint: 'Best for Europe, especially Central and Alpine regions' },
+  { value: 'gem_seamless',         label: 'GEM (Canada)',   hint: 'Best for Canada, North America, and the Arctic' },
+  { value: 'meteofrance_seamless', label: 'Météo-France',   hint: 'Finest resolution for France & W. Europe; 4-day limit' },
+  { value: 'ukmo_seamless',        label: 'UK Met Office',  hint: 'Best for the UK, Ireland & North Atlantic; 4-hr delay' },
+  { value: 'jma_seamless',         label: 'JMA (Japan)',    hint: 'Best for Japan, Korea & W. Pacific typhoon tracking' },
 ]
 
 export function getVariant() {

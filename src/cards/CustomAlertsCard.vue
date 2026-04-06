@@ -227,6 +227,9 @@ function summarizeCriteria(alert) {
   gap: 0.35rem;
   padding: 10px 12px;
 }
+@media (min-width: 900px) {
+  .alerts-card { grid-template-columns: 1fr 1fr 1fr; }
+}
 
 .alerts-empty {
   grid-column: 1 / -1;
@@ -368,6 +371,17 @@ function summarizeCriteria(alert) {
   flex-direction: column;
   gap: 0.75rem;
   padding: 12px 16px 1.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+.alert-modal-body::-webkit-scrollbar { width: 4px; }
+.alert-modal-body::-webkit-scrollbar-track { background: transparent; }
+.alert-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px;
+}
+.alert-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.22);
 }
 
 .alert-day-row {

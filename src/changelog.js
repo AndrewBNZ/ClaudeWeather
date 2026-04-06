@@ -2,6 +2,13 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.7",
+    entries: [
+      "🌆 Landscape mode for tablets and desktops",
+      "📊 Chart style option for daily and hourly cards",
+   ],
+  },
+  {
     version: "1.2.5",
     entries: [
       "📡 Show weather warnings on the radar map",

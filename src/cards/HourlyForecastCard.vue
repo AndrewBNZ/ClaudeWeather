@@ -64,26 +64,36 @@
             }"
           >
             <div class="hf-bar-area">
-              <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell">
-                <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
-                  <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
-                    :style="{ transform: `rotate(${(allWindDirs[slot.index] + 180) % 360}deg)`, transformOrigin: '50% 50%' }">
-                    <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                    <polygon points="7,2 4,7 10,7" fill="currentColor"/>
-                  </svg>
+              <template v-if="layout.chartStyle !== 'icons'">
+                <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell">
+                  <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
+                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                      :style="{ transform: `rotate(${(allWindDirs[slot.index] + 180) % 360}deg)`, transformOrigin: '50% 50%' }">
+                      <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                      <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span>{{ fmtVal(activeDataPoint, slot.index) }}</span>
                 </span>
-                <span>{{ fmtVal(activeDataPoint, slot.index) }}</span>
-              </span>
-              <span v-else class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
-              <div class="hf-bar-track">
-                <div class="hf-bar-fill" :style="barFillStyle(slot.index)"></div>
-              </div>
+                <span v-else class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                <div class="hf-bar-track">
+                  <div class="hf-bar-fill" :style="barFillStyle(slot.index)"></div>
+                </div>
+              </template>
+              <template v-else>
+                <div class="hf-icon-track">
+                  <div class="hf-float-group" :style="iconFloatStyle(slot.index)">
+                    <span class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                    <span class="hf-float-icon">{{ hourEmojis[slot.index] ?? '' }}</span>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
 
         <!-- Configurable other data rows -->
-        <div v-if="layout.showConditions" class="hf-row hf-row-generic">
+        <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="hf-row hf-row-generic">
           <div
             v-for="slot in allHoursArr"
             :key="'wx-' + slot.index"
@@ -395,6 +405,26 @@ function fmtVal(type, i) {
   return `${Math.round(v)}`
 }
 
+// ── Icons chart style ─────────────────────────────────────────────────────────
+
+const ICON_H    = 36 // px — label + icon group height
+const TRACK_H   = 75 // matches .hf-bar-track height
+
+function iconFloatStyle(i) {
+  const v = allMainValues.value[i]
+  let ratio // 0 = top (highest value), 1 = bottom (lowest)
+  if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
+    const { min, range } = barRange.value
+    ratio = v != null ? 1 - (v - min) / range : 0.5
+  } else {
+    const max = barMax.value || 1
+    ratio = v != null ? 1 - v / max : 1
+  }
+  const usable = TRACK_H - ICON_H
+  const topPx  = Math.max(0, Math.min(usable, ratio * usable))
+  return { top: `${topPx}px` }
+}
+
 // ── Scroll behaviour ──────────────────────────────────────────────────────────
 
 const programmaticScroll = ref(false)
@@ -582,6 +612,28 @@ watch(() => props.focusHour, (absHour) => {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.hf-icon-track {
+  position: relative;
+  width: 100%;
+  height: 75px;
+  flex-shrink: 0;
+}
+
+.hf-float-group {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hf-float-icon {
+  font-size: 1rem;
+  line-height: 1;
 }
 
 /* ── Data rows ───────────────────────────────────────────────────────── */

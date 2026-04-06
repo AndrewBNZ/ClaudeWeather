@@ -189,6 +189,9 @@ onUnmounted(() => clearInterval(refreshTimer))
   gap:                   0.35rem;
   padding:               10px 12px;
 }
+@media (min-width: 900px) {
+  .warnings-card { grid-template-columns: 1fr 1fr 1fr; }
+}
 
 /* Full-width states inside the grid */
 .warnings-loading,
