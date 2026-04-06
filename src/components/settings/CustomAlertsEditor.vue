@@ -37,6 +37,7 @@
   <!-- ── Criteria ── -->
   <div class="criteria-section-label">Criteria</div>
   <div class="criteria-hint">An alert is active when all enabled criteria match.</div>
+  <div v-if="!hasWeatherCriteria" class="criteria-required-hint">You must select at least one weather criteria, to save this alert.</div>
 
   <div class="settings-group" style="margin-top: 0.75rem">
 
@@ -83,6 +84,9 @@
         />
       </div>
     </div>
+   </div>
+
+   <div class="settings-group" style="margin-top: 0.75rem">
 
     <!-- Temperature -->
     <div v-if="editingAlert.temperature" class="setting-row" :class="{ 'setting-row--col': editingAlert.temperature.enabled }">
@@ -262,7 +266,14 @@ function load(index) {
 // Load immediately when mounted
 load(props.alertIndex)
 
-const canSave = computed(() => !!editingAlert.title?.trim())
+const hasWeatherCriteria = computed(() =>
+  editingAlert.temperature?.enabled ||
+  editingAlert.rain?.enabled ||
+  editingAlert.wind?.enabled ||
+  editingAlert.cloudCover?.enabled
+)
+
+const canSave = computed(() => !!editingAlert.title?.trim() && hasWeatherCriteria.value)
 
 function saveAlert() {
   if (!canSave.value) return
@@ -357,6 +368,14 @@ function toggleDay(idx) {
   font-size: 0.78rem;
   opacity: 0.45;
   margin-bottom: 0.2rem;
+  line-height: 1.4;
+}
+
+.criteria-required-hint {
+  font-size: 0.78rem;
+  color: #f97316;
+  opacity: 0.85;
+  margin-top: 0.25rem;
   line-height: 1.4;
 }
 
