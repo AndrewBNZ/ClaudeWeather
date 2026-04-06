@@ -16,7 +16,15 @@
               <div class="cond-tile-head">
                 <span class="cond-tile-icon" v-html="tile.icon"></span>
                 <span class="cond-tile-label" :style="{ color: tile.color }">{{ tile.label }}</span>
-                <span v-if="tile.fromStation" class="cond-tile-pws-dot" :title="pwsName ? `PWS: ${pwsName}` : 'PWS: Personal weather station'"></span>
+                <span v-if="tile.fromStation" class="cond-tile-pws-icon" :title="pwsName ? `PWS: ${pwsName}` : 'PWS: Personal weather station'">
+                  <svg width="13" height="13" viewBox="0 -1 20 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="7" y1="18" x2="13" y2="18"/>
+                    <line x1="10" y1="18" x2="10" y2="11.5"/>
+                    <path d="M7 11a4.2 4.2 0 0 1 6 0"/>
+                    <path d="M4.5 8.5a7.7 7.7 0 0 1 11 0"/>
+                    <circle cx="10" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
+                  </svg>
+                </span>
               </div>
               <div class="cond-tile-value">
                 {{ tile.value }}<span v-if="tile.unit" class="cond-tile-unit">{{ tile.unit }}</span>
@@ -228,7 +236,7 @@ const tiles = computed(() => {
   max-width: 640px;
   bottom: 0;
   z-index: 250;
-  background: var(--panel-bg, #1e2130);
+  background: var(--sheet-bg, #1e2130);
   border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
@@ -302,7 +310,7 @@ const tiles = computed(() => {
 }
 
 .cond-tile {
-  background: var(--btn-bg);
+  background: var(--sheet-item-bg);
   border-radius: 8px;
   padding: 10px 12px;
   min-width: 0;
@@ -314,14 +322,13 @@ const tiles = computed(() => {
   gap: 5px;
   margin-bottom: 5px;
 }
-.cond-tile-pws-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #38bdf8;
-  flex-shrink: 0;
+.cond-tile-pws-icon {
+  display: inline-flex;
+  align-items: center;
   margin-left: auto;
+  color: #38bdf8;
   opacity: 0.85;
+  flex-shrink: 0;
 }
 
 .cond-tile-icon {

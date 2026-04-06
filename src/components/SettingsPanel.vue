@@ -877,7 +877,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 
 .modal-dialog {
-  background: var(--panel-bg);
+  background: var(--sheet-bg);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
   width: 340px;
