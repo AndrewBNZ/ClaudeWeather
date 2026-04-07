@@ -43,12 +43,14 @@ const props = defineProps({
   customAlertsConfig:   { type: Object,  default: null },
   customAlertResults:   { type: Object,  default: null },
   focusHour:            { type: Number,  default: null },
+  highlightHours:       { type: Array,   default: null },
+  highlightColor:       { type: String,  default: null },
 })
 
 const emit = defineEmits([
   'select', 'grass-color', 'open-locations', 'open-settings',
   'open-data-types', 'open-model-modal', 'refresh', 'day-selected',
-  'open-card-settings', 'forecast-data-point', 'scroll-to-hour', 'open-alert-editor', 'set-data-type',
+  'open-card-settings', 'forecast-data-point', 'scroll-to-hour', 'open-alert-editor', 'set-data-type', 'highlight-hours',
 ])
 
 const cardComponent = computed(() => CARD_REGISTRY[props.cardType])
@@ -84,6 +86,8 @@ const cardProps = computed(() => ({
   customAlertsConfig:   props.customAlertsConfig,
   customAlertResults:   props.customAlertResults,
   focusHour:            props.focusHour,
+  highlightHours:       props.highlightHours,
+  highlightColor:       props.highlightColor,
 }))
 
 const cardEvents = computed(() => ({
@@ -99,6 +103,7 @@ const cardEvents = computed(() => ({
   'scroll-to-hour':      (v) => emit('scroll-to-hour', v),
   'open-alert-editor':   (v) => emit('open-alert-editor', v),
   'set-data-type':       (v) => emit('set-data-type', v),
+  'highlight-hours':     (v) => emit('highlight-hours', v),
 }))
 
 // Long-press (touch) + right-click opens card settings when available

@@ -205,6 +205,8 @@
                 :focus-hour="focusHour"
                 :location-country="location?.country ?? null"
                 :forecast-data-point="forecastDataPoint"
+                :highlight-hours="alertHighlightHours"
+                :highlight-color="alertHighlightColor"
                 @select="activeDataType = $event"
                 @day-selected="selectedDay = $event"
                 @forecast-data-point="forecastDataPoint = $event"
@@ -215,6 +217,7 @@
                 @set-data-type="forecastDataPoint = $event"
                 @open-alert-editor="onOpenAlertEditor"
                 @open-card-settings="onOpenCardSettings"
+                @highlight-hours="onHighlightHours"
               />
             </div>
           </Transition>
@@ -363,7 +366,9 @@ const customAlertResults = computed(() => {
   return evaluateCustomAlerts(customAlerts.value, weatherData.value.hourly)
 })
 const editAlertId       = ref(null)
-const focusHour         = ref(null)
+const focusHour           = ref(null)
+const alertHighlightHours = ref(null)
+const alertHighlightColor = ref(null)
 
 const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
 
@@ -390,11 +395,32 @@ function onScrollToHour({ date, hour }) {
     const root = scrollRootEl.value
     const el   = document.querySelector('.hourly-forecast-card')
     if (!el || !root) return
-    const TOP_BAR_OFFSET = isLandscapeLayout.value ? 0 : 64
+    const BOTTOM_PADDING = 12
+    const miniStrip = document.querySelector('.alert-modal-mini')
+    const miniHeight = miniStrip ? miniStrip.getBoundingClientRect().height + 8 : 0
     const elRect   = el.getBoundingClientRect()
     const rootRect = root.getBoundingClientRect()
-    root.scrollTo({ top: root.scrollTop + elRect.top - rootRect.top - TOP_BAR_OFFSET, behavior: 'smooth' })
+    const targetTop = root.scrollTop + elRect.bottom - rootRect.bottom + BOTTOM_PADDING + miniHeight
+    root.scrollTo({ top: targetTop, behavior: 'smooth' })
   }, 250)
+}
+
+function onHighlightHours(payload) {
+  if (!payload) {
+    alertHighlightHours.value = null
+    alertHighlightColor.value = null
+    return
+  }
+  const daily = weatherData.value?.daily
+  if (!daily?.time) return
+  const absHours = []
+  for (const { date, hours } of payload.matchesByDay) {
+    const dayIndex = daily.time.indexOf(date)
+    if (dayIndex === -1) continue
+    for (const h of hours) absHours.push(dayIndex * 24 + h)
+  }
+  alertHighlightHours.value = absHours
+  alertHighlightColor.value = payload.color
 }
 
 // ── Sim panel state (moved from CurrentConditions) ────────────────────────────

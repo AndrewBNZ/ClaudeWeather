@@ -26,6 +26,18 @@
     <div class="hf-scroll" ref="scrollEl" @scroll.passive="onHourlyScroll">
       <div class="hf-inner" :style="{ width: totalWidth + 'px' }">
 
+        <!-- Alert highlight bands -->
+        <div
+          v-for="r in highlightRanges"
+          :key="r.start"
+          class="hf-alert-band"
+          :style="{
+            left:       (r.start - displayStartIndex) * COL_WIDTH + 'px',
+            width:      (r.end - r.start + 1) * COL_WIDTH + 'px',
+            background: hexToRgba(highlightColor, 0.13),
+          }"
+        />
+
         <!-- Time row -->
         <div class="hf-row hf-row-time">
           <div
@@ -172,6 +184,8 @@ const props = defineProps({
   hourlyForecastLayout: { type: Object, default: null },
   forecastDataPoint:    { type: String, default: null },
   focusHour:            { type: Number, default: null },
+  highlightHours:       { type: Array,  default: null },
+  highlightColor:       { type: String, default: null },
 })
 
 const emit = defineEmits(['forecast-data-point', 'day-selected'])
@@ -425,6 +439,29 @@ function iconFloatStyle(i) {
   return { top: `${topPx}px` }
 }
 
+// ── Alert hour highlights ─────────────────────────────────────────────────────
+
+function hexToRgba(hex, alpha) {
+  if (!hex) return `rgba(255,255,255,${alpha})`
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
+const highlightRanges = computed(() => {
+  if (!props.highlightHours?.length) return []
+  const sorted = [...props.highlightHours].sort((a, b) => a - b)
+  const ranges = []
+  let start = sorted[0], end = sorted[0]
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] === end + 1) { end = sorted[i] }
+    else { ranges.push({ start, end }); start = end = sorted[i] }
+  }
+  ranges.push({ start, end })
+  return ranges
+})
+
 // ── Scroll behaviour ──────────────────────────────────────────────────────────
 
 const programmaticScroll = ref(false)
@@ -516,7 +553,7 @@ watch(() => props.focusHour, (absHour) => {
   top: 0;
   left: 0;
   right: 0;
-  height: 18px;
+  height: 26px;
   pointer-events: none;
   z-index: 2;
 }
@@ -534,7 +571,7 @@ watch(() => props.focusHour, (absHour) => {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  padding-top: 18px;
+  padding-top: 26px;
   padding-bottom: 0;
 }
 .hf-scroll::-webkit-scrollbar { display: none; }
@@ -543,6 +580,18 @@ watch(() => props.focusHour, (absHour) => {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  position: relative;
+  isolation: isolate;
+}
+
+.hf-alert-band {
+  position: absolute;
+  top: 0;
+  height: 26px;
+  pointer-events: none;
+  border-radius: 6px;
+  z-index: -1;
+  transition: left 0.3s ease, width 0.3s ease, background 0.3s ease;
 }
 
 /* ── Column base ─────────────────────────────────────────────────────── */
@@ -559,6 +608,10 @@ watch(() => props.focusHour, (absHour) => {
 /* ── Day boundary line ───────────────────────────────────────────────── */
 .hf-col-day-start {
   border-left: 1px solid var(--card-border);
+}
+.hf-row-time .hf-col-day-start,
+.hf-row-sun .hf-col-day-start {
+  border-left: none;
 }
 
 

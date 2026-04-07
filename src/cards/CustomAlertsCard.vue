@@ -20,7 +20,7 @@
         background: hexToRgba(entry.alert.color, 0.12),
         borderLeftColor: entry.alert.color,
       }"
-      @click="selectedEntry = entry"
+      @click="selectedEntry = entry; collapsed = false"
     >
       <div class="alert-tile-title">{{ entry.alert.title || 'Untitled' }}</div>
       <div class="alert-tile-when">{{ formatFirstMatch(entry.matchesByDay) }}</div>
@@ -28,8 +28,9 @@
   </div>
 
   <Teleport to="body">
+    <!-- Full modal (hidden when collapsed) -->
     <Transition name="alert-modal">
-      <div v-if="selectedEntry" class="alert-modal-overlay" @click.self="selectedEntry = null">
+      <div v-if="selectedEntry && !collapsed" class="alert-modal-overlay" @click.self="selectedEntry = null">
         <div class="alert-modal" :style="{ borderTopColor: selectedEntry.alert.color }">
           <div class="alert-modal-header">
             <div class="alert-modal-header-text">
@@ -57,15 +58,60 @@
                       v-for="range in groupConsecutiveHours(day.hours)"
                       :key="range.start"
                       class="alert-hour-chip alert-hour-chip--clickable"
+                      :class="{ 'alert-hour-chip--active': activeChip?.date === day.date && activeChip?.hour === range.start }"
                       :style="{
-                        background: hexToRgba(selectedEntry.alert.color, 0.18),
+                        background: hexToRgba(selectedEntry.alert.color, activeChip?.date === day.date && activeChip?.hour === range.start ? 0.35 : 0.18),
                         color: selectedEntry.alert.color,
                       }"
-                      @click="navigateToHour(day.date, range.start)"
-                    >{{ range.start === range.end ? formatHour(range.start) : `${formatHour(range.start)}–${formatHour(range.end)}` }}</span>
+                      @click="navigateToHour(day.date, range.start, range.end)"
+                    >{{ formatHourRange(range.start, range.end) }}</span>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Mini collapsed strip -->
+    <Transition name="alert-mini">
+      <div
+        v-if="selectedEntry && collapsed"
+        class="alert-modal-mini"
+        :style="{ borderTopColor: selectedEntry.alert.color }"
+      >
+        <div class="alert-mini-header">
+          <div class="alert-mini-title-row">
+            <span class="alert-mini-dot" :style="{ background: selectedEntry.alert.color }"></span>
+            <span class="alert-mini-title">{{ selectedEntry.alert.title || 'Untitled' }}</span>
+          </div>
+          <div class="alert-mini-actions">
+            <button class="alert-modal-edit" @click="collapsed = false" aria-label="Expand">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button class="alert-modal-close" @click="selectedEntry = null; collapsed = false">✕</button>
+          </div>
+        </div>
+        <div class="alert-mini-days">
+          <div
+            v-for="day in selectedEntry.matchesByDay"
+            :key="day.date"
+            class="alert-mini-day-row"
+          >
+            <span class="alert-mini-day-label">{{ formatDate(day.date) }}</span>
+            <div class="alert-hours">
+              <span
+                v-for="range in groupConsecutiveHours(day.hours)"
+                :key="range.start"
+                class="alert-hour-chip alert-hour-chip--clickable"
+                :class="{ 'alert-hour-chip--active': activeChip?.date === day.date && activeChip?.hour === range.start }"
+                :style="{
+                  background: hexToRgba(selectedEntry.alert.color, activeChip?.date === day.date && activeChip?.hour === range.start ? 0.35 : 0.18),
+                  color: selectedEntry.alert.color,
+                }"
+                @click="navigateToHour(day.date, range.start, range.end)"
+              >{{ formatHourRange(range.start, range.end) }}</span>
             </div>
           </div>
         </div>
@@ -75,11 +121,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
-const emit = defineEmits(['scroll-to-hour', 'open-alert-editor', 'set-data-type'])
+const emit = defineEmits(['scroll-to-hour', 'open-alert-editor', 'set-data-type', 'highlight-hours'])
 
 const props = defineProps({
   customAlertsConfig: { type: Object, default: null },
@@ -89,6 +135,8 @@ const props = defineProps({
 })
 
 const selectedEntry = ref(null)
+const collapsed = ref(false)
+const activeChip = ref(null) // { date, hour }
 
 const showMode = computed(() => props.customAlertsConfig?.show ?? 'always')
 
@@ -113,6 +161,17 @@ function formatHour(h) {
   return `${h12}${ampm}`
 }
 
+function formatHourRange(start, end) {
+  if (start === end) return formatHour(start)
+  if (props.timeFormat === '24h') return `${formatHour(start)}–${formatHour(end)}`
+  const startAmpm = start >= 12 ? 'pm' : 'am'
+  const endAmpm   = end   >= 12 ? 'pm' : 'am'
+  const startH = start % 12 || 12
+  const endH   = end   % 12 || 12
+  if (startAmpm === endAmpm) return `${startH}–${endH}${endAmpm}`
+  return `${startH}${startAmpm}–${endH}${endAmpm}`
+}
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -122,12 +181,23 @@ function formatDate(dateStr) {
   return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`
 }
 
-function navigateToHour(date, hour) {
+function navigateToHour(date, hour, rangeEnd = hour) {
   const tapType = selectedEntry.value?.alert?.tapDataType ?? 'none'
-  selectedEntry.value = null
+  collapsed.value = true
+  activeChip.value = { date, hour }
+  const hours = []
+  for (let h = hour; h <= rangeEnd; h++) hours.push(h)
+  emit('highlight-hours', { matchesByDay: [{ date, hours }], color: selectedEntry.value.alert.color })
   if (tapType !== 'none') emit('set-data-type', tapType)
   emit('scroll-to-hour', { date, hour })
 }
+
+watch(selectedEntry, (val) => {
+  if (!val) {
+    activeChip.value = null
+    emit('highlight-hours', null)
+  }
+})
 
 function groupConsecutiveHours(hours) {
   if (!hours?.length) return []
@@ -408,15 +478,109 @@ function summarizeCriteria(alert) {
   border-radius: 1rem;
   font-size: 0.8rem;
   font-weight: 500;
+  white-space: nowrap;
+  border: 1.5px solid transparent;
 }
 
 .alert-hour-chip--clickable {
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: filter 0.15s, box-shadow 0.15s;
 }
 .alert-hour-chip--clickable:active { filter: brightness(1.3); }
 
-/* Transition */
+.alert-hour-chip--active {
+  border-color: currentColor;
+}
+
+/* ── Mini collapsed strip ── */
+.alert-modal-mini {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--sheet-bg, #1e2130);
+  border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
+  border-top: 4px solid transparent;
+  border-radius: 16px 16px 0 0;
+  padding: 10px 16px 20px;
+  box-shadow: var(--shadow);
+  z-index: 220;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alert-mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.alert-mini-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.alert-mini-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alert-mini-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.alert-mini-days {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  overflow-y: auto;
+  max-height: 120px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.alert-mini-day-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.alert-modal-mini .alert-hours {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.alert-modal-mini .alert-hours::-webkit-scrollbar { display: none; }
+
+.alert-mini-day-label {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 5.5rem;
+}
+
+/* Transitions */
 .alert-modal-enter-active,
 .alert-modal-leave-active {
   transition: opacity 0.22s ease;
@@ -432,5 +596,15 @@ function summarizeCriteria(alert) {
 .alert-modal-enter-from .alert-modal,
 .alert-modal-leave-to .alert-modal {
   transform: translateY(100%);
+}
+
+.alert-mini-enter-active,
+.alert-mini-leave-active {
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease;
+}
+.alert-mini-enter-from,
+.alert-mini-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 </style>
