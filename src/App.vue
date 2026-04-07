@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell" :class="{ 'app-shell--landscape': isLandscapeLayout }">
     <!-- Top bar — position:absolute over app-shell in portrait, over scene-block in landscape via CSS -->
-    <div v-if="weatherData" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled }">
+    <div v-if="weatherData && !loading" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled }">
       <button
         data-locations-btn
         class="scene-top-btn"
@@ -1241,10 +1241,12 @@ if (!isGeoActive.value) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 80px 20px;
   color: var(--text-muted);
   animation: fade-in 0.4s ease;
+  width: 100%;
 }
 
 .loading-icon {
