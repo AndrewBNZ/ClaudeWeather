@@ -102,6 +102,7 @@
             :pws-data-active="!!(pwsData || tempestData)"
             :pws-name="activePwsStation?.name ?? null"
             :landscape="isLandscapeLayout"
+            :utc-offset="weatherData.utc_offset_seconds ?? 0"
             @panel-change="conditionsOpen = $event"
             @open-settings="sub => { settingsOpen = true; panelOpen = false; nextTick(() => sub === 'layout' ? settingsPanel?.openTab('layout') : settingsPanel?.openToSubPanel(sub)) }"
           />

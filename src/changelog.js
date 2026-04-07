@@ -2,8 +2,9 @@
 // The version must match package.json exactly.
 export default [
   {
-    version: "1.2.8",
+    version: "1.2.9",
     entries: [
+      "🌞 Weather icon sets (more to come)!",
       "🔔 Auto scroll to hourly chart from custom alert results",
       "🔌 Better handling of weather provider issues",
    ],

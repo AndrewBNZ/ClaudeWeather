@@ -37,6 +37,6 @@ img.weather-icon {
   width: 1em;
   height: 1em;
   object-fit: contain;
-  vertical-align: middle;
+  vertical-align: top;
 }
 </style>

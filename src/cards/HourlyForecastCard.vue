@@ -96,7 +96,7 @@
                 <div class="hf-icon-track">
                   <div class="hf-float-group" :style="iconFloatStyle(slot.index)">
                     <span class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
-                    <WeatherIcon class="hf-float-icon" :code="allCodes[slot.index]" />
+                    <WeatherIcon class="hf-float-icon" :code="allCodes[slot.index]" :is-day="isHourDay(slot.index)" />
                   </div>
                 </div>
               </template>
@@ -114,7 +114,7 @@
               'hf-col-current':   isCurrent(slot.index),
               'hf-col-day-start': isDayStart(slot.index),
             }"
-          ><span class="wx-icon"><WeatherIcon :code="allCodes[slot.index]" /></span></div>
+          ><span class="wx-icon"><WeatherIcon :code="allCodes[slot.index]" :is-day="isHourDay(slot.index)" /></span></div>
         </div>
         <template v-for="pt in visibleOtherPoints" :key="pt.type">
 
@@ -239,6 +239,17 @@ const allHoursArr = computed(() => {
 
 function isDayStart(i) {
   return i > displayStartIndex.value && i % 24 === 0
+}
+
+function isHourDay(i) {
+  const day = Math.floor(i / 24)
+  const hour = i % 24
+  const sr = props.daily?.sunrise?.[day]
+  const ss = props.daily?.sunset?.[day]
+  if (!sr || !ss) return true
+  const srH = parseInt(sr.split('T')[1])
+  const ssH = parseInt(ss.split('T')[1])
+  return hour >= srH && hour < ssH
 }
 
 const totalWidth = computed(() => allHoursArr.value.length * COL_WIDTH)

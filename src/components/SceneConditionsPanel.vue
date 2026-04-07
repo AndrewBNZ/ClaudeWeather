@@ -8,7 +8,7 @@
           <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
         </div>
         <div class="cond-condition-row">
-          <span class="cond-subtitle"><WeatherIcon :code="data.weather_code" class="cond-wx-icon" /> {{ info.label }}</span>
+          <span class="cond-subtitle"><WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" /> {{ info.label }}</span>
         </div>
         <div class="cond-scroll">
           <div class="cond-grid">
@@ -60,6 +60,7 @@ const props = defineProps({
   unitPrefs:     { type: Object,  required: true },
   pwsDataActive: { type: Boolean, default: false },
   pwsName:       { type: String,  default: null },
+  isDay:         { type: Boolean, default: true },
 })
 
 defineEmits(['update:modelValue'])

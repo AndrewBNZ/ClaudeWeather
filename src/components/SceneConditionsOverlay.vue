@@ -3,7 +3,7 @@
     <div class="sc-inner" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
-        <span v-if="sceneOverlayLayout.showIcon" class="sc-icon"><WeatherIcon :code="data.weather_code" /></span>
+        <span v-if="sceneOverlayLayout.showIcon" class="sc-icon"><WeatherIcon :code="data.weather_code" :is-day="isDay" /></span>
         <div v-if="sceneOverlayLayout.showTemp" class="sc-temp-group">
           <span class="sc-temp">{{ fmt(data.temperature_2m, 1) }}<span class="sc-unit">{{ tempUnit }}</span></span>
           <div v-if="todayHigh != null" class="sc-hl">
@@ -41,6 +41,7 @@
     :unit-prefs="unitPrefs"
     :pws-data-active="pwsDataActive"
     :pws-name="pwsName"
+    :is-day="isDay"
   />
 </template>
 
@@ -61,6 +62,7 @@ const props = defineProps({
   pwsDataActive:{ type: Boolean, default: false },
   pwsName:      { type: String,  default: null },
   landscape:    { type: Boolean, default: false },
+  utcOffset:    { type: Number,  default: 0 },
 })
 
 const emit = defineEmits(['panel-change', 'open-settings'])
@@ -107,6 +109,14 @@ function onClick() {
 watch(showPanel, (open) => emit('panel-change', open))
 
 const info      = computed(() => getWeatherInfo(props.data.weather_code))
+
+const isDay = computed(() => {
+  const sr = props.daily?.sunrise?.[0]
+  const ss = props.daily?.sunset?.[0]
+  if (!sr || !ss) return true
+  const localH = new Date(Date.now() + props.utcOffset * 1000).getUTCHours()
+  return localH >= parseInt(sr.split('T')[1]) && localH < parseInt(ss.split('T')[1])
+})
 const tempUnit  = computed(() => DATA_TYPES.temperature.getUnit(props.unitPrefs))
 const todayHigh = computed(() => props.daily?.temperature_2m_max?.[0] ?? null)
 const todayLow  = computed(() => props.daily?.temperature_2m_min?.[0] ?? null)
@@ -179,7 +189,6 @@ function fmt(v, decimals) {
   line-height: 1;
   filter: drop-shadow(0 2px 8px rgba(0,0,0,0.45));
   flex-shrink: 0;
-  margin-top: 3px;
 }
 
 .sc-temp-group {

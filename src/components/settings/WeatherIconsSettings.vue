@@ -44,6 +44,7 @@ function previewIcons(setId) {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
+  min-height: 64px;
   text-align: left;
   cursor: pointer;
 }
@@ -61,7 +62,7 @@ function previewIcons(setId) {
 }
 
 .preview-icon--emoji {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1;
 }
 

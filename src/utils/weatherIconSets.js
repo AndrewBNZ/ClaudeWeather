@@ -18,6 +18,43 @@ export const ICON_SETS = [
     label: 'Emoji',
     type: 'emoji',
   },
+  {
+    id: 'icons8-color-glass',
+    label: 'Color Glass',
+    type: 'img',
+    basePath: '/icons/icons8-color-glass/',
+    ext: '.svg',
+    map: {
+      0:  { day: 'sun', night: 'moon' },
+      1:  { day: 'sun', night: 'moon' },
+      2:  { day: 'partly-cloudy-day', night: 'partly-cloudy-night' },
+      3:  'clouds',
+      45: { day: 'haze-day', night: 'haze-night' },
+      48: { day: 'haze-day', night: 'haze-night' },
+      51: 'drizzle',
+      53: 'drizzle',
+      55: 'rain',
+      56: 'sleet',
+      57: 'sleet',
+      61: 'rain-light',
+      63: 'rain-heavy',
+      65: 'rain-torrential',
+      66: 'sleet',
+      67: 'sleet',
+      71: 'snow-light',
+      73: 'snow',
+      75: 'snow-storm',
+      77: 'snow',
+      80: 'rain-sun',
+      81: 'rain-sun',
+      82: 'rain-sun-storm',
+      85: 'snow-light',
+      86: 'snow',
+      95: 'thunderstorm',
+      96: 'thunderstorm',
+      99: 'thunderstorm',
+    },
+  },
 
   // Example — fill in the map after downloading assets:
   // {
@@ -72,7 +109,8 @@ export function resolveIcon(code, setId = 'emoji', isDay = true) {
       const filename = typeof entry === 'string'
         ? entry
         : (isDay ? (entry.day ?? entry.night) : (entry.night ?? entry.day))
-      return { type: 'img', src: `${set.basePath}${filename}${set.ext}` }
+      const base = import.meta.env.BASE_URL.replace(/\/$/, '')
+      return { type: 'img', src: `${base}${set.basePath}${filename}${set.ext}` }
     }
     // Fall through to emoji if no mapping found for this code
   }
