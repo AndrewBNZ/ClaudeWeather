@@ -1,13 +1,4 @@
 <template>
-  <!-- Update available banner -->
-  <Transition name="update-banner">
-    <div v-if="needRefresh" class="update-banner" role="status">
-      <span class="update-banner-text">Update available</span>
-      <button class="update-banner-btn" @click="doUpdate">Update now</button>
-      <button class="update-banner-dismiss" @click="needRefresh = false" aria-label="Dismiss">✕</button>
-    </div>
-  </Transition>
-
   <!-- What's New modal -->
   <Transition name="modal-fade">
     <div v-if="showWhatsNew" class="modal-overlay" @click.self="showWhatsNew = false">
@@ -45,15 +36,25 @@ import { useRegisterSW } from 'virtual:pwa-register/vue'
 import changelog from '../changelog.js'
 import { APP_STORAGE_PREFIX } from '../config.js'
 import { showWhatsNew } from '../composables/useWhatsNew.js'
+import { useToast } from '../composables/useToast.js'
 
 const VERSION_KEY = `${APP_STORAGE_PREFIX}-version`
 const currentVersion = __APP_VERSION__
 
 const { needRefresh, updateServiceWorker } = useRegisterSW()
+const { addToast, removeToast } = useToast()
 
 function doUpdate() {
   updateServiceWorker(true)
 }
+
+watch(needRefresh, (val) => {
+  if (val) {
+    addToast({ id: 'app-update', message: 'Update available', action: { label: 'Update now', fn: doUpdate }, color: 'blue' })
+  } else {
+    removeToast('app-update')
+  }
+})
 
 function semverGt(a, b) {
   const pa = a.split('.').map(Number)
@@ -80,70 +81,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ── Update banner ───────────────────────────────────────────────────────── */
-.update-banner {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9000;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(10, 18, 32, 0.88);
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 12px;
-  padding: 10px 14px;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.88rem;
-  white-space: nowrap;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-}
-
-.update-banner-text {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.update-banner-btn {
-  background: rgba(56, 189, 248, 0.2);
-  border: 1px solid rgba(56, 189, 248, 0.55);
-  color: rgb(56, 189, 248);
-  border-radius: 8px;
-  padding: 4px 12px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.update-banner-btn:hover {
-  background: rgba(56, 189, 248, 0.32);
-}
-
-.update-banner-dismiss {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.4);
-  font-size: 0.8rem;
-  cursor: pointer;
-  padding: 2px 4px;
-  line-height: 1;
-  transition: color 0.15s;
-}
-.update-banner-dismiss:hover {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.update-banner-enter-from,
-.update-banner-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(12px);
-}
-.update-banner-enter-active,
-.update-banner-leave-active {
-  transition: opacity 0.25s, transform 0.25s;
-}
-
 /* ── What's New modal ────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;

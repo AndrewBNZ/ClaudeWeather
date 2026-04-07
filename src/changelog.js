@@ -2,6 +2,13 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.8",
+    entries: [
+      "🔔 Auto scroll to hourly chart from custom alert results",
+      "🔌 Better handling of weather provider issues",
+   ],
+  },
+  {
     version: "1.2.7",
     entries: [
       "🌆 Landscape mode for tablets and desktops",

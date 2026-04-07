@@ -8,7 +8,7 @@
           <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
         </div>
         <div class="cond-condition-row">
-          <span class="cond-subtitle">{{ info.emoji }} {{ info.label }}</span>
+          <span class="cond-subtitle"><WeatherIcon :code="data.weather_code" class="cond-wx-icon" /> {{ info.label }}</span>
         </div>
         <div class="cond-scroll">
           <div class="cond-grid">
@@ -48,6 +48,7 @@
 <script setup>
 import { computed } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
+import WeatherIcon from './WeatherIcon.vue'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { useSettings } from '../composables/useSettings.js'
@@ -281,6 +282,9 @@ const tiles = computed(() => {
   font-size: 0.9rem;
   color: var(--text);
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .cond-close {

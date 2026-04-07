@@ -6,10 +6,21 @@
         <div class="setting-hint">{{ { system: "Follows your device's theme preferences", light: 'Always light', dark: 'Always dark', auto: 'Light between 6am and 8pm, dark at night' }[theme] }}</div>
       </div>
       <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
         <button :class="['unit-pill-opt', { active: theme === 'system' }]" @click="theme = 'system'">Device</button>
         <button :class="['unit-pill-opt', { active: theme === 'light' }]"  @click="theme = 'light'">Light</button>
         <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
-        <button :class="['unit-pill-opt', { active: theme === 'auto' }]"   @click="theme = 'auto'">Auto</button>
+      </div>
+    </div>
+    <div class="setting-row setting-row--col">
+      <div>
+        <div class="setting-label">Wide layout</div>
+        <div class="setting-hint">{{ { auto: 'Two columns on tablet and desktop', always: 'Always two columns', off: 'Always single column' }[landscapeMode] }}</div>
+      </div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: landscapeMode === 'auto' }]"   @click="landscapeMode = 'auto'">Auto</button>
+        <button :class="['unit-pill-opt', { active: landscapeMode === 'always' }]" @click="landscapeMode = 'always'">Always</button>
+        <button :class="['unit-pill-opt', { active: landscapeMode === 'off' }]"    @click="landscapeMode = 'off'">Off</button>
       </div>
     </div>
   </div>
@@ -41,17 +52,13 @@
         <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
       </div>
     </div>
-    <div class="setting-row">
+    <button class="setting-row setting-row--nav" @click="$emit('navigate', 'weatherIcons')">
       <div>
-        <div class="setting-label">Wide layout</div>
-        <div class="setting-hint">{{ { auto: 'Two columns on tablet and desktop', always: 'Always two columns', off: 'Always single column' }[landscapeMode] }}</div>
+        <div class="setting-label">Weather icons</div>
+        <div class="setting-hint">{{ ICON_SETS.find(s => s.id === iconSet)?.label ?? 'Emoji' }}</div>
       </div>
-      <div class="unit-pill">
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'auto' }]"   @click="landscapeMode = 'auto'">Auto</button>
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'always' }]" @click="landscapeMode = 'always'">Always</button>
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: landscapeMode === 'off' }]"    @click="landscapeMode = 'off'">Off</button>
-      </div>
-    </div>
+      <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
   <div class="settings-group">
     <div class="setting-row">
@@ -79,7 +86,7 @@ import { showWhatsNew } from '../../../composables/useWhatsNew.js'
 
 defineEmits(['navigate'])
 
-const { theme, cardStyle, timeFormat, showSim, unitPrefs, landscapeMode } = useSettings()
+const { theme, cardStyle, timeFormat, showSim, unitPrefs, landscapeMode, iconSet, ICON_SETS } = useSettings()
 
 const appVersion = __APP_VERSION__
 

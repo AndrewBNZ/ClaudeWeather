@@ -35,7 +35,8 @@ export function setWeatherProvider(id) {
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
-const CACHE_TTL_MS = 15 * 60 * 1000
+const CACHE_TTL_MS       = 15 * 60 * 1000
+const CACHE_PURGE_TTL_MS = 24 * 60 * 60 * 1000  // keep stale data for up to 24h as fallback
 
 function cacheKey(adapter, lat, lon, unitPrefs) {
   const rLat    = Math.round(lat * 10000) / 10000
@@ -51,7 +52,15 @@ function readCache(key) {
     if (!raw) return null
     const entry = JSON.parse(raw)
     if (Date.now() - entry.timestamp < CACHE_TTL_MS) return entry
-    localStorage.removeItem(key)
+  } catch {}
+  return null
+}
+
+function readStaleCache(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    return JSON.parse(raw)
   } catch {}
   return null
 }
@@ -64,7 +73,7 @@ function purgeExpiredCache() {
       .forEach(k => {
         try {
           const entry = JSON.parse(localStorage.getItem(k))
-          if (now - entry.timestamp >= CACHE_TTL_MS) localStorage.removeItem(k)
+          if (now - entry.timestamp >= CACHE_PURGE_TTL_MS) localStorage.removeItem(k)
         } catch {
           localStorage.removeItem(k)
         }
@@ -101,7 +110,7 @@ export function clearWeatherCache(lat, lon) {
  * Fetch weather for the given coordinates.
  * Returns { data, timestamp } where data matches the canonical schema.
  */
-export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false } = {}) {
+export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false, signal } = {}) {
   const provider = getWeatherProvider()
   const adapter  = ADAPTERS[provider] ?? openMeteo
   const key      = cacheKey(adapter, lat, lon, unitPrefs)
@@ -111,7 +120,14 @@ export async function fetchWeather(lat, lon, unitPrefs, { forceRefresh = false }
     if (cached) return { data: cached.data, timestamp: cached.timestamp }
   }
 
-  const data      = await adapter.fetch(lat, lon, unitPrefs)
-  const timestamp = writeCache(key, data)
-  return { data, timestamp }
+  try {
+    const data      = await adapter.fetch(lat, lon, unitPrefs, { signal })
+    const timestamp = writeCache(key, data)
+    return { data, timestamp }
+  } catch (err) {
+    if (err.name === 'AbortError') throw err
+    const stale = readStaleCache(key)
+    if (stale) return { data: stale.data, timestamp: stale.timestamp, stale: true }
+    throw err
+  }
 }

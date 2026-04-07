@@ -38,6 +38,11 @@
           <UnitsSettings />
         </div>
 
+        <!-- Weather Icons display sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'weatherIcons'" :class="paneClass('weatherIcons')">
+          <WeatherIconsSettings />
+        </div>
+
         <!-- Layout tab -->
         <div class="settings-tab-pane" :data-pane="'layout'" :class="paneClass('layout')">
           <LayoutTab @navigate="navigate" />
@@ -135,6 +140,7 @@ import PwsKeySettings            from './settings/PwsKeySettings.vue'
 import TempestTokenSettings      from './settings/TempestTokenSettings.vue'
 import DataTypesModal            from './settings/DataTypesModal.vue'
 import UnitsSettings             from './settings/UnitsSettings.vue'
+import WeatherIconsSettings      from './settings/WeatherIconsSettings.vue'
 import DisplayTab                from './settings/tabs/DisplayTab.vue'
 import LayoutTab                 from './settings/tabs/LayoutTab.vue'
 import DataTab                   from './settings/tabs/DataTab.vue'
@@ -147,7 +153,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 function jumpToSubPanel(sub) {
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
-  const DISPLAY_SUBPANELS = ['units']
+  const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
   activePane.value = sub
   prevPane.value   = null
   if (DATA_SUBPANELS.includes(sub))    { tab.value = 'data';    subPanel.value = sub }
@@ -166,7 +172,7 @@ defineExpose({
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
+const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -235,7 +241,7 @@ function navigate(target) {
   activePane.value = target
   // sync tab / subPanel for header logic
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
-  const DISPLAY_SUBPANELS = ['units']
+  const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
   if (toTop) {
     tab.value = target; subPanel.value = null
   } else if (DATA_SUBPANELS.includes(target)) {
@@ -255,7 +261,7 @@ function navigateBack() {
     return
   }
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
-  const DISPLAY_SUBPANELS = ['units']
+  const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
   const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : DISPLAY_SUBPANELS.includes(subPanel.value) ? 'display' : 'layout'
   prevPane.value   = activePane.value
   slideDir.value   = 'back'

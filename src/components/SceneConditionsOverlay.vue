@@ -3,7 +3,7 @@
     <div class="sc-inner" @pointerdown="onPointerDown" @pointerup="onPointerUp" @pointercancel="onPointerCancel" @click="onClick" @contextmenu.prevent="onContextMenu">
       <!-- Left: icon + temp + condition -->
       <div class="sc-left">
-        <span v-if="sceneOverlayLayout.showIcon" class="sc-icon">{{ info.emoji }}</span>
+        <span v-if="sceneOverlayLayout.showIcon" class="sc-icon"><WeatherIcon :code="data.weather_code" /></span>
         <div v-if="sceneOverlayLayout.showTemp" class="sc-temp-group">
           <span class="sc-temp">{{ fmt(data.temperature_2m, 1) }}<span class="sc-unit">{{ tempUnit }}</span></span>
           <div v-if="todayHigh != null" class="sc-hl">
@@ -47,6 +47,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getWeatherInfo } from '../utils/weatherCodes.js'
+import WeatherIcon from './WeatherIcon.vue'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import { useSettings } from '../composables/useSettings.js'

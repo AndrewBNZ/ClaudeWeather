@@ -65,7 +65,7 @@ export function getVariant() {
  * user's preferred units — no client-side unit conversion needed for
  * temperature, wind, or precipitation.
  */
-export async function fetch(lat, lon, unitPrefs) {
+export async function fetch(lat, lon, unitPrefs, { signal } = {}) {
   const params = new URLSearchParams({
     latitude:  lat,
     longitude: lon,
@@ -120,7 +120,7 @@ export async function fetch(lat, lon, unitPrefs) {
     cell_selection:     'nearest',
   })
 
-  const res = await globalThis.fetch(`${BASE_URL}?${params}`)
+  const res = await globalThis.fetch(`${BASE_URL}?${params}`, { signal })
   if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`)
   const raw = await res.json()
   return normalize(raw)

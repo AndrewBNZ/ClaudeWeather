@@ -68,14 +68,14 @@
                 <!-- Icons chart style: floating icon with hi/lo labels -->
                 <div class="icon-float-group" :style="iconGroupStyle(i)">
                   <span class="icon-val-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
-                  <span class="wx-float-icon">{{ wxEmoji(i) }}</span>
+                  <WeatherIcon class="wx-float-icon" :code="wxCode(i)" />
                   <span class="icon-val-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
                 </div>
               </template>
             </div>
 
             <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle !== 'icons')" class="stats">
-              <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="wx-icon stat-row">{{ wxEmoji(i) }}</div>
+              <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="wx-icon stat-row"><WeatherIcon :code="wxCode(i)" /></div>
               <template v-for="pt in visibleOtherPoints" :key="pt.type">
                 <!-- Rain probability -->
                 <div v-if="pt.type === 'rainProb'" class="stat-row" :style="{ color: rainColor }">
@@ -135,11 +135,11 @@
 
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
-import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES, DATA_TYPE_LIST, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
+import WeatherIcon from '../components/WeatherIcon.vue'
 
 // ── Props & emits ───────────────────────────────────────────────────────────
 
@@ -235,9 +235,8 @@ function dominantDaytimeCode(dayIndex) {
   return Number(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0])
 }
 
-function wxEmoji(i) {
-  const code = dominantDaytimeCode(i)
-  return code != null ? (getWeatherInfo(code)?.emoji ?? '') : ''
+function wxCode(i) {
+  return dominantDaytimeCode(i)
 }
 
 function dayLabel(isoDate) {
@@ -540,13 +539,14 @@ function barStyleSimple(i) {
 
 /* ── Day column ───────────────────────────────────── */
 .day-col {
-  flex: 1 0 58px;
-  min-width: 58px;
-  max-width: 90px;
+  flex: 1 0 54px;
+  zmin-width: 58px;
+  zmax-width: 90px;
+  width: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 4px 8px;
+  padding: 6px 0 8px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
@@ -572,6 +572,7 @@ function barStyleSimple(i) {
   text-align: center;
   white-space: nowrap;
   flex-shrink: 0;
+  height: 26px;
 }
 .is-selected .day-lbl {
   color: var(--accent);
@@ -675,7 +676,7 @@ function barStyleSimple(i) {
   width: 100%;
   border-top: 1px solid var(--card-border);
   padding-top: 6px;
-  margin-top: 2px;
+  margin-top: 6px;
 }
 
 .stat-row {

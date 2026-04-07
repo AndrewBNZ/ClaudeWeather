@@ -1,7 +1,7 @@
 <template>
   <div class="app-shell" :class="{ 'app-shell--landscape': isLandscapeLayout }">
     <!-- Top bar — position:absolute over app-shell in portrait, over scene-block in landscape via CSS -->
-    <div v-if="weatherData && !loading" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled }">
+    <div v-if="location" class="scene-top-bar" :class="{ blurred: settingsOpen, scrolled: topBarScrolled, 'no-weather': !weatherData || loading }">
       <button
         data-locations-btn
         class="scene-top-btn"
@@ -44,7 +44,17 @@
 
       <!-- Offline -->
       <div v-if="isOffline && !weatherData" class="offline-card">
-        <span class="offline-icon">📡</span>
+        <div class="offline-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+            <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <circle cx="12" cy="20" r="1" fill="currentColor"/>
+          </svg>
+        </div>
         <p class="offline-title">No internet connection</p>
         <p class="offline-sub">Weather will load automatically when you're back online.</p>
       </div>
@@ -62,13 +72,20 @@
         <div class="loading-dots">
           <span></span><span></span><span></span>
         </div>
-        <p class="loading-label">Fetching weather</p>
+        <p class="loading-label">Fetching weather...</p>
       </div>
 
       <!-- Error -->
-      <div v-else-if="error" class="error-card card">
-        <span class="error-icon">⚠️</span>
-        <p>{{ error }}</p>
+      <div v-else-if="error" class="error-state">
+        <div class="error-state__icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+            <line x1="12" y1="10" x2="12" y2="13"/>
+            <circle cx="12" cy="15.5" r="0.5" fill="currentColor"/>
+          </svg>
+        </div>
+        <p class="error-state__title">Weather failed to load</p>
+        <p class="error-state__sub">{{ error }}</p>
         <button class="retry-btn" @click="loadWeather(false, true)">Try again</button>
       </div>
 
@@ -292,6 +309,7 @@
       @finish="finishTutorial"
     />
 
+    <ToastStack />
     <UpdateBanner />
 
     <!-- Sun / Moon detail sheets -->
@@ -339,7 +357,9 @@ import PwsPickerModal                                from './components/PwsPicke
 import { reverseGeocodeDetails }                     from './services/geocoding.js'
 import { APP_STORAGE_PREFIX }                        from './config.js'
 import { useSettings, autoIsDark, resolvedTheme, isAutoNight } from './composables/useSettings.js'
-import UpdateBanner from './components/UpdateBanner.vue'
+import ToastStack   from './components/ToastStack.vue'
+import UpdateBanner  from './components/UpdateBanner.vue'
+import { useToast }  from './composables/useToast.js'
 
 const {
   timeFormat, showSim, cardStyle,
@@ -524,6 +544,9 @@ const weatherData        = ref(null)
 const silentRefresh      = ref(false)
 const loading            = ref(false)
 const error              = ref(null)
+let   lastAttemptAt      = 0
+let   fetchController    = null
+const { addToast, removeToast } = useToast()
 const fetchedAt          = ref(null)
 const tickNow            = ref(Date.now())
 
@@ -766,10 +789,14 @@ async function loadWeather(silent = false, forceRefresh = false) {
   if (!location.value) return
   if (!navigator.onLine) { isOffline.value = true; loading.value = false; return }
   isOffline.value = false
+  fetchController?.abort()
+  fetchController = new AbortController()
+  const { signal } = fetchController
   if (!silent || !weatherData.value) loading.value = true
   error.value = null
+  lastAttemptAt = Date.now()
   try {
-    const { data, timestamp } = await fetchWeather(location.value.lat, location.value.lon, unitPrefs.value, { forceRefresh })
+    const { data, timestamp, stale } = await fetchWeather(location.value.lat, location.value.lon, unitPrefs.value, { forceRefresh, signal })
     const locHour = new Date(Date.now() + data.utc_offset_seconds * 1000).getUTCHours()
     data.current.precipitation_probability =
       data.hourly?.precipitation_probability?.[locHour] ?? null
@@ -781,10 +808,26 @@ async function loadWeather(silent = false, forceRefresh = false) {
       locationName.value = data.timezone ?? locationName.value
     }
     fetchedAt.value = new Date(timestamp)
+    if (stale) {
+      addToast({ id: 'stale-data', message: 'Weather service unavailable — showing cached data', action: { label: 'Retry', fn: () => loadWeather(false, true) }, color: 'amber' })
+    } else {
+      removeToast('stale-data')
+    }
     loadPwsData()
     syncTempestWs()
   } catch (e) {
-    error.value = e.message ?? 'Failed to load weather data.'
+    if (e.name === 'AbortError') return
+    const msg = e.message ?? ''
+    const status = msg.match(/\b(\d{3})\b/)?.[1]
+    if (status === '429') {
+      error.value = 'The weather service is temporarily rate-limited. Try again in a moment.'
+    } else if (status === '502' || status === '503' || status === '504') {
+      error.value = 'The weather service is temporarily unavailable. Try again in a moment.'
+    } else if (status) {
+      error.value = 'The weather service returned an error. Try again shortly.'
+    } else {
+      error.value = 'The weather service couldn\'t be reached. Try again shortly.'
+    }
   } finally {
     loading.value = false
   }
@@ -877,7 +920,15 @@ let refreshTimer = null
 
 onMounted(() => {
   autoTimer    = setInterval(() => { autoIsDark.value = isAutoNight() }, 60_000)
-  refreshTimer = setInterval(() => { tickNow.value = Date.now(); if (location.value && isStale()) loadWeather(true, true) }, 30_000)
+  refreshTimer = setInterval(() => {
+    tickNow.value = Date.now()
+    if (!location.value || loading.value) return
+    if (error.value) {
+      if (Date.now() - lastAttemptAt >= 2 * 60 * 1000) loadWeather(true, true)
+    } else if (isStale()) {
+      loadWeather(true, true)
+    }
+  }, 30_000)
   scrollRootEl.value?.addEventListener('scroll', onScrollRoot, { passive: true })
   mq.addEventListener('change', onMqChange)
 
@@ -1003,6 +1054,16 @@ if (!isGeoActive.value) {
 .scene-top-bar.blurred {
   filter: blur(2px);
   pointer-events: none;
+}
+.scene-top-bar.no-weather {
+  background: var(--bg2);
+}
+.scene-top-bar.no-weather .scene-top-btn {
+  color: var(--text);
+}
+.scene-top-bar.no-weather .scene-top-name {
+  color: var(--text);
+  text-shadow: none;
 }
 .scene-top-location {
   position: absolute;
@@ -1294,10 +1355,9 @@ if (!isGeoActive.value) {
 .loading-dots span:nth-child(3) { animation-delay: 0.36s; }
 
 .loading-label {
-  font-size: 0.9rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 @keyframes loading-float {
@@ -1319,36 +1379,64 @@ if (!isGeoActive.value) {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  padding: 32px;
+  padding: 80px 20px;
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted);
+  animation: fade-in 0.4s ease;
+  width: 100%;
 }
-.offline-icon { font-size: 2rem; }
-.offline-title { font-size: 1.1rem; font-weight: 600; color: #cbd5e1; margin: 0; }
-.offline-sub { font-size: 0.875rem; margin: 0; max-width: 240px; }
+.offline-icon {
+  color: rgba(148, 163, 184, 0.7);
+  animation: loading-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 14px rgba(148, 163, 184, 0.15));
+}
+.offline-title { font-size: 1.05rem; font-weight: 600; color: var(--text); margin: 0; }
+.offline-sub { font-size: 0.82rem; color: var(--text-muted); margin: 0; max-width: 260px; }
 
-.error-card {
+.error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-  padding: 32px;
+  padding: 80px 20px;
   text-align: center;
-  color: #f87171;
+  color: var(--text-muted);
+  animation: fade-in 0.4s ease;
+  width: 100%;
 }
-.error-icon { font-size: 2rem; }
+.error-state__icon {
+  color: rgba(248, 113, 113, 0.7);
+  animation: loading-float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 14px rgba(248, 113, 113, 0.2));
+}
+.error-state__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+.error-state__sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 260px;
+}
 .retry-btn {
   margin-top: 4px;
-  padding: 8px 20px;
+  padding: 7px 18px;
   border-radius: 9999px;
-  background: rgba(248, 113, 113, 0.15);
+  background: rgba(248, 113, 113, 0.12);
   border: 1px solid rgba(248, 113, 113, 0.3);
   color: #f87171;
+  font-size: 0.85rem;
   font-weight: 600;
+  cursor: pointer;
   transition: background 0.2s;
 }
-.retry-btn:hover { background: rgba(248, 113, 113, 0.25); }
+.retry-btn:hover { background: rgba(248, 113, 113, 0.22); }
 
 .add-location-btn {
   margin-top: 8px;

@@ -96,7 +96,7 @@
                 <div class="hf-icon-track">
                   <div class="hf-float-group" :style="iconFloatStyle(slot.index)">
                     <span class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
-                    <span class="hf-float-icon">{{ hourEmojis[slot.index] ?? '' }}</span>
+                    <WeatherIcon class="hf-float-icon" :code="allCodes[slot.index]" />
                   </div>
                 </div>
               </template>
@@ -105,7 +105,7 @@
         </div>
 
         <!-- Configurable other data rows -->
-        <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="hf-row hf-row-generic">
+        <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="hf-row hf-row-generic other-data-points-row">
           <div
             v-for="slot in allHoursArr"
             :key="'wx-' + slot.index"
@@ -114,7 +114,7 @@
               'hf-col-current':   isCurrent(slot.index),
               'hf-col-day-start': isDayStart(slot.index),
             }"
-          ><span class="wx-icon">{{ hourEmojis[slot.index] ?? '' }}</span></div>
+          ><span class="wx-icon"><WeatherIcon :code="allCodes[slot.index]" /></span></div>
         </div>
         <template v-for="pt in visibleOtherPoints" :key="pt.type">
 
@@ -167,10 +167,10 @@
 
 <script setup>
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
-import { getWeatherInfo } from '../utils/weatherCodes.js'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { DEFAULT_HOURLY_FORECAST_LAYOUT } from '../composables/useSettings.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
+import WeatherIcon from '../components/WeatherIcon.vue'
 
 const COL_WIDTH = 54
 
@@ -245,10 +245,6 @@ const totalWidth = computed(() => allHoursArr.value.length * COL_WIDTH)
 
 const allCodes    = computed(() => props.hourly?.weather_code ?? [])
 const allWindDirs = computed(() => props.hourly?.wind_direction_10m ?? [])
-
-const hourEmojis = computed(() =>
-  allCodes.value.map(c => c != null ? getWeatherInfo(c)?.emoji ?? '' : '')
-)
 
 // ── Sunrise / sunset events keyed by absolute hour index ─────────────────────
 
@@ -637,7 +633,8 @@ watch(() => props.focusHour, (absHour) => {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding-bottom: 4px;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
   border-bottom: 1px solid var(--card-border);
 }
 
@@ -724,6 +721,10 @@ watch(() => props.focusHour, (absHour) => {
 .hf-wind-arrow svg { width: 10px; height: 10px; }
 .hf-wind-speed { font-size: 0.8rem; }
 .wx-icon { font-size: 1rem; }
+
+/* Other data points rows */
+.other-data-points-row {
+}
 
 /* Generic row: inherits inline :style color */
 .hf-row-generic .hf-cell { font-size: 0.8rem; }

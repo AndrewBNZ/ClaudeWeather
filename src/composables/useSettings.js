@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { APP_STORAGE_PREFIX } from '../config.js'
 import { DATA_TYPE_LIST } from '../utils/dataTypes.js'
+import { ICON_SETS } from '../utils/weatherIconSets.js'
 
 const P = APP_STORAGE_PREFIX
 
@@ -28,6 +29,7 @@ const CUSTOM_ALERTS_CONFIG_KEY    = `${P}-custom-alerts-config`
 const CARD_STYLE_KEY              = `${P}-card-style`
 const RADAR_CONFIG_KEY            = `${P}-radar-config`
 const LANDSCAPE_MODE_KEY          = `${P}-landscape-mode`
+const ICON_SET_KEY                = `${P}-icon-set`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -316,6 +318,7 @@ const customAlertsConfig   = ref(loadCustomAlertsConfig())
 const customAlerts         = ref(loadCustomAlerts())
 const radarConfig          = ref(loadRadarConfig())
 const landscapeMode        = ref(localStorage.getItem(LANDSCAPE_MODE_KEY) ?? 'auto')
+const iconSet              = ref(localStorage.getItem(ICON_SET_KEY) ?? 'emoji')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })
@@ -341,6 +344,7 @@ watch(customAlertsConfig,    (v) => { try { localStorage.setItem(CUSTOM_ALERTS_C
 watch(customAlerts,          (v) => { try { localStorage.setItem(CUSTOM_ALERTS_KEY,         JSON.stringify(v)) } catch {} }, { deep: true })
 watch(radarConfig,           (v) => { try { localStorage.setItem(RADAR_CONFIG_KEY,          JSON.stringify(v)) } catch {} }, { deep: true })
 watch(landscapeMode,         (v) => localStorage.setItem(LANDSCAPE_MODE_KEY, v))
+watch(iconSet,               (v) => localStorage.setItem(ICON_SET_KEY, v))
 watch(autoIsDark,    () => { if (theme.value === 'auto') applyTheme('auto') })
 systemDark.addEventListener('change', (e) => { systemIsDark.value = e.matches; if (theme.value === 'system') applyTheme('system') })
 
@@ -459,5 +463,6 @@ export function useSettings() {
     customAlertsConfig, customAlerts,
     radarConfig,
     landscapeMode,
+    iconSet, ICON_SETS,
   }
 }
