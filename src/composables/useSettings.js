@@ -61,6 +61,7 @@ export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
   showDataPointPicker: true,
+  showDate:            false,
   chartStyle:          'bar',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST.filter(t => !t.isMap).map(t => ({ type: t.id, enabled: DEFAULT_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_PICKER_ENABLED.has(t.id) })),
@@ -123,7 +124,7 @@ const DEFAULT_CARDS = [
   { type: 'radar',           enabled: true },
 ]
 
-export const DEFAULT_WARNINGS_CONFIG = { show: 'always', feedOverride: null, locationFilter: 'location' }
+export const DEFAULT_WARNINGS_CONFIG = { show: 'always', feedOverride: null, locationFilter: 'location', showTitle: true }
 
 function loadWarningsConfig() {
   try {
@@ -143,7 +144,7 @@ function loadRadarConfig() {
   return { ...DEFAULT_RADAR_CONFIG }
 }
 
-export const DEFAULT_CUSTOM_ALERTS_CONFIG = { show: 'always' }
+export const DEFAULT_CUSTOM_ALERTS_CONFIG = { show: 'always', showTitle: true }
 
 export const ALERT_TAP_DATA_TYPE_OPTIONS = [
   { type: 'none', label: 'None', iconKey: null },

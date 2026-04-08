@@ -1,6 +1,16 @@
 <template>
   <!-- "Show this card" -->
   <div class="settings-group">
+    <!-- Show title -->
+    <div class="setting-row">
+      <div class="setting-label">Title</div>
+      <button
+        class="toggle-switch"
+        :class="{ on: customAlertsConfig.showTitle ?? true }"
+        @click="customAlertsConfig.showTitle = !(customAlertsConfig.showTitle ?? true)"
+      ><span class="toggle-thumb" /></button>
+    </div>
+
     <div class="setting-row setting-row--col">
       <div class="setting-label">Show this card</div>
       <div class="unit-pill">

@@ -19,10 +19,16 @@ function hourInRange(h, from, to) {
  * @param {Object} hourly  - Hourly data object with parallel arrays (time[], temperature_2m[], etc.)
  * @returns {Map<string, { alert, matchesByDay: Array<{ date: string, hours: number[] }> }>}
  *          Only alerts with at least one matching hour are included.
+ *          Hours that have already passed today are excluded.
  */
 export function evaluateCustomAlerts(alerts, hourly) {
   const results = new Map()
   if (!hourly?.time?.length || !Array.isArray(alerts)) return results
+
+  // Get today's date and current hour
+  const now = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
+  const currentHour = now.getHours()
 
   for (const alert of alerts) {
     if (!alert.enabled) continue
@@ -38,6 +44,11 @@ export function evaluateCustomAlerts(alerts, hourly) {
       const dateStr  = timeStr.slice(0, 10)  // 'YYYY-MM-DD'
 
       let match = true
+
+      // Skip hours from today that have already passed
+      if (dateStr === todayStr && hourOfDay < currentHour) {
+        match = false
+      }
 
       // Days of week — alert uses 0=Mon..6=Sun
       if (match && alert.daysOfWeek?.enabled) {

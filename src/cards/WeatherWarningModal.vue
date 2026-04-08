@@ -8,12 +8,12 @@
           class="ww-modal-badge"
           :style="alert.severity && alert.severity !== 'Alert'
             ? { background: alertColor(alert), color: colorTextColor(alertColor(alert)) }
-            : { background: 'transparent', color: alertColor(alert) }"
+            : { background: 'transparent' }"
         >
           <template v-if="alert.severity && alert.severity !== 'Alert'">{{ alert.severity }}</template>
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:block">
-            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
-          </svg>
+          <svg v-else-if="getWarningIconType(alert) === 'wind'" width="32" height="32" viewBox="0 0 20 20" fill="none" style="display:block"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.55)"><path :d="`M-5 -3c2-2 4-2 6 0s4 2 8 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path :d="`M-5 1c2-2 4-2 6 0s4 2 7 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path :d="`M-5 5c2-2 4-2 5 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g></svg>
+          <svg v-else-if="getWarningIconType(alert) === 'rain'" width="32" height="32" viewBox="0 0 20 20" fill="none" style="display:block"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.55)"><path :d="`M-5 3a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 5.6 -2H6a2.5 2.5 0 0 1 0 5`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="-2" y1="5.5" x2="-3" y2="8" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="5.5" x2="1" y2="8" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round"/></g></svg>
+          <svg v-else width="32" height="32" viewBox="0 0 20 20" fill="none" style="display:block"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.4)"><path d="M1 11h11L6 0 1 11zm6-2h-1v-1h1v1zm0-2h-1v-2h1v2z" :fill="getIconColor(alert)"/></g></svg>
         </div>
         <div class="ww-modal-title">{{ alert.headline || alert.event }}</div>
         <button class="ww-modal-close" @click="emit('close')">✕</button>
@@ -203,6 +203,22 @@ function colorTextColor(hex) {
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
   return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
+}
+
+function getIconColor(alert) {
+  const color = alertColor(alert)
+  if (!color || !color.startsWith('#')) return '#fff'
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
+}
+
+function getWarningIconType(alert) {
+  const searchText = `${alert.event || ''} ${alert.headline || ''}`.toLowerCase()
+  if (searchText.includes('wind')) return 'wind'
+  if (searchText.includes('rain') || searchText.includes('heavy rain') || searchText.includes('rainfall')) return 'rain'
+  return 'exclamation'
 }
 </script>
 

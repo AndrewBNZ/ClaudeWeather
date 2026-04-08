@@ -59,8 +59,8 @@
             <line x1="185" y1="88" x2="185" y2="96" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" stroke-linecap="round"/>
             <!-- Arc track -->
             <path d="M 15,92 A 85,85 0 0,1 185,92" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="8"/>
-            <!-- Progress arc (sunrise to now) -->
-            <path v-if="sunProgress > 0 && sunProgressEnd" :d="`M 15,92 A 85,85 0 0,1 ${sunProgressEnd.x.toFixed(1)},${sunProgressEnd.y.toFixed(1)}`"
+            <!-- Progress arc (sunrise to now, full after sunset) -->
+            <path v-if="sunProgressEnd" :d="`M 15,92 A 85,85 0 0,1 ${sunProgressEnd.x.toFixed(1)},${sunProgressEnd.y.toFixed(1)}`"
               fill="none" stroke="#FFC107" stroke-width="8" stroke-linecap="round"/>
             <!-- Sun glow -->
             <circle v-if="sunProgress >= 0 && sunProgress <= 1" :cx="sunDotPos.x" :cy="sunDotPos.y" r="10" fill="#FFC107" opacity="0.2"/>
@@ -264,7 +264,12 @@ const sunProgress = computed(() => {
 })
 
 const sunDotPos      = computed(() => arcPoint(Math.min(Math.max(sunProgress.value, 0), 1)))
-const sunProgressEnd = computed(() => sunProgress.value > 0 && sunProgress.value <= 1 ? sunDotPos.value : null)
+const sunProgressEnd = computed(() => {
+  if (sunProgress.value < 0) return null
+  // Full arc after sunset (progress >= 1), otherwise clamp to 0-1
+  const p = sunProgress.value >= 1 ? 1 : sunProgress.value
+  return arcPoint(p)
+})
 
 const dawnArc    = computed(() => dawnMins.value    != null ? arcPoint(Math.max(minsToT(dawnMins.value),   -0.15)) : null)
 const sunriseArc = computed(() => sunriseMins.value != null ? arcPoint(0) : null)

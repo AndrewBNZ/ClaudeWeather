@@ -59,7 +59,10 @@
             class="hf-col hf-sun-cell"
             :class="{ 'hf-col-day-start': isDayStart(slot.index) }"
           >
-            <span v-if="sunEvents[slot.index]" class="hf-sun-time">{{ sunEvents[slot.index].label }}</span>
+            <span v-if="sunEvents[slot.index]" class="hf-sun-time">
+              <span class="hf-sun-icon" v-html="sunEvents[slot.index].icon"></span>
+              <span>{{ sunEvents[slot.index].time }}</span>
+            </span>
           </div>
         </div>
 
@@ -169,6 +172,7 @@
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { DEFAULT_HOURLY_FORECAST_LAYOUT } from '../composables/useSettings.js'
+import { TILE_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
 import WeatherIcon from '../components/WeatherIcon.vue'
 
@@ -262,14 +266,16 @@ const allWindDirs = computed(() => props.hourly?.wind_direction_10m ?? [])
 const sunEvents = computed(() => {
   if (!layout.value.showSunriseSunset || !props.daily) return {}
   const map = {}
-  const fmt = (dtStr) => {
+  const fmt = (dtStr, type) => {
     if (!dtStr) return null
     const timePart = dtStr.split('T')[1]
     if (!timePart) return null
     const [h, m] = timePart.split(':').map(Number)
-    if (props.timeFormat === '24h') return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    const ampm = h >= 12 ? 'pm' : 'am'
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')}${ampm}`
+    const timeStr = props.timeFormat === '24h'
+      ? `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      : `${h % 12 || 12}:${String(m).padStart(2, '0')}`
+    const icon = type === 'sunrise' ? TILE_ICONS.sunrise : TILE_ICONS.sunset
+    return { icon, time: timeStr }
   }
   const sunrises = props.daily.sunrise ?? []
   const sunsets  = props.daily.sunset  ?? []
@@ -277,12 +283,12 @@ const sunEvents = computed(() => {
     const sr = sunrises[day]
     if (sr) {
       const h = parseInt(sr.split('T')[1])
-      map[day * 24 + h] = { type: 'sunrise', label: fmt(sr) }
+      map[day * 24 + h] = { type: 'sunrise', ...fmt(sr, 'sunrise') }
     }
     const ss = sunsets[day]
     if (ss) {
       const h = parseInt(ss.split('T')[1])
-      map[day * 24 + h] = { type: 'sunset', label: fmt(ss) }
+      map[day * 24 + h] = { type: 'sunset', ...fmt(ss, 'sunset') }
     }
   }
   return map
@@ -538,13 +544,14 @@ watch(() => props.focusHour, (absHour) => {
 /* ── Header ─────────────────────────────────────────────────────────── */
 
 .hf-header {
-  margin-bottom: 5px;
+  margin-bottom: 0px;
 }
 
 .hf-title {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
+  text-transform: uppercase;
 }
 
 /* ── Scroll container ────────────────────────────────────────────────── */
@@ -560,7 +567,7 @@ watch(() => props.focusHour, (absHour) => {
   top: 0;
   left: 0;
   right: 0;
-  height: 26px;
+  height: 25px;
   pointer-events: none;
   z-index: 2;
 }
@@ -570,7 +577,6 @@ watch(() => props.focusHour, (absHour) => {
   top: 1px;
   white-space: nowrap;
   font-size: 0.8rem;
-  font-weight: 600;
   color: var(--text-faint);
 }
 
@@ -578,7 +584,7 @@ watch(() => props.focusHour, (absHour) => {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  padding-top: 26px;
+  padding-top: 20px;
   padding-bottom: 0;
 }
 .hf-scroll::-webkit-scrollbar { display: none; }
@@ -586,7 +592,7 @@ watch(() => props.focusHour, (absHour) => {
 .hf-inner {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  zzzgap: 3px;
   position: relative;
   isolation: isolate;
 }
@@ -646,7 +652,7 @@ watch(() => props.focusHour, (absHour) => {
   gap: 3px;
   padding-bottom: 6px;
   margin-bottom: 4px;
-  border-bottom: 1px solid var(--card-border);
+  margin-top: 0;
 }
 
 
@@ -705,16 +711,15 @@ watch(() => props.focusHour, (absHour) => {
 }
 
 .hf-cell {
-  height: 18px;
+  zzzheight: 18px;
   font-size: 0.8rem;
   color: var(--text-muted);
 }
 
 .hf-row-time .hf-cell {
   font-size: 0.8rem;
-  font-weight: 500;
   color: var(--text-faint);
-  height: 26px;
+  zzzheight: 26px;
 }
 
 /* Wind row */
@@ -762,18 +767,31 @@ watch(() => props.focusHour, (absHour) => {
 /* ── Sunrise / sunset row ────────────────────────────────────────────── */
 
 .hf-row-sun {
-  margin-bottom: 2px;
+  margin-top: -4px;
 }
 
 .hf-sun-cell {
-  height: 18px;
+  zzzheight: 18px;
 }
 
 .hf-sun-time {
-  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.65rem;
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--sun);
+}
+
+.hf-sun-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.hf-sun-icon :deep(svg) {
+  width: 12px;
+  height: 12px;
 }
 
 </style>

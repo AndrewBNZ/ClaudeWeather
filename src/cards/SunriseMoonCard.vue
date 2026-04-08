@@ -155,7 +155,8 @@ const sunDotX   = computed(() => sunDotPos.value.x)
 const sunDotY   = computed(() => sunDotPos.value.y)
 
 const sunProgressArc = computed(() => {
-  const p = Math.min(Math.max(sunProgress.value, 0), 1)
+  // Full arc after sunset (progress > 1), otherwise clamp to 0-1
+  const p = sunProgress.value >= 1 ? 1 : Math.max(sunProgress.value, 0)
   const end = arcPoint(p)
   return `M 5,50 A 45,45 0 0,1 ${end.x.toFixed(1)},${end.y.toFixed(1)}`
 })
@@ -193,9 +194,10 @@ const illumination = computed(() => moonIllumination(phase.value))
 }
 
 .sm-section-title {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
+  text-transform: uppercase;
 }
 
 /* Sun arc */

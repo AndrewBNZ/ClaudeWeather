@@ -1,5 +1,15 @@
 <template>
   <div class="settings-group">
+    <!-- Show title -->
+    <div class="setting-row">
+      <div class="setting-label">Title</div>
+      <button
+        class="toggle-switch"
+        :class="{ on: warningsConfig.showTitle ?? true }"
+        @click="warningsConfig.showTitle = !(warningsConfig.showTitle ?? true)"
+      ><span class="toggle-thumb" /></button>
+    </div>
+
     <!-- Show when -->
     <div class="setting-row setting-row--col">
       <div class="setting-label">Show this card</div>

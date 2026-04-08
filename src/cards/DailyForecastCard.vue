@@ -61,8 +61,8 @@
                 <div class="bar-track">
                   <div class="bar-fill" :style="FLOATING_BAR_TYPES.has(activeDataPoint) ? barStyle(i) : barStyleSimple(i)" />
                 </div>
-                <!-- Low value — always rendered to keep flex layout consistent; hidden for non-range types -->
-                <span class="t-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
+                <!-- Low value — only rendered for range types -->
+                <span v-if="FLOATING_BAR_TYPES.has(activeDataPoint)" class="t-lo">{{ fmtTemp(mainLo[i]) }}</span>
               </template>
               <template v-else>
                 <!-- Icons chart style: floating icon with hi/lo labels -->
@@ -246,7 +246,8 @@ function dayLabel(isoDate) {
   const date    = new Date(Date.UTC(y, m - 1, d, 12))
   const weekday = date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
   const day     = date.toLocaleDateString('en', { day: 'numeric', timeZone: 'UTC' })
-  return `${weekday} ${day}`
+  if (layout.value.showDate) return `${weekday} ${day}`
+  return `${weekday}`
 }
 
 function fmtTemp(v) {
@@ -468,9 +469,10 @@ function barStyleSimple(i) {
 }
 
 .daily-title {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
+  text-transform: uppercase;
 }
 
 /* ── Forecast grid: sticky labels + scrollable days ── */
@@ -533,7 +535,7 @@ function barStyleSimple(i) {
 
 .days-row {
   display: flex;
-  gap: 2px;
+  zzzgap: 2px;
   min-width: 100%;
 }
 
@@ -567,16 +569,16 @@ function barStyleSimple(i) {
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
-  font-weight: 500;
   color: var(--text-faint);
   text-align: center;
   white-space: nowrap;
   flex-shrink: 0;
   height: 26px;
+  margin-bottom: 4px;
 }
 .is-selected .day-lbl {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ── Condition icon (now inside stats, first stat-row) ── */
@@ -652,12 +654,13 @@ function barStyleSimple(i) {
 .bar-track {
   position: relative;
   width: 10px;
-  height: 75px;
+  min-height: 75px;
   background: var(--card-border);
   border-radius: 6px;
   overflow: hidden;
   margin: 3px 0;
   flex-shrink: 0;
+  flex-grow: 1;
 }
 
 .bar-fill {
@@ -674,9 +677,8 @@ function barStyleSimple(i) {
   flex-direction: column;
   gap: 3px;
   width: 100%;
-  border-top: 1px solid var(--card-border);
   padding-top: 6px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .stat-row {

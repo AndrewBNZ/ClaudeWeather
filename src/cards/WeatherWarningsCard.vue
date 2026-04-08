@@ -1,5 +1,10 @@
 <template>
   <div v-if="showMode === 'always' || visibleAlerts.length > 0" v-bind="$attrs" class="card warnings-card">
+
+    <div v-if="showTitle" class="card-header">
+      <h3 class="card-title">Weather Warnings</h3>
+    </div>
+
     <!-- Loading -->
     <div v-if="loading" class="warnings-loading">
       <div class="warnings-skeleton" />
@@ -36,13 +41,19 @@
         }"
         @click="selectedAlert = alert"
       >
-        <svg class="warning-icon" :style="{ color: alertColor(alert) }" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-        <div class="warning-tile-top">
-          <div class="warning-headline">{{ alert.headline || alert.event }}</div>
-        </div>
-        <div class="warning-meta">
-          <span v-if="areaLabel(alert)" class="warning-meta-area">{{ areaLabel(alert) }}</span>
-          <span v-if="alert.expires" class="warning-meta-expires">Expires {{ formatExpiry(alert.expires) }}</span>
+        <div class="warning-tile-content">
+          <div class="warning-tile-text">
+            <div class="warning-headline">{{ alert.headline || alert.event }}</div>
+            <div class="warning-meta">
+              <span v-if="areaLabel(alert)" class="warning-meta-area">{{ areaLabel(alert) }}</span>
+              <span v-if="alert.expires" class="warning-meta-expires">Expires {{ formatExpiry(alert.expires) }}</span>
+            </div>
+          </div>
+          <div class="warning-tile-icon">
+            <svg v-if="getWarningIconType(alert) === 'wind'" class="warning-icon-svg" :style="{ background: alertColor(alert) }" width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.55)"><path :d="`M-5 -3c2-2 4-2 6 0s4 2 8 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path :d="`M-5 1c2-2 4-2 6 0s4 2 7 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path :d="`M-5 5c2-2 4-2 5 0`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g></svg>
+            <svg v-else-if="getWarningIconType(alert) === 'rain'" class="warning-icon-svg" :style="{ background: alertColor(alert) }" width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.55)"><path :d="`M-5 3a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 5.6 -2H6a2.5 2.5 0 0 1 0 5`" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="-2" y1="5.5" x2="-3" y2="8" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="5.5" x2="1" y2="8" :stroke="getIconColor(alert)" stroke-width="1.5" stroke-linecap="round"/></g></svg>
+            <svg v-else class="warning-icon-svg" :style="{ background: alertColor(alert) }" width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="10" :fill="alertColor(alert)"/><g transform="translate(10, 10) scale(0.4)"><path d="M1 11h11L6 0 1 11zm6-2h-1v-1h1v1zm0-2h-1v-2h1v2z" :fill="getIconColor(alert)"/></g></svg>
+          </div>
         </div>
       </div>
     </template>
@@ -90,6 +101,7 @@ const fetchError = ref(null)
 const noFeed     = ref(false)
 
 const showMode       = computed(() => props.warningsConfig?.show           ?? 'always')
+const showTitle      = computed(() => props.warningsConfig?.showTitle      ?? true)
 const locationFilter = computed(() => props.warningsConfig?.locationFilter ?? 'location')
 
 const SEVERITY_ORDER = { extreme: 3, severe: 2, moderate: 1, minor: 0 }
@@ -138,6 +150,22 @@ function hexToRgba(hex, alpha) {
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
   return `rgba(${r},${g},${b},${alpha})`
+}
+
+function getIconColor(alert) {
+  const color = alertColor(alert)
+  if (!color || !color.startsWith('#')) return '#fff'
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
+}
+
+function getWarningIconType(alert) {
+  const searchText = `${alert.event || ''} ${alert.headline || ''}`.toLowerCase()
+  if (searchText.includes('wind')) return 'wind'
+  if (searchText.includes('rain') || searchText.includes('heavy rain') || searchText.includes('rainfall')) return 'rain'
+  return 'exclamation'
 }
 
 function areaLabel(alert) {
@@ -191,6 +219,18 @@ onUnmounted(() => clearInterval(refreshTimer))
 }
 @media (min-width: 900px) {
   .warnings-card { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.card-header {
+  grid-column: 1 / -1;
+  margin-bottom: 0px;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
 }
 
 /* Full-width states inside the grid */
@@ -247,10 +287,7 @@ onUnmounted(() => clearInterval(refreshTimer))
 
 /* Alert tiles */
 .warning-tile {
-  position:       relative;
   display:        flex;
-  flex-direction: column;
-  gap:            0.2rem;
   padding:        0.5rem 0.65rem;
   border-radius:  0.5rem;
   border-left:    3px solid transparent;
@@ -260,17 +297,31 @@ onUnmounted(() => clearInterval(refreshTimer))
 }
 .warning-tile:active { opacity: 0.7; }
 
-.warning-tile-top {
-  display:   flex;
-  min-width: 0;
-  padding-right: 1rem;
+.warning-tile-content {
+  display:    flex;
+  gap:        0.5rem;
+  min-width:  0;
+  align-items: center;
 }
 
-.warning-icon {
-  position:   absolute;
-  top:        0.5rem;
-  right:      0.5rem;
-  flex-shrink: 0;
+.warning-tile-text {
+  display:        flex;
+  flex-direction: column;
+  gap:            0.2rem;
+  min-width:      0;
+  flex:           1;
+}
+
+.warning-tile-icon {
+  display:      flex;
+  flex-shrink:  0;
+  align-items:  center;
+  justify-content: center;
+}
+
+.warning-icon-svg {
+  border-radius: 50%;
+  display:       block;
 }
 
 .warning-headline {

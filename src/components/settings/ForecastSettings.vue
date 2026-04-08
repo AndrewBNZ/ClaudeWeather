@@ -8,6 +8,14 @@
         <span class="toggle-thumb" />
       </button>
     </div>
+    <div v-if="type === 'daily'" class="setting-row">
+      <div>
+        <div class="setting-label">Day and date</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: layout.showDate }" @click="layout.showDate = !layout.showDate">
+        <span class="toggle-thumb" />
+      </button>
+    </div>
     <div class="setting-row">
       <div>
         <div class="setting-label">Condition icons</div>
@@ -19,7 +27,6 @@
     <div class="setting-row">
       <div>
         <div class="setting-label">Chart style</div>
-        <div class="setting-hint">Traditional bars or floating icons</div>
       </div>
       <div class="unit-pill">
         <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: layout.chartStyle !== 'icons' }]" @click="layout.chartStyle = 'bar'">Bars</button>

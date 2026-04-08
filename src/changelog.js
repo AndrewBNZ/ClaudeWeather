@@ -2,6 +2,12 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.10",
+    entries: [
+      "Bug fixes and minor tweaks",
+   ],
+  },
+  {
     version: "1.2.9",
     entries: [
       "🌞 Weather icon sets (more to come)!",

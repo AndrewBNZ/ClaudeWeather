@@ -57,7 +57,7 @@
       </div>
     </div>
     <div class="radar-footer">
-      Map ©<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors ·
+      Map ©<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors<br/>
       Precipitation © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeatherMap</a>
     </div>
   </div>
@@ -139,6 +139,115 @@ function alertColor(alert) {
   return alert.colourHex ?? SEVERITY_COLORS[(alert.severity ?? '').toLowerCase()] ?? '#546e7a'
 }
 
+function getWarningIconType(alert) {
+  const searchText = `${alert.event || ''} ${alert.headline || ''}`.toLowerCase()
+  if (searchText.includes('wind')) return 'wind'
+  if (searchText.includes('rain') || searchText.includes('heavy rain') || searchText.includes('rainfall')) return 'rain'
+  return null
+}
+
+function getIconColor(alert) {
+  const color = alertColor(alert)
+  if (!color || !color.startsWith('#')) return '#fff'
+  const r = parseInt(color.slice(1, 3), 16)
+  const g = parseInt(color.slice(3, 5), 16)
+  const b = parseInt(color.slice(5, 7), 16)
+  return (r * 0.299 + g * 0.587 + b * 0.114) > 186 ? '#000' : '#fff'
+}
+
+function calculatePolygonCentroid(polygon) {
+  // Calculate the centroid by averaging all polygon coordinates
+  let lat = 0, lng = 0
+  for (const [pLat, pLng] of polygon) {
+    lat += pLat
+    lng += pLng
+  }
+  return [lat / polygon.length, lng / polygon.length]
+}
+
+function getIconPositionForAlert(alert, allAlerts, existingPositions) {
+  // Find the largest polygon for this alert
+  let largestPolygon = null
+  let largestSize = 0
+
+  for (const area of alert.areas) {
+    for (const polygon of area.polygons) {
+      if (polygon.length > largestSize) {
+        largestSize = polygon.length
+        largestPolygon = polygon
+      }
+    }
+  }
+
+  if (!largestPolygon) return null
+
+  let position = calculatePolygonCentroid(largestPolygon)
+
+  // If too close to another icon, offset outward
+  const OFFSET_THRESHOLD = 0.02 // ~2km in degrees
+  const OFFSET_AMOUNT = 0.015
+
+  for (const existing of existingPositions) {
+    const dist = Math.hypot(position[0] - existing[0], position[1] - existing[1])
+    if (dist < OFFSET_THRESHOLD) {
+      // Offset in the direction away from the existing position
+      const angle = Math.atan2(position[0] - existing[0], position[1] - existing[1])
+      position = [
+        position[0] + Math.sin(angle) * OFFSET_AMOUNT,
+        position[1] + Math.cos(angle) * OFFSET_AMOUNT
+      ]
+    }
+  }
+
+  return position
+}
+
+function createWarningIcon(alert) {
+  const iconType = getWarningIconType(alert)
+  if (!iconType) return null
+
+  const color = alertColor(alert)
+  const iconColor = getIconColor(alert)
+
+  // Calculate z-index based on severity (higher = more severe = higher z-index)
+  const rank = severityRank(alert)
+  const zIndex = 1000 + (rank * 100)
+
+  let svgPath
+  if (iconType === 'wind') {
+    svgPath = `
+      <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">
+        <circle cx="10" cy="10" r="9" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+        <g transform="translate(10, 10) scale(0.55)">
+          <path d="M-5 -3c2-2 4-2 6 0s4 2 8 0" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M-5 1c2-2 4-2 6 0s4 2 7 0" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M-5 5c2-2 4-2 5 0" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </g>
+      </svg>
+    `
+  } else if (iconType === 'rain') {
+    svgPath = `
+      <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">
+        <circle cx="10" cy="10" r="9" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/>
+        <g transform="translate(10, 10) scale(0.55)">
+          <path d="M-5 3a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 5.6 -2H6a2.5 2.5 0 0 1 0 5" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <line x1="-2" y1="5.5" x2="-3" y2="8" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="2" y1="5.5" x2="1" y2="8" stroke="${iconColor}" stroke-width="1.5" stroke-linecap="round"/>
+        </g>
+      </svg>
+    `
+  }
+
+  const html = `<div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-14px 0 0 -14px;z-index:${zIndex};">${svgPath}</div>`
+
+  return L.divIcon({
+    html,
+    className: 'radar-warning-icon',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  })
+}
+
 function buildMap() {
   if (map) return
 
@@ -184,8 +293,14 @@ function renderWarnings() {
   warningLayers = []
   map.off('click', onMapClick)
 
-  for (const alert of sortedByPriority(props.alerts)) {
+  const sortedAlerts = sortedByPriority(props.alerts)
+  const existingPositions = []
+
+  for (const alert of sortedAlerts) {
     const color = alertColor(alert)
+    const iconType = getWarningIconType(alert)
+
+    // Render all polygons
     for (const area of alert.areas) {
       for (const polygon of area.polygons) {
         if (polygon.length < 3) continue
@@ -197,6 +312,17 @@ function renderWarnings() {
         })
         layer.addTo(map)
         warningLayers.push(layer)
+      }
+    }
+
+    // Add icon marker if it's a wind/rain alert
+    if (iconType) {
+      const position = getIconPositionForAlert(alert, sortedAlerts, existingPositions)
+      if (position) {
+        const icon = createWarningIcon(alert)
+        const marker = L.marker(position, { icon }).addTo(map)
+        warningLayers.push(marker)
+        existingPositions.push(position)
       }
     }
   }
@@ -306,12 +432,13 @@ onUnmounted(() => {
 }
 
 .radar-title {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
+  text-transform: uppercase;
 }
 
 .title-icon {
@@ -523,6 +650,14 @@ onUnmounted(() => {
 .radar-expanded .radar-map {
   flex: 1;
   height: auto;
+}
+
+.radar-warning-icon {
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+}
+
+.radar-warning-icon svg {
+  filter: drop-shadow(0 0 0 2px white);
 }
 
 /* Warning modal transition — matches WeatherWarningModal pattern */

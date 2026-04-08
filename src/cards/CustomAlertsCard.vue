@@ -4,6 +4,11 @@
     v-bind="$attrs"
     class="card alerts-card"
   >
+
+    <div v-if="showTitle" class="card-header">
+      <h3 class="card-title">Custom Alerts</h3>
+    </div>
+
     <div v-if="matchedAlerts.length === 0" class="alerts-empty">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -138,7 +143,8 @@ const selectedEntry = ref(null)
 const collapsed = ref(false)
 const activeChip = ref(null) // { date, hour }
 
-const showMode = computed(() => props.customAlertsConfig?.show ?? 'always')
+const showMode  = computed(() => props.customAlertsConfig?.show      ?? 'always')
+const showTitle = computed(() => props.customAlertsConfig?.showTitle ?? true)
 
 const matchedAlerts = computed(() => {
   if (!props.customAlertResults) return []
@@ -311,6 +317,18 @@ function summarizeCriteria(alert) {
   padding: 0.2rem 0;
 }
 
+.card-header {
+  grid-column: 1 / -1;
+  margin-bottom: 0px;
+}
+
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 .alert-tile {
   display: flex;
   flex-direction: column;
@@ -327,6 +345,7 @@ function summarizeCriteria(alert) {
 .alert-tile-title {
   font-size: 0.8rem;
   font-weight: 600;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

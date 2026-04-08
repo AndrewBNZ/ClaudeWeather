@@ -688,10 +688,9 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 }
 
 .setting-label {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   line-height: 1.3;
   color: var(--text);
-  font-weight: 500;
 }
 
 .setting-hint {
@@ -780,8 +779,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
 
 .unit-pill-opt {
   padding: 5px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
   color: var(--text-muted);
   background: none;
   border: none;
@@ -799,8 +797,7 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   background: var(--btn-bg);
   border: 1px solid var(--btn-border);
   color: var(--text-muted);
-  font-size: 0.83rem;
-  font-weight: 600;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
