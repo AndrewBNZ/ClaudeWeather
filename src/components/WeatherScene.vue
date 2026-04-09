@@ -88,35 +88,35 @@
         <path d="M0,86 C80,42 170,56 260,49 C320,44 365,54 400,36 L400,40 C365,58 320,48 260,53 C170,60 80,46 0,90 Z" fill="rgba(255,255,255,0.45)" />
         <path d="M0,87 C50,67 130,73 210,69 C290,65 345,71 400,63 L400,66 C345,74 290,68 210,72 C130,76 50,70 0,90 Z" fill="rgba(255,255,255,0.60)" />
       </template>
-      <!-- Tree A — large (cx=80) -->
-      <rect x="77" y="69" width="6" height="13" :fill="trunkColor" />
+      <!-- Tree A — large (cx=130) -->
+      <rect x="127" y="69" width="6" height="13" :fill="trunkColor" />
       <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleA">
-        <polygon points="80,46 47,74 113,74" :fill="foliage[0]" />
-        <polygon points="80,31 51,61 109,61" :fill="foliage[0]" />
-        <polygon points="80,18 58,50 102,50"  :fill="foliage[0]" />
-        <polygon points="80,18 58,50 80,50"  :fill="foliage[2]" />
-        <polygon points="80,31 51,61 80,61"  :fill="foliage[2]" opacity="0.55" />
-        <polygon v-if="group === 'snow'" points="80,18 70,32 90,32" fill="rgba(255,255,255,0.82)" />
+        <polygon points="130,46 100,74 160,74" :fill="foliage[0]" />
+        <polygon points="130,31 103,61 157,61" :fill="foliage[0]" />
+        <polygon points="130,18 110,50 150,50" :fill="foliage[0]" />
+        <polygon points="130,18 110,50 130,50" :fill="foliage[2]" />
+        <polygon points="130,31 103,61 130,61" :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="130,18 120,32 140,32" fill="rgba(255,255,255,0.82)" />
       </g>
-      <!-- Tree B — medium (cx=180, 68% scale) -->
-      <rect x="177" y="72" width="5" height="10" :fill="trunkColor" />
+      <!-- Tree B — medium (cx=210, 68% scale) -->
+      <rect x="207" y="72" width="5" height="10" :fill="trunkColor" />
       <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleB">
-        <polygon points="180,58 158,77 202,77" :fill="foliage[0]" />
-        <polygon points="180,47 160,68 200,68" :fill="foliage[0]" />
-        <polygon points="180,39 165,60 195,60" :fill="foliage[0]" />
-        <polygon points="180,39 165,60 180,60" :fill="foliage[2]" />
-        <polygon points="180,47 160,68 180,68" :fill="foliage[2]" opacity="0.55" />
-        <polygon v-if="group === 'snow'" points="180,39 174,48 186,48" fill="rgba(255,255,255,0.82)" />
+        <polygon points="210,58 188,77 232,77" :fill="foliage[0]" />
+        <polygon points="210,47 190,68 230,68" :fill="foliage[0]" />
+        <polygon points="210,39 195,60 225,60" :fill="foliage[0]" />
+        <polygon points="210,39 195,60 210,60" :fill="foliage[2]" />
+        <polygon points="210,47 190,68 210,68" :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="210,39 204,48 216,48" fill="rgba(255,255,255,0.82)" />
       </g>
-      <!-- Tree C — small (cx=265, 50% scale) -->
-      <rect x="262" y="74" width="5" height="8" :fill="trunkColor" />
+      <!-- Tree C — small (cx=295, 50% scale) -->
+      <rect x="292" y="74" width="5" height="8" :fill="trunkColor" />
       <g :class="{ 'tree-sway': sceneWind >= 5 }" :style="treeStyleC">
-        <polygon points="265,64 247,78 283,78" :fill="foliage[0]" />
-        <polygon points="265,57 250,72 280,72" :fill="foliage[0]" />
-        <polygon points="265,50 253,66 277,66" :fill="foliage[0]" />
-        <polygon points="265,50 253,66 265,66" :fill="foliage[2]" />
-        <polygon points="265,57 250,72 265,72" :fill="foliage[2]" opacity="0.55" />
-        <polygon v-if="group === 'snow'" points="265,50 260,57 270,57" fill="rgba(255,255,255,0.82)" />
+        <polygon points="295,64 277,78 313,78" :fill="foliage[0]" />
+        <polygon points="295,57 280,72 310,72" :fill="foliage[0]" />
+        <polygon points="295,50 283,66 307,66" :fill="foliage[0]" />
+        <polygon points="295,50 283,66 295,66" :fill="foliage[2]" />
+        <polygon points="295,57 280,72 295,72" :fill="foliage[2]" opacity="0.55" />
+        <polygon v-if="group === 'snow'" points="295,50 290,57 300,57" fill="rgba(255,255,255,0.82)" />
       </g>
       <!-- Ground strip -->
       <rect x="0" y="82" width="400" height="8" :fill="groundColor" />
@@ -778,7 +778,7 @@ const leafColors = computed(() => [
 const showLeaves = computed(() => sceneWind.value >= 15)
 
 // Tree A ≈ 20%, Tree B ≈ 45%, Tree C ≈ 66% of scene width
-const TREE_ORIGINS = [17, 42, 63]
+const TREE_ORIGINS = [29, 49, 71]
 const leaves = computed(() => {
   const s = sceneWind.value
   const count = s >= 60 ? 10 : s >= 35 ? 7 : 4

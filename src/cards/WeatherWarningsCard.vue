@@ -298,10 +298,12 @@ onUnmounted(() => clearInterval(refreshTimer))
 .warning-tile:active { opacity: 0.7; }
 
 .warning-tile-content {
-  display:    flex;
-  gap:        0.5rem;
-  min-width:  0;
-  align-items: center;
+  display:         flex;
+  gap:             0.5rem;
+  min-width:       0;
+  width:           100%;
+  align-items:     center;
+  justify-content: space-between;
 }
 
 .warning-tile-text {

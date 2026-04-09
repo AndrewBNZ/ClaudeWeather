@@ -523,7 +523,7 @@ function summarizeCriteria(alert) {
   border: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   border-top: 4px solid transparent;
   border-radius: 16px 16px 0 0;
-  padding: 10px 16px 20px;
+  padding: 8px 16px 14px;
   box-shadow: var(--shadow);
   z-index: 220;
   display: flex;
@@ -571,7 +571,7 @@ function summarizeCriteria(alert) {
   flex-direction: column;
   gap: 0.4rem;
   overflow-y: auto;
-  max-height: 120px;
+  max-height: 80px;
   scrollbar-width: thin;
   scrollbar-color: rgba(255,255,255,0.12) transparent;
 }

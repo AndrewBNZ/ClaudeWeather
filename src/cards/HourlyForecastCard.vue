@@ -34,7 +34,8 @@
           :style="{
             left:       (r.start - displayStartIndex) * COL_WIDTH + 'px',
             width:      (r.end - r.start + 1) * COL_WIDTH + 'px',
-            background: hexToRgba(highlightColor, 0.13),
+            background: 'transparent',
+            border:     `1.5px solid ${highlightColor}`,
           }"
         />
 
@@ -604,7 +605,7 @@ watch(() => props.focusHour, (absHour) => {
   pointer-events: none;
   border-radius: 6px;
   z-index: -1;
-  transition: left 0.3s ease, width 0.3s ease, background 0.3s ease;
+  transition: left 0.3s ease, width 0.3s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 /* ── Column base ─────────────────────────────────────────────────────── */

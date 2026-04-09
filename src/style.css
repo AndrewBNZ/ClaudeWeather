@@ -90,6 +90,7 @@
 
 html, body {
   height: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
   background: var(--app-bg);
   background-attachment: fixed;
@@ -101,7 +102,7 @@ html, body {
 }
 
 #app {
-  min-height: 100vh;
+  height: 100%;
   background: var(--app-bg);
 }
 

@@ -1524,7 +1524,7 @@ if (!isGeoActive.value) {
 .app-shell--landscape .scene-block {
   position: sticky;
   top: 12px;
-  width: clamp(300px, 48%, 680px);
+  width: clamp(280px, 33.333%, 560px);
   flex-shrink: 0;
   height: calc(100dvh - 24px);
   max-width: none;
@@ -1543,8 +1543,8 @@ if (!isGeoActive.value) {
 .app-shell--landscape .scene-top-bar {
   top: 12px;
   left: 12px;
-  width: clamp(300px, 48%, 680px);
-  max-width: 680px;
+  width: clamp(280px, 33.333%, 560px);
+  max-width: 560px;
   transform: none;
   background: transparent;
   backdrop-filter: none;
