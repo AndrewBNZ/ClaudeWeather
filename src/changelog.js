@@ -2,7 +2,7 @@
 // The version must match package.json exactly.
 export default [
   {
-    version: "1.2.10",
+    version: "1.2.11",
     entries: [
       "Bug fixes and minor tweaks",
    ],

@@ -208,9 +208,24 @@ const refDate = computed(() => {
 
 const refMs = computed(() => refDate.value.getTime() + 12 * 3600000)
 
-const riseSet = computed(() =>
-  moonRiseSet(refDate.value, props.lat, props.lon, props.utcOffset)
-)
+const riseSet = computed(() => {
+  const today = moonRiseSet(refDate.value, props.lat, props.lon, props.utcOffset)
+  const now = Date.now()
+
+  // If today's moonset has passed, get tomorrow's times for the arc display
+  if (today.set && now > today.set.getTime()) {
+    const tomorrow = new Date(refDate.value.getTime() + 86400000)
+    const tomorrowRiseSet = moonRiseSet(tomorrow, props.lat, props.lon, props.utcOffset)
+    // Use today's rise (if it exists) with tomorrow's set, or tomorrow's rise/set if today's rise doesn't exist
+    if (today.rise) {
+      return { rise: today.rise, set: tomorrowRiseSet.set || today.set }
+    } else {
+      return tomorrowRiseSet
+    }
+  }
+
+  return today
+})
 
 const moonriseFormatted = computed(() => formatTimeDate(riseSet.value.rise, props.timeFormat))
 const moonsetFormatted  = computed(() => formatTimeDate(riseSet.value.set,  props.timeFormat))
@@ -249,6 +264,10 @@ const moonProgress = computed(() => {
   }
 
   if (!rise || !set) return -1
+
+  // If we're past moonset, return -1 to hide the arc
+  if (now > set.getTime()) return -1
+
   return (now - rise.getTime()) / (set.getTime() - rise.getTime())
 })
 
