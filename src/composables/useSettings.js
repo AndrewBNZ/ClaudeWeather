@@ -60,20 +60,20 @@ const DEFAULT_PICKER_ENABLED = new Set(['feelsLike','rainAmount', 'wind', 'cloud
 export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
-  showDataPointPicker: true,
+  showDataPointPicker: false,
   showDate:            false,
   chartStyle:          'bar',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST.filter(t => !t.isMap).map(t => ({ type: t.id, enabled: DEFAULT_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_PICKER_ENABLED.has(t.id) })),
 }
 
-const DEFAULT_HOURLY_CHART_ENABLED  = new Set(['rainAmount', 'rainProb', 'wind'])
+const DEFAULT_HOURLY_CHART_ENABLED  = new Set()
 const DEFAULT_HOURLY_PICKER_ENABLED = new Set(['feelsLike', 'rainAmount', 'wind', 'cloudCover'])
 
 export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
-  showDataPointPicker: false,
+  showDataPointPicker: true,
   showSunriseSunset:   false,
   chartStyle:          'bar',
   mainDataPoint:       'temperature',
@@ -116,15 +116,15 @@ export const CARD_META = {
 }
 
 const DEFAULT_CARDS = [
-  { type: 'weatherWarnings', enabled: false },
-  { type: 'customAlerts',    enabled: false },
-  { type: 'dailyForecast',   enabled: true },
+  { type: 'weatherWarnings', enabled: true },
   { type: 'combinedHourly',  enabled: true },
+  { type: 'dailyForecast',   enabled: true },
+  { type: 'customAlerts',    enabled: false },
   { type: 'sunriseMoon',     enabled: true },
   { type: 'radar',           enabled: true },
 ]
 
-export const DEFAULT_WARNINGS_CONFIG = { show: 'always', feedOverride: null, locationFilter: 'location', showTitle: true }
+export const DEFAULT_WARNINGS_CONFIG = { show: 'active-only', feedOverride: null, locationFilter: 'location', showTitle: true }
 
 function loadWarningsConfig() {
   try {
@@ -319,7 +319,7 @@ const customAlertsConfig   = ref(loadCustomAlertsConfig())
 const customAlerts         = ref(loadCustomAlerts())
 const radarConfig          = ref(loadRadarConfig())
 const landscapeMode        = ref(localStorage.getItem(LANDSCAPE_MODE_KEY) ?? 'auto')
-const iconSet              = ref(localStorage.getItem(ICON_SET_KEY) ?? 'emoji')
+const iconSet              = ref(localStorage.getItem(ICON_SET_KEY) ?? 'icons8-color-glass')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 watch(theme,         (v) => { localStorage.setItem(THEME_KEY, v); applyTheme(v) })

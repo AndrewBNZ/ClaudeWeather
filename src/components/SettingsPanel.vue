@@ -55,12 +55,22 @@
 
         <!-- Hourly Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'hourlyForecast'" :class="paneClass('hourlyForecast')">
-          <ForecastSettings type="hourly" />
+          <ForecastSettings type="hourly" @navigate="navigate" />
+        </div>
+
+        <!-- Hourly Forecast → Other data points sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'hourlyOtherPoints'" :class="paneClass('hourlyOtherPoints')">
+          <ForecastOtherPointsSettings type="hourly" />
         </div>
 
         <!-- Daily Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'dailyForecast'" :class="paneClass('dailyForecast')">
-          <ForecastSettings type="daily" />
+          <ForecastSettings type="daily" @navigate="navigate" />
+        </div>
+
+        <!-- Daily Forecast → Other data points sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'dailyOtherPoints'" :class="paneClass('dailyOtherPoints')">
+          <ForecastOtherPointsSettings type="daily" />
         </div>
 
         <!-- Custom Alerts layout sub-panel -->
@@ -130,7 +140,8 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import ForecastSettings          from './settings/ForecastSettings.vue'
+import ForecastSettings               from './settings/ForecastSettings.vue'
+import ForecastOtherPointsSettings   from './settings/ForecastOtherPointsSettings.vue'
 import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
 import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import CustomAlertsSettings      from './settings/CustomAlertsSettings.vue'
@@ -172,7 +183,7 @@ defineExpose({
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', dailyForecast: 'Daily Forecast', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
+const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -262,12 +273,23 @@ function navigateBack() {
   }
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
   const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
-  const target = DATA_SUBPANELS.includes(subPanel.value) ? 'data' : DISPLAY_SUBPANELS.includes(subPanel.value) ? 'display' : 'layout'
+  const FORECAST_SUBPANELS = { hourlyOtherPoints: 'hourlyForecast', dailyOtherPoints: 'dailyForecast' }
+  let target, newSubPanel
+  if (DATA_SUBPANELS.includes(subPanel.value)) {
+    target = 'data'; newSubPanel = null
+  } else if (DISPLAY_SUBPANELS.includes(subPanel.value)) {
+    target = 'display'; newSubPanel = null
+  } else if (FORECAST_SUBPANELS[subPanel.value]) {
+    target = FORECAST_SUBPANELS[subPanel.value]; newSubPanel = target
+  } else {
+    target = 'layout'; newSubPanel = null
+  }
   prevPane.value   = activePane.value
   slideDir.value   = 'back'
-  seqBack.value    = true
+  seqBack.value    = newSubPanel == null   // only expand tabs when going all the way back to a top tab
   activePane.value = target
-  tab.value = target; subPanel.value = null
+  tab.value = newSubPanel ? 'layout' : target
+  subPanel.value = newSubPanel
   _runAnim()
 }
 

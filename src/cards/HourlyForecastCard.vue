@@ -5,14 +5,6 @@
       <h3 class="hf-title">Hourly Forecast</h3>
     </div>
 
-    <!-- Data point picker pills -->
-    <DataPointPicker
-      :show="layout.showDataPointPicker"
-      :options="pickerOptions"
-      :model-value="activeDataPoint"
-      @update:model-value="selectDataPoint"
-    />
-
     <!-- Scrollable area -->
     <div class="hf-scroll-wrapper">
       <!-- Sticky date labels, positioned over the time row via JS -->
@@ -49,26 +41,18 @@
               'hf-col-current':   isCurrent(slot.index),
               'hf-col-day-start': isDayStart(slot.index),
             }"
-          >{{ hourLabel(slot.index) }}</div>
-        </div>
-
-        <!-- Sunrise / sunset row -->
-        <div v-if="layout.showSunriseSunset" class="hf-row hf-row-sun">
-          <div
-            v-for="slot in allHoursArr"
-            :key="'sun-' + slot.index"
-            class="hf-col hf-sun-cell"
-            :class="{ 'hf-col-day-start': isDayStart(slot.index) }"
           >
-            <span v-if="sunEvents[slot.index]" class="hf-sun-time">
-              <span class="hf-sun-icon" v-html="sunEvents[slot.index].icon"></span>
-              <span>{{ sunEvents[slot.index].time }}</span>
+            <span v-if="sunEventsByNearestHour[slot.index]" class="hf-sun-time">
+              <span class="hf-sun-icon" v-html="sunEventsByNearestHour[slot.index].icon"></span>
+              <span>{{ sunEventsByNearestHour[slot.index].time }}</span>
             </span>
+            <template v-else>{{ hourLabel(slot.index) }}</template>
           </div>
         </div>
 
+
         <!-- Bar chart row (main data point) -->
-        <div class="hf-chart">
+        <div class="hf-chart" :class="{ 'hf-chart--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line' }">
           <div
             v-for="slot in allHoursArr"
             :key="'c-' + slot.index"
@@ -80,36 +64,66 @@
             }"
           >
             <div class="hf-bar-area">
-              <template v-if="layout.chartStyle !== 'icons'">
-                <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell">
-                  <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
-                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
-                      :style="{ transform: `rotate(${(allWindDirs[slot.index] + 180) % 360}deg)`, transformOrigin: '50% 50%' }">
-                      <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                      <polygon points="7,2 4,7 10,7" fill="currentColor"/>
-                    </svg>
-                  </span>
-                  <span>{{ fmtVal(activeDataPoint, slot.index) }}</span>
-                </span>
-                <span v-else class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
+              <template v-if="layout.chartStyle === 'bar'">
                 <div class="hf-bar-track">
-                  <div class="hf-bar-fill" :style="barFillStyle(slot.index)"></div>
+                  <div class="hf-bar-fill" :style="barFillStyle(slot.index)">
+                    <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell hf-val-inside">
+                      <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
+                        <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                          :style="{ transform: `rotate(${(allWindDirs[slot.index] + 180) % 360}deg)`, transformOrigin: '50% 50%' }">
+                          <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                          <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                        </svg>
+                      </span>
+                      <span>{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                    </span>
+                    <span v-else class="hf-val-label hf-val-inside">{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                  </div>
                 </div>
               </template>
               <template v-else>
                 <div class="hf-icon-track">
                   <div class="hf-float-group" :style="iconFloatStyle(slot.index)">
-                    <span class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                    <span v-if="activeDataPoint === 'wind'" class="hf-val-label hf-wind-cell">
+                      <span v-if="allWindDirs[slot.index] != null" class="hf-wind-arrow">
+                        <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                          :style="{ transform: `rotate(${(allWindDirs[slot.index] + 180) % 360}deg)`, transformOrigin: '50% 50%' }">
+                          <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                          <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                        </svg>
+                      </span>
+                      <span>{{ fmtVal(activeDataPoint, slot.index) }}</span>
+                    </span>
+                    <span v-else class="hf-val-label">{{ fmtVal(activeDataPoint, slot.index) }}</span>
                     <WeatherIcon class="hf-float-icon" :code="allCodes[slot.index]" :is-day="isHourDay(slot.index)" />
                   </div>
                 </div>
               </template>
             </div>
           </div>
+
+          <!-- Line chart SVG overlay -->
+          <svg
+            v-if="layout.chartStyle === 'line' && linePoints.length > 1"
+            class="hf-line-svg"
+            :width="totalWidth"
+            :height="TRACK_H"
+            aria-hidden="true"
+          >
+            <polyline
+              :points="linePoints.join(' ')"
+              fill="none"
+              :stroke="activeColor"
+              stroke-opacity="0.6"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </div>
 
         <!-- Configurable other data rows -->
-        <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="hf-row hf-row-generic other-data-points-row">
+        <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="hf-row hf-row-generic other-data-points-row">
           <div
             v-for="slot in allHoursArr"
             :key="'wx-' + slot.index"
@@ -166,6 +180,15 @@
       </div>
     </div>
     </div>
+
+    <!-- Data point picker pills -->
+    <DataPointPicker
+      :show="layout.showDataPointPicker"
+      :options="pickerOptions"
+      :model-value="activeDataPoint"
+      @update:model-value="selectDataPoint"
+      style="margin-top: 8px"
+    />
   </div>
 </template>
 
@@ -295,6 +318,38 @@ const sunEvents = computed(() => {
   return map
 })
 
+// Sun events mapped to nearest visible hour, avoiding collisions
+const sunEventsByNearestHour = computed(() => {
+  if (!layout.value.showSunriseSunset || !props.daily) return {}
+  const rawEvents = sunEvents.value
+  const visibleSet = new Set(allHoursArr.value.map(s => s.index))
+  const result = {}
+  // Sort events by their raw hour so earlier ones win ties
+  const entries = Object.entries(rawEvents).map(([k, v]) => [Number(k), v])
+  entries.sort((a, b) => a[0] - b[0])
+  const usedSlots = new Set()
+  const currentHour = currentAbsoluteHour.value
+  for (const [rawHour, evt] of entries) {
+    // Don't show past sun events unless they fall within the displayed past hour
+    if (rawHour < currentHour - 1) continue
+    // Find nearest visible hour not already taken
+    // Past slots (idx < currentHour) only eligible if the raw event is within that same hour
+    let best = null
+    let bestDist = Infinity
+    for (const idx of visibleSet) {
+      if (usedSlots.has(idx)) continue
+      if (idx < currentHour && rawHour !== idx) continue
+      const d = Math.abs(idx - rawHour)
+      if (d < bestDist) { bestDist = d; best = idx }
+    }
+    if (best != null) {
+      result[best] = evt
+      usedSlots.add(best)
+    }
+  }
+  return result
+})
+
 // ── Scaled value accessor ─────────────────────────────────────────────────────
 
 function getHourlyValue(type, i) {
@@ -335,14 +390,19 @@ const barMax = computed(() => {
 
 function barFillStyle(i) {
   const v  = allMainValues.value[i]
-  const bg = isCurrent(i) ? activeColor.value : activeColor.value + '88'
+  const bg = activeColor.value
   if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
     const { min, range } = barRange.value
-    const heightPct = v != null ? ((v - min) / range) * 100 : 2
-    return { top: `${100 - Math.max(heightPct, 2)}%`, height: `${Math.max(heightPct, 2)}%`, background: bg }
+    const MIN_H = 26, TRACK_H = 100
+    const ratio = v != null ? (v - min) / range : 0.5
+    const heightPx = MIN_H + ratio * (TRACK_H - MIN_H)
+    return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
   } else {
-    const heightPct = v != null ? (v / (barMax.value || 1)) * 100 : 0
-    return { bottom: '0', top: 'auto', height: `${heightPct}%`, background: bg }
+    const MIN_H = 26, TRACK_H = 100
+    if (v == null || v === 0) return { bottom: '0', top: 'auto', height: '0px', background: bg }
+    const ratio = v / (barMax.value || 1)
+    const heightPx = MIN_H + ratio * (TRACK_H - MIN_H)
+    return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
   }
 }
 
@@ -435,8 +495,12 @@ function fmtVal(type, i) {
 
 // ── Icons chart style ─────────────────────────────────────────────────────────
 
-const ICON_H    = 36 // px — label + icon group height
-const TRACK_H   = 75 // matches .hf-bar-track height
+const ICON_H    = 40 // px — label + icon group height (label ~14px + gap 2px + icon ~24px at 1.5rem)
+const TRACK_H   = 96 // matches .hf-icon-track height
+const LABEL_H   = 22 // px — approximate rendered height of the value label (0.85rem * ~1.2 line-height + rounding)
+const ICON_GAP  = 2  // px — gap between label and icon in .hf-float-group
+const ICON_HALF = 12 // px — half of icon height (1.5rem ≈ 24px)
+const LINE_CY_OFFSET = LABEL_H + ICON_GAP + ICON_HALF // offset from float-group top to icon centre
 
 function iconFloatStyle(i) {
   const v = allMainValues.value[i]
@@ -453,15 +517,29 @@ function iconFloatStyle(i) {
   return { top: `${topPx}px` }
 }
 
-// ── Alert hour highlights ─────────────────────────────────────────────────────
+// ── Line chart points ─────────────────────────────────────────────────────────
 
-function hexToRgba(hex, alpha) {
-  if (!hex) return `rgba(255,255,255,${alpha})`
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return `rgba(${r},${g},${b},${alpha})`
-}
+const linePoints = computed(() => {
+  if (layout.value.chartStyle !== 'line') return []
+  const usable = TRACK_H - ICON_H
+  return allHoursArr.value.map((slot, arrayIdx) => {
+    const v = allMainValues.value[slot.index]
+    let ratio
+    if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
+      const { min, range } = barRange.value
+      ratio = v != null ? 1 - (v - min) / range : 0.5
+    } else {
+      const max = barMax.value || 1
+      ratio = v != null ? 1 - v / max : 1
+    }
+    const topPx = Math.max(0, Math.min(usable, ratio * usable))
+    const cx = arrayIdx * COL_WIDTH + COL_WIDTH / 2
+    const cy = topPx + LINE_CY_OFFSET
+    return `${cx},${cy}`
+  })
+})
+
+// ── Alert hour highlights ─────────────────────────────────────────────────────
 
 const highlightRanges = computed(() => {
   if (!props.highlightHours?.length) return []
@@ -623,8 +701,7 @@ watch(() => props.focusHour, (absHour) => {
 .hf-col-day-start {
   border-left: 1px solid var(--card-border);
 }
-.hf-row-time .hf-col-day-start,
-.hf-row-sun .hf-col-day-start {
+.hf-row-time .hf-col-day-start {
   border-left: none;
 }
 
@@ -636,6 +713,11 @@ watch(() => props.focusHour, (absHour) => {
   flex-direction: row;
   align-items: flex-end;
   padding: 0;
+  position: relative;
+}
+
+.hf-chart--icons {
+  align-items: flex-start;
 }
 
 .hf-chart .hf-col {
@@ -643,6 +725,8 @@ watch(() => props.focusHour, (absHour) => {
   justify-content: flex-end;
   align-items: center;
   padding: 0 2px;
+  position: relative;
+  z-index: 2;
 }
 
 .hf-bar-area {
@@ -650,18 +734,15 @@ watch(() => props.focusHour, (absHour) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  margin-top: 0;
+  padding: 0 2px 4px;
 }
 
 
 .hf-bar-track {
   position: relative;
-  width: 10px;
-  height: 75px;
-  background: var(--card-border);
+  width: 100%;
+  height: 100px;
+  zzzbackground: var(--card-border);
   border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
@@ -674,18 +755,40 @@ watch(() => props.focusHour, (absHour) => {
   border-radius: 6px;
   min-height: 4px;
   transition: top 0.3s ease, bottom 0.3s ease, height 0.3s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 3px;
+  overflow: hidden;
 }
 
 .hf-val-label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.hf-val-inside {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hf-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
 }
 
 .hf-icon-track {
   position: relative;
   width: 100%;
-  height: 75px;
+  height: 96px;
   flex-shrink: 0;
 }
 
@@ -700,7 +803,7 @@ watch(() => props.focusHour, (absHour) => {
 }
 
 .hf-float-icon {
-  font-size: 1rem;
+  font-size: 1.5rem;
   line-height: 1;
 }
 
@@ -737,7 +840,7 @@ watch(() => props.focusHour, (absHour) => {
 }
 .hf-wind-arrow svg { width: 10px; height: 10px; }
 .hf-wind-speed { font-size: 0.8rem; }
-.wx-icon { font-size: 1rem; }
+.wx-icon { font-size: 1.5rem; line-height: 1rem; }
 
 /* Other data points rows */
 .other-data-points-row {
@@ -747,11 +850,9 @@ watch(() => props.focusHour, (absHour) => {
 .hf-row-generic .hf-cell { font-size: 0.8rem; }
 
 /* ── Current hour highlight ──────────────────────────────────────────── */
-.hf-col-current .hf-val-label { color: var(--text); }
 .hf-col-current.hf-cell { color: var(--accent); font-weight: 600; }
 
 /* ── Past hours fade ─────────────────────────────────────────────────── */
-.hf-col-past .hf-bar-fill { opacity: 0.45; }
 .hf-col-past.hf-cell { opacity: 0.55; }
 
 /* ── Show scrollbar on non-touch devices ─────────────────────────────── */
@@ -765,23 +866,13 @@ watch(() => props.focusHour, (absHour) => {
   .hf-scroll::-webkit-scrollbar-track { background: transparent; }
 }
 
-/* ── Sunrise / sunset row ────────────────────────────────────────────── */
-
-.hf-row-sun {
-  margin-top: -4px;
-}
-
-.hf-sun-cell {
-  zzzheight: 18px;
-}
+/* ── Sunrise / sunset in time row ───────────────────────────────────── */
 
 .hf-sun-time {
   display: flex;
   align-items: center;
   gap: 2px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 0.8rem;
   color: var(--sun);
 }
 
@@ -791,8 +882,8 @@ watch(() => props.focusHour, (absHour) => {
   flex-shrink: 0;
 }
 .hf-sun-icon :deep(svg) {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
 }
 
 </style>

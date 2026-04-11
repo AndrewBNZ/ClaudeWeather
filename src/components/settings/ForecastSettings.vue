@@ -10,7 +10,7 @@
     </div>
     <div v-if="type === 'daily'" class="setting-row">
       <div>
-        <div class="setting-label">Day and date</div>
+        <div class="setting-label">Dates</div>
       </div>
       <button class="toggle-switch" :class="{ on: layout.showDate }" @click="layout.showDate = !layout.showDate">
         <span class="toggle-thumb" />
@@ -24,15 +24,6 @@
         <span class="toggle-thumb" />
       </button>
     </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-label">Chart style</div>
-      </div>
-      <div class="unit-pill">
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: layout.chartStyle !== 'icons' }]" @click="layout.chartStyle = 'bar'">Bars</button>
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: layout.chartStyle === 'icons' }]" @click="layout.chartStyle = 'icons'">Icons</button>
-      </div>
-    </div>
     <div v-if="type === 'hourly'" class="setting-row">
       <div>
         <div class="setting-label">Sunrise &amp; sunset</div>
@@ -41,10 +32,20 @@
         <span class="toggle-thumb" />
       </button>
     </div>
+    </div>
+   <div class="settings-group">
+    <div class="setting-row setting-row--col">
+      <div class="setting-label">Chart style</div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: layout.chartStyle === 'bar' }]"   @click="layout.chartStyle = 'bar'">Bars</button>
+        <button :class="['unit-pill-opt', { active: layout.chartStyle === 'icons' }]" @click="layout.chartStyle = 'icons'">Icons</button>
+        <button :class="['unit-pill-opt', { active: layout.chartStyle === 'line' }]"  @click="layout.chartStyle = 'line'">Line</button>
+      </div>
+    </div>
     <div class="setting-row">
       <div>
         <div class="setting-label">Data point picker</div>
-        <div class="setting-hint">Quickly change the data shown on the chart</div>
+        <div class="setting-hint">Enables quick data type switching</div>
       </div>
       <button class="toggle-switch" :class="{ on: layout.showDataPointPicker }" @click="layout.showDataPointPicker = !layout.showDataPointPicker">
         <span class="toggle-thumb" />
@@ -52,8 +53,7 @@
     </div>
     <div class="setting-row setting-row--col">
       <div>
-        <div class="setting-label">Main data point</div>
-        <div class="setting-hint">Shown on the chart by default</div>
+        <div class="setting-label">Chart data point</div>
       </div>
       <div class="slot-scroll" ref="mainScrollEl"><div class="data-point-grid">
         <button
@@ -65,49 +65,14 @@
       </div></div>
     </div>
   </div>
-  <div class="settings-group settings-group--tile-list">
-    <div class="setting-row settings-group__header" style="border-bottom: none; padding-top: 2px; padding-bottom: 2px;">
+  <div class="settings-group">
+    <button class="setting-row setting-row--nav" @click="$emit('navigate', type === 'daily' ? 'dailyOtherPoints' : 'hourlyOtherPoints')">
       <div>
         <div class="setting-label">Other data points</div>
-        <div class="setting-hint">Show additional data below the chart, and in the picker</div>
+        <div class="setting-hint">Show additional data on the chart and picker</div>
       </div>
-    </div>
-  <div class="other-pts-header">
-    <span class="setting-hint">Drag to reorder</span>
-    <span class="other-pts-header-spacer"></span>
-    <span class="other-pts-col-lbl">Chart</span>
-    <span class="other-pts-col-divider"></span>
-    <span class="other-pts-col-lbl">Pick</span>
-  </div>
-  <div class="tile-list">
-    <div
-      v-for="pt in otherPoints"
-      :key="pt.type"
-      :data-layout-idx="pt._idx"
-      class="tile-row"
-      :class="{ 'tile-dragging': layoutDragIndex === pt._idx, 'tile-drag-over': layoutDragOver === pt._idx && layoutDragIndex !== pt._idx }"
-      draggable="true"
-      @dragstart="onLayoutDragStart($event, pt._idx)"
-      @dragover="onLayoutDragOver($event, pt._idx)"
-      @dragend="onLayoutDragEnd"
-      @drop="onLayoutDrop($event, pt._idx)"
-      @touchstart.passive="onLayoutTouchStart($event, pt._idx)"
-    >
-      <span class="tile-drag-handle" aria-hidden="true">⠿</span>
-      <span class="tile-icon-label"><span class="tile-svg-icon" v-html="TILE_ICONS[DATA_TYPES[pt.type]?.iconKey ?? pt.type]"></span>{{ POINT_LABELS[pt.type] ?? pt.type }}</span>
-      <button class="check-btn" :class="{ on: pt.enabled || pt.isMain }" :disabled="pt.isMain" @click.stop="!pt.isMain && toggleOtherPoint(pt.type)" aria-label="Toggle visibility">
-        <svg v-if="pt.enabled || pt.isMain" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-      <span class="other-pts-col-divider"></span>
-      <button
-        class="check-btn" :class="{ on: pt.showInPicker || pt.isMain }"
-        :disabled="pt.isMain"
-        @click.stop="!pt.isMain && toggleOtherPointPicker(pt.type)" aria-label="Toggle in picker"
-      >
-        <svg v-if="pt.showInPicker || pt.isMain" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-    </div>
-  </div>
+      <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 </template>
 
@@ -115,25 +80,21 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useSettings, MAIN_DATA_POINT_OPTIONS, HOURLY_MAIN_DATA_POINT_OPTIONS } from '../../composables/useSettings.js'
 import { TILE_ICONS } from '../../utils/tileIcons.js'
-import { DATA_TYPES, POINT_LABELS } from '../../utils/dataTypes.js'
 
 const props = defineProps({
   type: { type: String, required: true }, // 'daily' | 'hourly'
 })
+defineEmits(['navigate'])
 
 const {
   dailyForecastLayout, hourlyForecastLayout,
-  toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
-  toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints, setHourlyMainDataPoint,
+  setDailyMainDataPoint, setHourlyMainDataPoint,
 } = useSettings()
 
 const isDaily = computed(() => props.type === 'daily')
 const layout  = computed(() => isDaily.value ? dailyForecastLayout.value : hourlyForecastLayout.value)
 
 const mainOptions      = computed(() => isDaily.value ? MAIN_DATA_POINT_OPTIONS : HOURLY_MAIN_DATA_POINT_OPTIONS)
-const toggleOtherPoint = computed(() => isDaily.value ? toggleDailyOtherPoint : toggleHourlyOtherPoint)
-const toggleOtherPointPicker = computed(() => isDaily.value ? toggleDailyOtherPointPicker : toggleHourlyOtherPointPicker)
-const reorderOtherPoints = computed(() => isDaily.value ? reorderDailyOtherPoints : reorderHourlyOtherPoints)
 const setMainDataPoint = computed(() => isDaily.value ? setDailyMainDataPoint : setHourlyMainDataPoint)
 
 const mainScrollEl = ref(null)
@@ -146,48 +107,6 @@ onMounted(async () => {
   if (!active) return
   el.scrollLeft = active.offsetLeft + active.offsetWidth / 2 - el.offsetWidth / 2
 })
-
-const otherPoints = computed(() => {
-  const mainType = layout.value.mainDataPoint
-  return layout.value.otherDataPoints
-    .map((p, i) => ({ ...p, _idx: i, isMain: p.type === mainType }))
-})
-
-const layoutDragIndex  = ref(null)
-const layoutDragOver   = ref(null)
-let   layoutTouchIdx   = null
-let   layoutTouchMoved = false
-
-function onLayoutDragStart(e, i) { layoutDragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
-function onLayoutDragOver(e, i)  { e.preventDefault(); layoutDragOver.value = i }
-function onLayoutDragEnd()       { layoutDragIndex.value = null; layoutDragOver.value = null }
-function onLayoutDrop(e, i) {
-  e.preventDefault()
-  if (layoutDragIndex.value !== null && layoutDragIndex.value !== i) reorderOtherPoints.value(layoutDragIndex.value, i)
-  layoutDragIndex.value = null; layoutDragOver.value = null
-}
-function onLayoutTouchStart(e, i) {
-  if (!e.target.closest('.tile-drag-handle')) return
-  layoutTouchIdx = i; layoutTouchMoved = false; layoutDragIndex.value = i
-  document.addEventListener('touchmove', _onLayoutTouchMove, { passive: false })
-  document.addEventListener('touchend', _onLayoutTouchEnd)
-}
-function _onLayoutTouchMove(e) {
-  e.preventDefault()
-  layoutTouchMoved = true
-  const touch = e.touches[0]
-  const el    = document.elementFromPoint(touch.clientX, touch.clientY)
-  const row   = el?.closest('[data-layout-idx]')
-  layoutDragOver.value = row ? parseInt(row.dataset.layoutIdx) : null
-}
-function _onLayoutTouchEnd() {
-  if (layoutTouchMoved && layoutTouchIdx !== null && layoutDragOver.value !== null && layoutTouchIdx !== layoutDragOver.value) {
-    reorderOtherPoints.value(layoutTouchIdx, layoutDragOver.value)
-  }
-  layoutTouchIdx = null; layoutTouchMoved = false; layoutDragIndex.value = null; layoutDragOver.value = null
-  document.removeEventListener('touchmove', _onLayoutTouchMove)
-  document.removeEventListener('touchend', _onLayoutTouchEnd)
-}
 </script>
 
 <style scoped>

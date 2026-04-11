@@ -3,20 +3,13 @@
     <div v-if="layout.showTitle" class="daily-header">
       <h3 class="daily-title">Daily Forecast</h3>
     </div>
-    <DataPointPicker
-      :show="layout.showDataPointPicker"
-      :options="pickerOptions"
-      :model-value="activeDataPoint"
-      @update:model-value="selectDataPoint"
-    />
-
     <div class="forecast-grid">
       <!-- Sticky left column: icons only -->
       <div class="labels-col">
         <div class="lbl-day-row"></div>
         <div class="lbl-temp-row"></div>
-        <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle !== 'icons')" class="lbl-stats-wrap">
-          <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="lbl-stat-row">
+        <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle === 'bar')" class="lbl-stats-wrap">
+          <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="lbl-stat-row">
             <span class="stat-icon" v-html="TILE_ICONS['sceneConditions']"></span>
           </div>
           <div
@@ -31,7 +24,7 @@
       </div>
 
       <!-- Scrollable day columns -->
-      <div class="days-scroll">
+      <div class="days-scroll" ref="daysScrollRef">
         <div class="days-row">
           <div
             v-for="(date, i) in days"
@@ -43,39 +36,55 @@
           >
             <div class="day-lbl">{{ dayLabel(date) }}</div>
 
-            <div class="temp-wrap" :class="{ 'temp-wrap--icons': layout.chartStyle === 'icons' }">
-              <template v-if="layout.chartStyle !== 'icons'">
-                <!-- Value above bar -->
-                <div v-if="activeDataPoint === 'wind'" class="t-hi t-wind-val">
-                  <span v-if="windDirs[i] != null" class="wind-dir-arrow">
-                    <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
-                         :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
-                      <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                      <polygon points="7,2 4,7 10,7" fill="currentColor"/>
-                    </svg>
-                  </span>
-                  <span>{{ fmtMainValue(i) }}</span>
-                </div>
-                <span v-else class="t-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
-                <!-- Bar -->
+            <div class="temp-wrap" :class="{ 'temp-wrap--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line' }">
+              <template v-if="layout.chartStyle === 'bar'">
                 <div class="bar-track">
-                  <div class="bar-fill" :style="FLOATING_BAR_TYPES.has(activeDataPoint) ? barStyle(i) : barStyleSimple(i)" />
+                  <template v-if="FLOATING_BAR_TYPES.has(activeDataPoint)">
+                    <!-- Floating bar with hi/lo labels outside the fill -->
+                    <div class="bar-fill bar-fill--floating" :style="barStyle(i)"></div>
+                    <span class="t-hi t-hi--float" :style="barFloatHiStyle(i)">{{ fmtTemp(mainHi[i]) }}</span>
+                    <span class="t-lo t-lo--float" :style="barFloatLoStyle(i)">{{ fmtTemp(mainLo[i]) }}</span>
+                  </template>
+                  <template v-else>
+                    <!-- Simple bar with value inside at top -->
+                    <div class="bar-fill" :style="barStyleSimple(i)">
+                      <div v-if="activeDataPoint === 'wind'" class="t-val-inside t-wind-val">
+                        <span v-if="windDirs[i] != null" class="wind-dir-arrow">
+                          <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                               :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
+                            <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                          </svg>
+                        </span>
+                        <span>{{ fmtMainValue(i) }}</span>
+                      </div>
+                      <span v-else class="t-val-inside">{{ fmtMainValue(i) }}</span>
+                    </div>
+                  </template>
                 </div>
-                <!-- Low value — only rendered for range types -->
-                <span v-if="FLOATING_BAR_TYPES.has(activeDataPoint)" class="t-lo">{{ fmtTemp(mainLo[i]) }}</span>
               </template>
               <template v-else>
                 <!-- Icons chart style: floating icon with hi/lo labels -->
                 <div class="icon-float-group" :style="iconGroupStyle(i)">
-                  <span class="icon-val-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
+                  <span v-if="activeDataPoint === 'wind'" class="icon-val-hi wind-val-hi">
+                    <span v-if="windDirs[i] != null" class="wind-dir-arrow">
+                      <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                           :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
+                        <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+                      </svg>
+                    </span>
+                    <span>{{ fmtMainValue(i) }}</span>
+                  </span>
+                  <span v-else class="icon-val-hi">{{ FLOATING_BAR_TYPES.has(activeDataPoint) ? fmtTemp(mainHi[i]) : fmtMainValue(i) }}</span>
                   <WeatherIcon class="wx-float-icon" :code="wxCode(i)" />
                   <span class="icon-val-lo" :style="{ visibility: FLOATING_BAR_TYPES.has(activeDataPoint) ? 'visible' : 'hidden' }">{{ fmtTemp(mainLo[i]) }}</span>
                 </div>
               </template>
             </div>
 
-            <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle !== 'icons')" class="stats">
-              <div v-if="layout.showConditions && layout.chartStyle !== 'icons'" class="wx-icon stat-row"><WeatherIcon :code="wxCode(i)" /></div>
+            <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle === 'bar')" class="stats">
+              <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="wx-icon stat-row"><WeatherIcon :code="wxCode(i)" /></div>
               <template v-for="pt in visibleOtherPoints" :key="pt.type">
                 <!-- Rain probability -->
                 <div v-if="pt.type === 'rainProb'" class="stat-row" :style="{ color: rainColor }">
@@ -127,9 +136,36 @@
               </template>
             </div>
           </div>
+
+          <!-- Line chart SVG overlay -->
+          <svg
+            v-if="layout.chartStyle === 'line' && dailyLinePoints.length > 1"
+            class="daily-line-svg"
+            :width="days.length * COL_WIDTH"
+            :height="DAY_COL_TOP_OFFSET + ICON_TRACK_H"
+            aria-hidden="true"
+          >
+            <polyline
+              :points="dailyLinePoints.join(' ')"
+              fill="none"
+              :stroke="activeColor"
+              stroke-opacity="0.6"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </div>
       </div>
     </div>
+
+    <DataPointPicker
+      :show="layout.showDataPointPicker"
+      :options="pickerOptions"
+      :model-value="activeDataPoint"
+      @update:model-value="selectDataPoint"
+      style="margin-top: 8px"
+    />
   </div>
 </template>
 
@@ -140,6 +176,9 @@ import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
 import { TILE_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
 import WeatherIcon from '../components/WeatherIcon.vue'
+
+const COL_WIDTH          = 50
+const DAY_COL_TOP_OFFSET = 36 // day-col padding-top(6) + day-lbl height(26) + margin-bottom(4)
 
 // ── Props & emits ───────────────────────────────────────────────────────────
 
@@ -156,6 +195,7 @@ const props = defineProps({
 const emit = defineEmits(['day-selected', 'forecast-data-point'])
 
 const dayColRefs = ref([])
+const daysScrollRef = ref(null)
 
 // ── Layout config (with fallback) ────────────────────────────────────────────
 
@@ -188,7 +228,18 @@ watch(() => props.forecastDataPoint, (v) => { if (v) activeDataPoint.value = v }
 
 watch(() => props.selectedDay, (i) => {
   nextTick(() => {
-    dayColRefs.value[i]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    const col = dayColRefs.value[i]
+    const scroller = daysScrollRef.value
+    if (!col || !scroller) return
+    const colLeft = col.offsetLeft
+    const colRight = colLeft + col.offsetWidth
+    const scrollLeft = scroller.scrollLeft
+    const clientWidth = scroller.clientWidth
+    if (colLeft < scrollLeft) {
+      scroller.scrollTo({ left: colLeft, behavior: 'smooth' })
+    } else if (colRight > scrollLeft + clientWidth) {
+      scroller.scrollTo({ left: colRight - clientWidth, behavior: 'smooth' })
+    }
   })
 })
 
@@ -397,19 +448,39 @@ const globalTempMax = computed(() => {
   return vals.length ? Math.max(...vals) : 1
 })
 
+function barFloatGeometry(i) {
+  const lo     = globalTempMin.value
+  const hi     = globalTempMax.value
+  const range  = hi - lo || 1
+  const hiSrc  = activeDataPoint.value === 'feelsLike' ? feelsLikeMax.value : maxTemps.value
+  const loSrc  = activeDataPoint.value === 'feelsLike' ? feelsLikeMin.value : minTemps.value
+  const dayMax = hiSrc[i] ?? hi
+  const dayMin = loSrc[i] ?? lo
+  // Reserve LABEL_H px at top and bottom for hi/lo labels so they stay inside the 100px container
+  const LABEL_H = 14, TRACK_H = 100, MIN_H = 26
+  const innerH = TRACK_H - LABEL_H * 2  // 72px available for bars
+  const usable = innerH - MIN_H         // range of bar height variation
+  const rawH     = ((dayMax - dayMin) / range) * usable
+  const heightPx = MIN_H + rawH
+  // topPx is within the inner zone (offset by LABEL_H from container top)
+  const topPx    = LABEL_H + ((hi - dayMax) / range) * (innerH - heightPx)
+  return { topPx, heightPx }
+}
+
 function barStyle(i) {
-  const lo  = globalTempMin.value
-  const hi  = globalTempMax.value
-  const range = hi - lo || 1
-  const dayMax = maxTemps.value[i] ?? hi
-  const dayMin = minTemps.value[i] ?? lo
-  const topPct    = ((hi - dayMax) / range) * 100
-  const heightPct = ((dayMax - dayMin) / range) * 100
-  return {
-    top:        `${topPct}%`,
-    height:     `${heightPct}%`,
-    background: DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color,
-  }
+  const { topPx, heightPx } = barFloatGeometry(i)
+  const bg = DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color
+  return { top: `${topPx}px`, height: `${heightPx}px`, background: bg }
+}
+
+function barFloatHiStyle(i) {
+  const { topPx } = barFloatGeometry(i)
+  return { top: `${topPx}px`, transform: 'translateY(-100%)' }
+}
+
+function barFloatLoStyle(i) {
+  const { topPx, heightPx } = barFloatGeometry(i)
+  return { top: `${topPx + heightPx + 2}px` }
 }
 
 // ── Icons chart style — vertical icon position ────────────────────────────────
@@ -417,7 +488,7 @@ function barStyle(i) {
 // The icon group is ~52px tall (hi label ~16px + icon ~20px + lo label ~16px).
 // We position its centre within the track area of temp-wrap (excludes top/bottom padding).
 // topPct is 0% = highest value position, 100% = lowest.
-const ICON_GROUP_H = 52 // px — approximate height of icon group
+const ICON_GROUP_H = 56 // px — approximate height of icon group (hi ~16px + icon ~24px at 1.5rem + lo ~16px)
 const ICON_TRACK_H = 115 // matches --h-temp
 
 function iconGroupStyle(i) {
@@ -447,16 +518,42 @@ const globalMainMax = computed(() => {
 })
 
 function barStyleSimple(i) {
-  const val       = mainHi.value[i] ?? 0
-  const maxVal    = globalMainMax.value || 1
-  const heightPct = (val / maxVal) * 100
-  return {
-    bottom:     '0',
-    top:        'auto',
-    height:     `${heightPct}%`,
-    background: DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color,
-  }
+  const val    = mainHi.value[i] ?? 0
+  const maxVal = globalMainMax.value || 1
+  const bg     = DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color
+  const MIN_H = 26, TRACK_H = 100
+  if (val === 0) return { bottom: '0', top: 'auto', height: '0px', background: bg }
+  const ratio    = val / maxVal
+  const heightPx = MIN_H + ratio * (TRACK_H - MIN_H)
+  return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
 }
+
+// ── Line chart ────────────────────────────────────────────────────────────────
+
+const activeColor = computed(() => DATA_TYPES[activeDataPoint.value]?.color ?? '#f97316')
+
+const dailyLinePoints = computed(() => {
+  if (layout.value.chartStyle !== 'line') return []
+  const lo    = globalTempMin.value
+  const hi    = globalTempMax.value
+  const range = hi - lo || 1
+  const usable = ICON_TRACK_H - ICON_GROUP_H
+  return days.value.map((_, i) => {
+    let ratio
+    if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
+      const val = mainHi.value[i] ?? hi
+      ratio = (hi - val) / range
+    } else {
+      const val    = mainHi.value[i] ?? 0
+      const maxVal = globalMainMax.value || 1
+      ratio = 1 - val / maxVal
+    }
+    const topPx = Math.max(0, Math.min(usable, ratio * usable))
+    const cx = i * COL_WIDTH + COL_WIDTH / 2
+    const cy = DAY_COL_TOP_OFFSET + topPx + ICON_GROUP_H / 2
+    return `${cx},${cy}`
+  })
+})
 </script>
 
 <style scoped>
@@ -478,7 +575,7 @@ function barStyleSimple(i) {
 /* ── Forecast grid: sticky labels + scrollable days ── */
 .forecast-grid {
   --h-day:  20px;
-  --h-temp: 115px;
+  --h-temp: 100px;
   --h-stat: 18px;
   display: flex;
   overflow: hidden;
@@ -537,14 +634,13 @@ function barStyleSimple(i) {
   display: flex;
   zzzgap: 2px;
   min-width: 100%;
+  position: relative;
 }
 
 /* ── Day column ───────────────────────────────────── */
 .day-col {
-  flex: 1 0 54px;
-  zmin-width: 58px;
-  zmax-width: 90px;
-  width: 54px;
+  flex: 0 0 50px;
+  width: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -552,14 +648,22 @@ function barStyleSimple(i) {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
+  position: relative;
+  z-index: 2;
 }
 @media (hover: hover) {
   .day-col:hover {
     background: var(--card-hover);
   }
 }
-.day-col.is-selected {
-  background: rgba(56, 189, 248, 0.12);
+
+.daily-line-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: visible;
 }
 
 /* ── Day label ────────────────────────────────────── */
@@ -576,16 +680,13 @@ function barStyleSimple(i) {
   height: 26px;
   margin-bottom: 4px;
 }
-.is-selected .day-lbl {
-  color: var(--accent);
-  font-weight: 500;
-}
 
 /* ── Condition icon (now inside stats, first stat-row) ── */
 .wx-icon {
   height: var(--h-stat);
   font-size: 1rem;
   line-height: 1;
+  margin-bottom: 5px;
 }
 
 /* ── Temperature section ──────────────────────────── */
@@ -595,31 +696,18 @@ function barStyleSimple(i) {
   align-items: center;
   justify-content: flex-start;
   width: 100%;
-  height: var(--h-temp);
   flex-shrink: 0;
+  height: 100px;
+  overflow: hidden;
 }
 
-.t-hi {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.2;
-}
-.t-wind-val {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-.t-lo {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  line-height: 1.2;
-}
+
 
 /* ── Icons chart style ────────────────────────────── */
 .temp-wrap--icons {
   position: relative;
   overflow: visible;
+  height: 115px; /* icons/line mode uses its own track height */
 }
 
 .icon-float-group {
@@ -633,7 +721,7 @@ function barStyleSimple(i) {
 }
 
 .wx-float-icon {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -645,6 +733,12 @@ function barStyleSimple(i) {
   line-height: 1.2;
 }
 
+.wind-val-hi {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .icon-val-lo {
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -653,14 +747,11 @@ function barStyleSimple(i) {
 
 .bar-track {
   position: relative;
-  width: 10px;
-  min-height: 75px;
-  background: var(--card-border);
+  width: calc(100% - 8px);
+  height: 100px;
   border-radius: 6px;
   overflow: hidden;
-  margin: 3px 0;
   flex-shrink: 0;
-  flex-grow: 1;
 }
 
 .bar-fill {
@@ -669,6 +760,51 @@ function barStyleSimple(i) {
   right: 0;
   border-radius: 6px;
   min-height: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 3px;
+  overflow: hidden;
+}
+
+.bar-fill--floating {
+  border-radius: 6px;
+}
+
+.t-val-inside {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.t-wind-val {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.t-hi--float {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1;
+}
+
+.t-lo--float {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1;
+  padding-top: 1px;
 }
 
 /* ── Stats section ────────────────────────────────── */
@@ -714,7 +850,7 @@ function barStyleSimple(i) {
   height: 14px;
 }
 .wx-icon {
-  font-size: 1rem;
+  font-size: 1.5rem;
 }
 
 /* ── Show scrollbar on non-touch devices ──────────── */

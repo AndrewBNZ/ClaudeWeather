@@ -88,8 +88,7 @@
       >
         <div class="alert-mini-header">
           <div class="alert-mini-title-row">
-            <span class="alert-mini-dot" :style="{ background: selectedEntry.alert.color }"></span>
-            <span class="alert-mini-title">{{ selectedEntry.alert.title || 'Untitled' }}</span>
+<span class="alert-mini-title">{{ selectedEntry.alert.title || 'Untitled' }}</span>
           </div>
           <div class="alert-mini-actions">
             <button class="alert-modal-edit" @click="collapsed = false" aria-label="Expand">
@@ -544,12 +543,6 @@ function summarizeCriteria(alert) {
   min-width: 0;
 }
 
-.alert-mini-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
 
 .alert-mini-title {
   font-size: 0.9rem;
