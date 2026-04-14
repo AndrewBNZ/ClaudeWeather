@@ -27,9 +27,10 @@ const WARNINGS_CONFIG_KEY         = `${P}-warnings-config`
 const CUSTOM_ALERTS_KEY           = `${P}-custom-alerts`
 const CUSTOM_ALERTS_CONFIG_KEY    = `${P}-custom-alerts-config`
 const CARD_STYLE_KEY              = `${P}-card-style`
-const RADAR_CONFIG_KEY            = `${P}-radar-config`
-const LANDSCAPE_MODE_KEY          = `${P}-landscape-mode`
-const ICON_SET_KEY                = `${P}-icon-set`
+const RADAR_CONFIG_KEY              = `${P}-radar-config`
+const LANDSCAPE_MODE_KEY            = `${P}-landscape-mode`
+const ICON_SET_KEY                  = `${P}-icon-set`
+const COMBINED_FORECAST_LAYOUT_KEY  = `${P}-combined-forecast-layout`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -62,7 +63,8 @@ export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showConditions:      true,
   showDataPointPicker: false,
   showDate:            false,
-  chartStyle:          'bar',
+  chartStyle:          'vertical',
+  numDays:             7,
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST.filter(t => !t.isMap).map(t => ({ type: t.id, enabled: DEFAULT_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_PICKER_ENABLED.has(t.id) })),
 }
@@ -71,6 +73,18 @@ const DEFAULT_HOURLY_CHART_ENABLED  = new Set()
 const DEFAULT_HOURLY_PICKER_ENABLED = new Set(['feelsLike', 'rainAmount', 'wind', 'cloudCover'])
 
 export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
+  showTitle:           true,
+  showConditions:      true,
+  showDataPointPicker: true,
+  showSunriseSunset:   true,
+  chartStyle:          'line',
+  mainDataPoint:       'temperature',
+  otherDataPoints:     DATA_TYPE_LIST
+    .filter(t => !t.isMap && t.hourlyKey != null)
+    .map(t => ({ type: t.id, enabled: DEFAULT_HOURLY_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_HOURLY_PICKER_ENABLED.has(t.id) })),
+}
+
+export const DEFAULT_COMBINED_FORECAST_LAYOUT = {
   showTitle:           true,
   showConditions:      true,
   showDataPointPicker: true,
@@ -107,21 +121,23 @@ export const TILE_META = {
 }
 
 export const CARD_META = {
-  combinedHourly:  { icon: '🕐', label: 'Hourly Forecast' },
-  dailyForecast:   { icon: '📅', label: 'Daily Forecast' },
-  sunriseMoon:     { icon: '🌙', label: 'Sun & Moon' },
-  radar:           { icon: '🛰️', label: 'Radar' },
-  customAlerts:    { icon: '🔔', label: 'Custom Alerts' },
-  weatherWarnings: { icon: '⚠️', label: 'Weather Warnings' },
+  combinedHourly:   { icon: '🕐', label: 'Hourly Forecast' },
+  dailyForecast:    { icon: '📅', label: 'Daily Forecast' },
+  combinedForecast: { icon: '📊', label: 'Combined Forecast' },
+  sunriseMoon:      { icon: '🌙', label: 'Sun & Moon' },
+  radar:            { icon: '🛰️', label: 'Radar' },
+  customAlerts:     { icon: '🔔', label: 'Custom Alerts' },
+  weatherWarnings:  { icon: '⚠️', label: 'Weather Warnings' },
 }
 
 const DEFAULT_CARDS = [
-  { type: 'weatherWarnings', enabled: true },
-  { type: 'combinedHourly',  enabled: true },
-  { type: 'dailyForecast',   enabled: true },
-  { type: 'customAlerts',    enabled: false },
-  { type: 'sunriseMoon',     enabled: true },
-  { type: 'radar',           enabled: true },
+  { type: 'weatherWarnings',  enabled: true },
+  { type: 'combinedHourly',   enabled: true },
+  { type: 'dailyForecast',    enabled: true },
+  { type: 'combinedForecast', enabled: false },
+  { type: 'customAlerts',     enabled: false },
+  { type: 'sunriseMoon',      enabled: true },
+  { type: 'radar',            enabled: true },
 ]
 
 export const DEFAULT_WARNINGS_CONFIG = { show: 'active-only', feedOverride: null, locationFilter: 'location', showTitle: true }
@@ -221,6 +237,24 @@ function loadHourlyForecastLayout() {
   return { ...DEFAULT_HOURLY_FORECAST_LAYOUT, otherDataPoints: DEFAULT_HOURLY_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p })) }
 }
 
+function loadCombinedForecastLayout() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COMBINED_FORECAST_LAYOUT_KEY))
+    if (raw && typeof raw === 'object') {
+      let otherPts = Array.isArray(raw.otherDataPoints)
+        ? raw.otherDataPoints
+        : DEFAULT_COMBINED_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p }))
+      const seenTypes = new Set()
+      otherPts = otherPts.filter(p => seenTypes.has(p.type) ? false : seenTypes.add(p.type))
+      for (const d of DEFAULT_COMBINED_FORECAST_LAYOUT.otherDataPoints) {
+        if (!seenTypes.has(d.type)) otherPts.push({ ...d })
+      }
+      return { ...DEFAULT_COMBINED_FORECAST_LAYOUT, ...raw, otherDataPoints: otherPts }
+    }
+  } catch {}
+  return { ...DEFAULT_COMBINED_FORECAST_LAYOUT, otherDataPoints: DEFAULT_COMBINED_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p })) }
+}
+
 function loadCardConfig() {
   try {
     const raw = JSON.parse(localStorage.getItem(CARDS_KEY))
@@ -308,17 +342,19 @@ const pwsEnabled      = ref(localStorage.getItem(PWS_ENABLED_STG) !== 'false')
 const pwsApiKey       = ref(localStorage.getItem(PWS_KEY_STG) ?? '')
 const tempestEnabled   = ref(localStorage.getItem(TEMPEST_ENABLED_STG) !== 'false')
 const tempestToken     = ref(localStorage.getItem(TEMPEST_TOKEN_STG) ?? '')
-const openMeteoModel   = ref(localStorage.getItem(OPEN_METEO_MODEL_STG) ?? 'best_match')
+const openMeteoModel   = ref(localStorage.getItem(OPEN_METEO_MODEL_STG) ?? 'ecmwf_ifs')
 const activeDataType   = ref(localStorage.getItem(DATATYPE_KEY) ?? 'temperature')
 const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false')
-const dailyForecastLayout  = ref(loadDailyForecastLayout())
-const hourlyForecastLayout = ref(loadHourlyForecastLayout())
+const dailyForecastLayout    = ref(loadDailyForecastLayout())
+const hourlyForecastLayout   = ref(loadHourlyForecastLayout())
+const combinedForecastLayout = ref(loadCombinedForecastLayout())
 const sceneOverlayLayout   = ref(loadSceneOverlayLayout())
 const warningsConfig       = ref(loadWarningsConfig())
 const customAlertsConfig   = ref(loadCustomAlertsConfig())
 const customAlerts         = ref(loadCustomAlerts())
 const radarConfig          = ref(loadRadarConfig())
-const landscapeMode        = ref(localStorage.getItem(LANDSCAPE_MODE_KEY) ?? 'auto')
+// Wide layout is hidden — force single-column (mobile) view for everyone
+const landscapeMode        = ref('off')
 const iconSet              = ref(localStorage.getItem(ICON_SET_KEY) ?? 'icons8-color-glass')
 
 // ── Persistence ───────────────────────────────────────────────────────────────
@@ -337,8 +373,9 @@ watch(tempestToken,    (v) => { try { if (v) localStorage.setItem(TEMPEST_TOKEN_
 watch(openMeteoModel,  (v) => localStorage.setItem(OPEN_METEO_MODEL_STG, v))
 watch(activeDataType,   (v) => localStorage.setItem(DATATYPE_KEY, v))
 watch(showDailySummary,      (v) => localStorage.setItem(DAILY_SUMMARY_KEY, String(v)))
-watch(dailyForecastLayout,   (v) => { try { localStorage.setItem(DAILY_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
-watch(hourlyForecastLayout,  (v) => { try { localStorage.setItem(HOURLY_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
+watch(dailyForecastLayout,    (v) => { try { localStorage.setItem(DAILY_FORECAST_LAYOUT_KEY,    JSON.stringify(v)) } catch {} }, { deep: true })
+watch(hourlyForecastLayout,   (v) => { try { localStorage.setItem(HOURLY_FORECAST_LAYOUT_KEY,   JSON.stringify(v)) } catch {} }, { deep: true })
+watch(combinedForecastLayout, (v) => { try { localStorage.setItem(COMBINED_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(sceneOverlayLayout,    (v) => { try { localStorage.setItem(SCENE_OVERLAY_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(warningsConfig,        (v) => { try { localStorage.setItem(WARNINGS_CONFIG_KEY,      JSON.stringify(v)) } catch {} }, { deep: true })
 watch(customAlertsConfig,    (v) => { try { localStorage.setItem(CUSTOM_ALERTS_CONFIG_KEY,  JSON.stringify(v)) } catch {} }, { deep: true })
@@ -430,6 +467,32 @@ function setHourlyMainDataPoint(type) {
   hourlyForecastLayout.value = { ...hourlyForecastLayout.value, mainDataPoint: type }
 }
 
+// ── Combined forecast layout helpers ─────────────────────────────────────────
+function toggleCombinedOtherPoint(type) {
+  const pts = combinedForecastLayout.value.otherDataPoints.map(p =>
+    p.type === type ? { ...p, enabled: !p.enabled } : p
+  )
+  combinedForecastLayout.value = { ...combinedForecastLayout.value, otherDataPoints: pts }
+}
+
+function toggleCombinedOtherPointPicker(type) {
+  const pts = combinedForecastLayout.value.otherDataPoints.map(p =>
+    p.type === type ? { ...p, showInPicker: !p.showInPicker } : p
+  )
+  combinedForecastLayout.value = { ...combinedForecastLayout.value, otherDataPoints: pts }
+}
+
+function reorderCombinedOtherPoints(from, to) {
+  const arr = [...combinedForecastLayout.value.otherDataPoints]
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+  combinedForecastLayout.value = { ...combinedForecastLayout.value, otherDataPoints: arr }
+}
+
+function setCombinedMainDataPoint(type) {
+  combinedForecastLayout.value = { ...combinedForecastLayout.value, mainDataPoint: type }
+}
+
 // ── Scene overlay helpers ─────────────────────────────────────────────────────
 function setSceneOverlaySlot(idx, type) {
   const slots = [...sceneOverlayLayout.value.slots]
@@ -449,16 +512,21 @@ function reorderCards(from, to) {
   cardConfig.value = arr
 }
 
+function resetCardLayout() {
+  cardConfig.value = DEFAULT_CARDS.map(c => ({ ...c }))
+}
+
 export function useSettings() {
   return {
     theme, resolvedTheme, cardStyle, timeFormat, hourlyFirst, showSim, showDailySummary,
     tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-    dailyForecastLayout, hourlyForecastLayout,
+    dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout,
     UNIT_OPTIONS, TILE_META, CARD_META,
     toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
-    toggleCard, reorderCards,
+    toggleCard, reorderCards, resetCardLayout,
     toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
     toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints, setHourlyMainDataPoint,
+    toggleCombinedOtherPoint, toggleCombinedOtherPointPicker, reorderCombinedOtherPoints, setCombinedMainDataPoint,
     sceneOverlayLayout, setSceneOverlaySlot,
     warningsConfig,
     customAlertsConfig, customAlerts,

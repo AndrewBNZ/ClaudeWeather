@@ -375,8 +375,9 @@ function zoomOut() { map?.zoomOut() }
 
 async function toggleExpand() {
   isExpanded.value = !isExpanded.value
-  // Lock/unlock body scroll
+  // Lock/unlock body scroll; toggle class for top-bar suppression
   document.body.style.overflow = isExpanded.value ? 'hidden' : ''
+  document.body.classList.toggle('radar-fullscreen', isExpanded.value)
   await nextTick()
   map?.invalidateSize()
 }
@@ -404,6 +405,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(refreshTimer)
   document.body.style.overflow = ''
+  document.body.classList.remove('radar-fullscreen')
   map?.remove()
   map = null
 })

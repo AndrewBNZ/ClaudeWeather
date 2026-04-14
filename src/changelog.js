@@ -2,6 +2,14 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.14",
+    entries: [
+      "Vertical chart style for daily forecast",
+      "Option to limit displayed forecast days",
+      "Added 'look ahead' option to custom alerts",
+   ],
+  },
+  {
     version: "1.2.13",
     entries: [
       "📈 New bar and line chart options",

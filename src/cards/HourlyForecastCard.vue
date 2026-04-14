@@ -2,6 +2,7 @@
   <div class="card hourly-forecast-card">
     <!-- Header: title -->
     <div v-if="layout.showTitle" class="hf-header">
+      <span class="card-title-icon" v-html="CARD_ICONS.combinedHourly"></span>
       <h3 class="hf-title">Hourly Forecast</h3>
     </div>
 
@@ -196,7 +197,7 @@
 import { computed, ref, watch, onMounted, nextTick } from 'vue'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { DEFAULT_HOURLY_FORECAST_LAYOUT } from '../composables/useSettings.js'
-import { TILE_ICONS } from '../utils/tileIcons.js'
+import { TILE_ICONS, CARD_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
 import WeatherIcon from '../components/WeatherIcon.vue'
 
@@ -623,7 +624,24 @@ watch(() => props.focusHour, (absHour) => {
 /* ── Header ─────────────────────────────────────────────────────────── */
 
 .hf-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 0px;
+}
+
+.card-title-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.card-title-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+.card-title-icon :deep(svg), .card-title-icon :deep(svg *) {
+  stroke: currentColor;
+  fill: none;
 }
 
 .hf-title {

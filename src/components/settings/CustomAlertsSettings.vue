@@ -71,12 +71,13 @@ function onCancel() {
   emit('page-change', { page: 'list' })
 }
 
-// Forwarded to SettingsPanel header save button
-const canSave = computed(() => editorRef.value?.canSave ?? false)
-function saveAlert()    { editorRef.value?.saveAlert() }
+const alertEnabled = computed({
+  get: () => editorRef.value?.alertEnabled ?? true,
+  set: (v) => { if (editorRef.value) editorRef.value.alertEnabled = v },
+})
 function cancelEditor() { editorRef.value?.cancelEditor() }
 
-defineExpose({ cancelEditor, saveAlert, canSave })
+defineExpose({ cancelEditor, alertEnabled })
 </script>
 
 <style scoped>

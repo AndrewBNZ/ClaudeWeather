@@ -128,7 +128,8 @@ function moonEquatorial(jd) {
  * @returns {{ rise: Date|null, set: Date|null }}
  */
 export function moonRiseSet(date, lat, lon, utcOffsetSeconds) {
-  // JD for noon UTC on the given date
+  // JD for local midnight on the given date (shifted by UTC offset so we scan
+  // local midnight → local midnight rather than UTC midnight → UTC midnight)
   const y = date.getUTCFullYear()
   const m = date.getUTCMonth() + 1
   const d = date.getUTCDate()
@@ -137,13 +138,13 @@ export function moonRiseSet(date, lat, lon, utcOffsetSeconds) {
   const Mo = m + 12 * A - 3
   const jd0 = d + Math.floor((153 * Mo + 2) / 5) + 365 * Y +
     Math.floor(Y / 4) - Math.floor(Y / 100) + Math.floor(Y / 400) - 32045 - 0.5
+    - (utcOffsetSeconds ?? 0) / 86400
 
   // Moon's angular altitude needed for rise/set (accounting for parallax ~0.95°)
   const h0 = -0.583  // degrees
 
-  // Evaluate moon position at 0h, 6h, 12h, 18h, 24h (UTC) and interpolate
-  // We search for sign changes in altitude to find rise/set
-  const steps = 24
+  // Evaluate moon position every 15 min and interpolate for crossings
+  const steps = 96
   const altitudes = []
   for (let i = 0; i <= steps; i++) {
     const jd = jd0 + i / steps

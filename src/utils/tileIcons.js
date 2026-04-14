@@ -127,4 +127,13 @@ export const CARD_ICONS = {
     <line x1="10" y1="9" x2="10" y2="13"/>
     <line x1="10" y1="15.5" x2="10" y2="15.5" stroke-width="2.5"/>
   </svg>`,
+
+  combinedForecast: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#818cf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="4" width="11" height="10" rx="1.5"/>
+    <line x1="2" y1="7.5" x2="13" y2="7.5"/>
+    <line x1="5.5" y1="2.5" x2="5.5" y2="5.5"/>
+    <line x1="9.5" y1="2.5" x2="9.5" y2="5.5"/>
+    <circle cx="15" cy="14" r="4" stroke="#38bdf8"/>
+    <polyline points="15,11.5 15,14 17,15.5" stroke="#38bdf8"/>
+  </svg>`,
 }

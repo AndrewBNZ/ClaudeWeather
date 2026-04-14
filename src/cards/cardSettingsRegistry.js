@@ -14,6 +14,11 @@ export const CARD_SETTINGS_REGISTRY = {
     component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
     props:     { type: 'hourly' },
   },
+  combinedForecast: {
+    title:     'Combined Forecast',
+    component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
+    props:     { type: 'combined' },
+  },
   customAlerts: {
     title:     'Custom Alerts',
     component: defineAsyncComponent(() => import('../components/settings/CustomAlertsSettings.vue')),

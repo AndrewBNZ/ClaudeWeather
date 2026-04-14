@@ -16,9 +16,6 @@
       </div>
     </Transition>
 
-    <!-- Sun -->
-    <div class="sun" :style="{ opacity: sunOpacity, pointerEvents: sunOpacity === 0 ? 'none' : 'auto' }" @click.stop="$emit('open-sun-sheet')" />
-
     <!-- Shooting star -->
     <div
       v-if="shootingStarKey > 0"
@@ -26,13 +23,6 @@
       class="shooting-star"
       :style="shootingStarStyle"
     />
-
-    <!-- Moon (phase-accurate SVG) -->
-    <svg class="moon" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" :style="{ opacity: moonOpacity, pointerEvents: moonOpacity === 0 ? 'none' : 'auto' }" @click.stop="$emit('open-moon-sheet')">
-      <circle cx="20" cy="20" r="20" fill="#1a237e" />
-      <path v-if="moonPhasePath" :d="moonPhasePath" fill="#F0F4FF" />
-      <circle cx="20" cy="20" r="19.5" fill="none" stroke="rgba(187,222,251,0.18)" stroke-width="1" />
-    </svg>
 
     <!-- Lightning bolts — rendered before clouds so clouds layer on top -->
     <template v-if="isStorm && boltsVisible">
@@ -164,7 +154,7 @@ const props = defineProps({
   forceFog:             { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['grass-color', 'open-sun-sheet', 'open-moon-sheet'])
+const emit = defineEmits(['grass-color'])
 
 // ── Derived preview values ─────────────────────────────────────────────────
 const effectiveWind = computed(() => props.previewWind ?? props.windSpeed)
@@ -570,47 +560,11 @@ watch([timeOfDay, group], ([, ], [oldTod, oldGrp]) => {
 })
 
 // ── Sun / Moon / Stars ─────────────────────────────────────────────────────
-const sunOpacity = computed(() => {
-  if (!isDay.value) return 0
-  const maxClouds = group.value === 'partly' ? 4 : 3
-  if (cloudCount.value > maxClouds) return 0
-  return cloudCount.value <= 1 ? 1 : 0.6
-})
-const moonOpacity = computed(() => {
-  if (timeOfDay.value !== 'night') return 0
-  const c = cloudCount.value
-  if (c === 0) return 1
-  if (c <= 3)  return 0.55
-  if (c <= 5)  return 0.25
-  return 0.12  // storm / fully overcast
-})
 const starsOpacity = computed(() => {
   if (timeOfDay.value !== 'night') return 0
   const g = group.value
   return (g === 'clear' || g === 'partly') ? 1 : 0
 })
-
-// ── Moon phase ─────────────────────────────────────────────────────────────
-// Phase 0 = new moon, 0.25 = first quarter, 0.5 = full, 0.75 = last quarter
-const moonPhase = computed(() => {
-  const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime()
-  const lunarPeriod  = 29.53058867 * 24 * 60 * 60 * 1000
-  const t            = Date.now()
-  return ((t - knownNewMoon) % lunarPeriod + lunarPeriod) % lunarPeriod / lunarPeriod
-})
-
-function moonPathForPhase(p) {
-  if (p < 0.02 || p > 0.98) return ''
-  const R = 20, cx = 20, cy = 20
-  const tx = Math.cos(2 * Math.PI * p) * R
-  const atx = Math.abs(tx)
-  const litOnRight = (p < 0.5) !== (props.lat < 0)
-  const s1 = litOnRight ? 1 : 0
-  const s2 = (litOnRight === (tx < 0)) ? 1 : 0
-  return `M ${cx},${cy - R} A ${R},${R} 0 0,${s1} ${cx},${cy + R} A ${atx},${R} 0 0,${s2} ${cx},${cy - R} Z`
-}
-
-const moonPhasePath = computed(() => moonPathForPhase(moonPhase.value))
 
 const stars = Array.from({ length: 38 }, (_, i) => ({
   id: i,
@@ -886,36 +840,6 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
   8%   { opacity: 1; }
   75%  { opacity: 0.7; }
   100% { transform: rotate(var(--star-angle, 30deg)) translateX(360px);  opacity: 0; }
-}
-
-/* ── Sun ──────────────────────────────────────────────────────────────────── */
-.sun {
-  position: absolute;
-  top: 32px;
-  right: 12%;
-  width: 54px;
-  height: 54px;
-  background: radial-gradient(circle at 38% 38%, #FFFFFF, #FFD54F 40%, #FFA000 68%, transparent);
-  border-radius: 50%;
-  box-shadow: 0 0 28px 8px rgba(255,213,79,0.45), 0 0 60px 24px rgba(255,179,0,0.22), 0 0 100px 40px rgba(255,160,0,0.12);
-  transition: opacity 2.5s ease;
-  cursor: pointer;
-}
-
-/* ── Moon ─────────────────────────────────────────────────────────────────── */
-.moon {
-  position: absolute;
-  top: 28px;
-  right: 12%;
-  width: 64px;
-  height: 64px;
-  overflow: visible;
-  filter:
-    drop-shadow(0 0 6px rgba(187,222,251,0.55))
-    drop-shadow(0 0 18px rgba(187,222,251,0.28));
-  pointer-events: auto;
-  cursor: pointer;
-  transition: opacity 2.5s ease;
 }
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */

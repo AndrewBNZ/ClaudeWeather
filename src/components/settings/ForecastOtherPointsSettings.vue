@@ -46,21 +46,39 @@ import { TILE_ICONS } from '../../utils/tileIcons.js'
 import { DATA_TYPES, POINT_LABELS } from '../../utils/dataTypes.js'
 
 const props = defineProps({
-  type: { type: String, required: true }, // 'daily' | 'hourly'
+  type: { type: String, required: true }, // 'daily' | 'hourly' | 'combined'
 })
 
 const {
-  dailyForecastLayout, hourlyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout,
   toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints,
   toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints,
+  toggleCombinedOtherPoint, toggleCombinedOtherPointPicker, reorderCombinedOtherPoints,
 } = useSettings()
 
-const isDaily = computed(() => props.type === 'daily')
-const layout  = computed(() => isDaily.value ? dailyForecastLayout.value : hourlyForecastLayout.value)
+const layout = computed(() => {
+  if (props.type === 'daily')    return dailyForecastLayout.value
+  if (props.type === 'combined') return combinedForecastLayout.value
+  return hourlyForecastLayout.value
+})
 
-const toggleOtherPoint       = computed(() => isDaily.value ? toggleDailyOtherPoint       : toggleHourlyOtherPoint)
-const toggleOtherPointPicker = computed(() => isDaily.value ? toggleDailyOtherPointPicker : toggleHourlyOtherPointPicker)
-const reorderOtherPoints     = computed(() => isDaily.value ? reorderDailyOtherPoints     : reorderHourlyOtherPoints)
+const toggleOtherPoint = computed(() => {
+  if (props.type === 'daily')    return toggleDailyOtherPoint
+  if (props.type === 'combined') return toggleCombinedOtherPoint
+  return toggleHourlyOtherPoint
+})
+
+const toggleOtherPointPicker = computed(() => {
+  if (props.type === 'daily')    return toggleDailyOtherPointPicker
+  if (props.type === 'combined') return toggleCombinedOtherPointPicker
+  return toggleHourlyOtherPointPicker
+})
+
+const reorderOtherPoints = computed(() => {
+  if (props.type === 'daily')    return reorderDailyOtherPoints
+  if (props.type === 'combined') return reorderCombinedOtherPoints
+  return reorderHourlyOtherPoints
+})
 
 const otherPoints = computed(() => {
   const mainType = layout.value.mainDataPoint

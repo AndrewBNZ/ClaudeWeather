@@ -56,7 +56,7 @@ export const MODELS = [
 ]
 
 export function getVariant() {
-  return localStorage.getItem(MODEL_STG) ?? 'best_match'
+  return localStorage.getItem(MODEL_STG) ?? 'ecmwf_ifs'
 }
 
 /**

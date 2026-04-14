@@ -15,10 +15,11 @@
           <div class="settings-header-actions">
             <button
               v-if="subPanel === 'customAlerts' && alertsEditorPage === 'editor'"
-              class="setting-action-btn sub-panel-save-btn"
-              :disabled="!customAlertsRef?.canSave"
-              @click="customAlertsRef?.saveAlert()"
-            >Save</button>
+              class="toggle-switch"
+              :class="{ on: customAlertsRef?.alertEnabled }"
+              @click="customAlertsRef.alertEnabled = !customAlertsRef.alertEnabled"
+              title="Enable alert"
+            ><span class="toggle-thumb" /></button>
             <button class="settings-tab-close" @click="$emit('close')">✕</button>
           </div>
         </div>
@@ -71,6 +72,16 @@
         <!-- Daily Forecast → Other data points sub-panel -->
         <div class="settings-tab-pane" :data-pane="'dailyOtherPoints'" :class="paneClass('dailyOtherPoints')">
           <ForecastOtherPointsSettings type="daily" />
+        </div>
+
+        <!-- Combined Forecast layout sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'combinedForecast'" :class="paneClass('combinedForecast')">
+          <ForecastSettings type="combined" @navigate="navigate" />
+        </div>
+
+        <!-- Combined Forecast → Other data points sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'combinedOtherPoints'" :class="paneClass('combinedOtherPoints')">
+          <ForecastOtherPointsSettings type="combined" />
         </div>
 
         <!-- Custom Alerts layout sub-panel -->
@@ -183,7 +194,7 @@ defineExpose({
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
+const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', combinedForecast: 'Combined Forecast', combinedOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -273,7 +284,7 @@ function navigateBack() {
   }
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
   const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
-  const FORECAST_SUBPANELS = { hourlyOtherPoints: 'hourlyForecast', dailyOtherPoints: 'dailyForecast' }
+  const FORECAST_SUBPANELS = { hourlyOtherPoints: 'hourlyForecast', dailyOtherPoints: 'dailyForecast', combinedOtherPoints: 'combinedForecast' }
   let target, newSubPanel
   if (DATA_SUBPANELS.includes(subPanel.value)) {
     target = 'data'; newSubPanel = null
@@ -1175,12 +1186,11 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   background: none;
   color: var(--text-muted);
   font-size: 0.82rem;
-  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .data-point-opt:hover:not(.active) { background: var(--btn-hover); color: var(--text); }
-.data-point-opt.active { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; }
+.data-point-opt.active { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; font-weight: 600; }
 
 .layout-section-label {
   font-size: 0.72rem;

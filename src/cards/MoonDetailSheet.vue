@@ -192,11 +192,13 @@ function formatTimeDate(date, format) {
 
 const todayLabel = computed(() => {
   const src = props.daily?.sunrise?.[0]
-  if (!src) return 'Today'
+  if (!src) return showingTomorrow.value ? 'Tomorrow' : 'Today'
   const dateStr = src.slice(0, 10)
   const [y, mo, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, mo - 1, d, 12))
-  return 'Today · ' + dt.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+  const offset = showingTomorrow.value ? 1 : 0
+  const dt = new Date(Date.UTC(y, mo - 1, d + offset, 12))
+  const prefix = showingTomorrow.value ? 'Tomorrow' : 'Today'
+  return prefix + ' · ' + dt.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 })
 
 const refDate = computed(() => {
@@ -208,20 +210,26 @@ const refDate = computed(() => {
 
 const refMs = computed(() => refDate.value.getTime() + 12 * 3600000)
 
+const showingTomorrow = computed(() => {
+  const today = moonRiseSet(refDate.value, props.lat, props.lon, props.utcOffset)
+  return !!(today.set && Date.now() > today.set.getTime())
+})
+
 const riseSet = computed(() => {
+  const tomorrow = new Date(refDate.value.getTime() + 86400000)
   const today = moonRiseSet(refDate.value, props.lat, props.lon, props.utcOffset)
   const now = Date.now()
 
-  // If today's moonset has passed, get tomorrow's times for the arc display
+  // If today's moonset has passed, show tomorrow's rise/set pair
   if (today.set && now > today.set.getTime()) {
-    const tomorrow = new Date(refDate.value.getTime() + 86400000)
+    return moonRiseSet(tomorrow, props.lat, props.lon, props.utcOffset)
+  }
+
+  // If the moon rises today but sets tomorrow (no set in today's window),
+  // borrow tomorrow's set so the display isn't blank
+  if (today.rise && !today.set) {
     const tomorrowRiseSet = moonRiseSet(tomorrow, props.lat, props.lon, props.utcOffset)
-    // Use today's rise (if it exists) with tomorrow's set, or tomorrow's rise/set if today's rise doesn't exist
-    if (today.rise) {
-      return { rise: today.rise, set: tomorrowRiseSet.set || today.set }
-    } else {
-      return tomorrowRiseSet
-    }
+    return { rise: today.rise, set: tomorrowRiseSet.set }
   }
 
   return today

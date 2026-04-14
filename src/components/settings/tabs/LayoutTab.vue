@@ -13,9 +13,9 @@
     <div v-for="(card, i) in cardConfig" :key="card.type"
       :data-card-idx="i"
       class="setting-row setting-row--draggable"
-      :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': CARD_SUBPANEL[card.type] && card.enabled }"
+      :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts') }"
       draggable="true"
-      @click="CARD_SUBPANEL[card.type] && card.enabled && $emit('navigate', CARD_SUBPANEL[card.type])"
+      @click="CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts') && $emit('navigate', CARD_SUBPANEL[card.type])"
       @dragstart="onCardDragStart($event, i)"
       @dragover="onCardDragOver($event, i)"
       @dragend="onCardDragEnd"
@@ -27,7 +27,10 @@
         <div class="setting-row-label-group">
           <span class="card-icon" v-html="CARD_ICONS[card.type]"></span>
           <div>
-            <div class="setting-label">{{ CARD_META[card.type].label }}</div>
+            <div class="setting-label">
+              {{ CARD_META[card.type].label }}
+              <span v-if="card.type === 'combinedForecast'" class="beta-tag">beta</span>
+            </div>
             <div class="setting-hint" style="display: none;">{{ CARD_HINTS[card.type] }}</div>
           </div>
         </div>
@@ -36,13 +39,16 @@
         <span class="toggle-thumb" />
       </button>
       <button
-        v-if="CARD_SUBPANEL[card.type] && card.enabled"
+        v-if="CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts')"
         class="setting-chevron-btn"
         @click.stop="$emit('navigate', CARD_SUBPANEL[card.type])"
       >
         <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <div v-else class="setting-chevron-placeholder"></div>
+    </div>
+    <div class="setting-row" style="justify-content:center; padding: 8px 12px;">
+      <button class="setting-action-btn" @click="resetCardLayout">Reset layout to defaults</button>
     </div>
   </div>
 </template>
@@ -54,16 +60,17 @@ import { CARD_ICONS } from '../../../utils/tileIcons.js'
 
 defineEmits(['navigate'])
 
-const { cardConfig, toggleCard, reorderCards } = useSettings()
+const { cardConfig, toggleCard, reorderCards, resetCardLayout } = useSettings()
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', combinedForecast: 'combinedForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
 const CARD_HINTS = {
-  combinedHourly:  'Configure the hourly forecast card',
-  dailyForecast:   'Configure the daily forecast card',
-  sunriseMoon:     'Sunrise, sunset and moon phase',
-  radar:           'Radar map',
-  customAlerts:    'Set up custom weather alerts',
-  weatherWarnings: 'Configure the weather warnings feed',
+  combinedHourly:   'Configure the hourly forecast card',
+  dailyForecast:    'Configure the daily forecast card',
+  combinedForecast: 'Configure the combined daily + hourly forecast card',
+  sunriseMoon:      'Sunrise, sunset and moon phase',
+  radar:            'Radar map',
+  customAlerts:     'Set up custom weather alerts',
+  weatherWarnings:  'Configure the weather warnings feed',
 }
 
 const cardDragIndex = ref(null)
@@ -102,3 +109,20 @@ function _onCardTouchEnd() {
   document.removeEventListener('touchend', _onCardTouchEnd)
 }
 </script>
+
+<style scoped>
+.beta-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(139, 92, 246, 0.75);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+</style>

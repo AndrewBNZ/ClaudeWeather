@@ -23,13 +23,16 @@
         />
       </div>
     </div>
-    <div class="setting-row">
-      <div class="setting-label">Enabled</div>
-      <button
-        class="toggle-switch"
-        :class="{ on: editingAlert.enabled }"
-        @click="editingAlert.enabled = !editingAlert.enabled"
-      ><span class="toggle-thumb" /></button>
+    <div class="setting-row setting-row--col" style="gap: 0.5rem">
+      <div class="setting-label">Look ahead</div>
+      <div class="unit-pill">
+        <button
+          v-for="opt in FORECAST_DAY_OPTS"
+          :key="opt.value ?? 'all'"
+          :class="['unit-pill-opt', { active: (editingAlert.forecastDays ?? null) === opt.value }]"
+          @click="editingAlert.forecastDays = opt.value"
+        >{{ opt.label }}</button>
+      </div>
     </div>
     <AlertTapDataTypePicker v-model="editingAlert.tapDataType" />
   </div>
@@ -206,7 +209,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useSettings } from '../../composables/useSettings.js'
 import RangeSlider from '../ui/RangeSlider.vue'
 import AlertTapDataTypePicker from './AlertTapDataTypePicker.vue'
@@ -221,6 +224,14 @@ const { customAlerts, unitPrefs } = useSettings()
 
 const DAY_LABELS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const COMPASS_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+const FORECAST_DAY_OPTS = [
+  { label: '1d',  value: 1 },
+  { label: '2d',  value: 2 },
+  { label: '3d',  value: 3 },
+  { label: '5d',  value: 5 },
+  { label: '7d',  value: 7 },
+  { label: 'All', value: null },
+]
 const COLOR_PALETTE = [
   '#ef4444', '#f97316', '#eab308', '#22c55e',
   '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899', '#94a3b8',
@@ -240,6 +251,7 @@ function makeNewAlert() {
     color:   '#3b82f6',
     enabled: true,
     tapDataType:  'none',
+    forecastDays: null,
     daysOfWeek:   { enabled: false, days: [0, 1, 2, 3, 4, 5, 6] },
     betweenHours: { enabled: false, from: 8, to: 18 },
     temperature:  { enabled: false, min: null, max: null },
@@ -275,7 +287,12 @@ const hasWeatherCriteria = computed(() =>
 
 const canSave = computed(() => !!editingAlert.title?.trim() && hasWeatherCriteria.value)
 
-function saveAlert() {
+// Track whether this is a new alert that has never been saveable yet.
+// We don't persist a new alert until canSave is first true, to avoid
+// storing incomplete drafts.
+const everSaveable = ref(props.alertIndex >= 0)
+
+function persist() {
   if (!canSave.value) return
   const copy = JSON.parse(JSON.stringify(editingAlert))
   if (props.alertIndex >= 0) {
@@ -283,16 +300,47 @@ function saveAlert() {
     arr[props.alertIndex] = copy
     customAlerts.value = arr
   } else {
-    customAlerts.value = [...customAlerts.value, copy]
+    // New alert — append once, then it behaves like an edit from that point
+    // (alertIndex prop won't change, so we track by id instead)
+    const existing = customAlerts.value.findIndex(a => a.id === editingAlert.id)
+    if (existing >= 0) {
+      const arr = [...customAlerts.value]
+      arr[existing] = copy
+      customAlerts.value = arr
+    } else {
+      customAlerts.value = [...customAlerts.value, copy]
+    }
   }
+}
+
+let saveTimer = null
+watch(() => JSON.parse(JSON.stringify(editingAlert)), () => {
+  if (!everSaveable.value) {
+    if (!canSave.value) return
+    everSaveable.value = true
+  }
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(persist, 400)
+}, { deep: true })
+
+function saveAlert() {
+  clearTimeout(saveTimer)
+  persist()
   emit('save')
 }
 
 function cancelEditor() {
+  clearTimeout(saveTimer)
+  persist()
   emit('cancel')
 }
 
-defineExpose({ saveAlert, cancelEditor, canSave })
+const alertEnabled = computed({
+  get: () => editingAlert.enabled ?? true,
+  set: (v) => { editingAlert.enabled = v },
+})
+
+defineExpose({ saveAlert, cancelEditor, canSave, alertEnabled })
 
 function formatHourLabel(h) {
   const ampm = h >= 12 ? 'pm' : 'am'

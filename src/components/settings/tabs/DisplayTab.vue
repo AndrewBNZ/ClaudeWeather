@@ -12,17 +12,7 @@
         <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
       </div>
     </div>
-    <div class="setting-row setting-row--col">
-      <div>
-        <div class="setting-label">Wide layout</div>
-        <div class="setting-hint">{{ { auto: 'Two columns on tablet and desktop', always: 'Always two columns', off: 'Always single column' }[landscapeMode] }}</div>
-      </div>
-      <div class="unit-pill">
-        <button :class="['unit-pill-opt', { active: landscapeMode === 'auto' }]"   @click="landscapeMode = 'auto'">Auto</button>
-        <button :class="['unit-pill-opt', { active: landscapeMode === 'always' }]" @click="landscapeMode = 'always'">Always</button>
-        <button :class="['unit-pill-opt', { active: landscapeMode === 'off' }]"    @click="landscapeMode = 'off'">Off</button>
-      </div>
-    </div>
+
   </div>
   <div class="settings-group">
     <button class="setting-row setting-row--nav" @click="$emit('navigate', 'units')">

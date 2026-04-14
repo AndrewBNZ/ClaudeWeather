@@ -237,6 +237,10 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 function summarizeCriteria(alert) {
   const parts = []
 
+  if (alert.forecastDays != null) {
+    parts.push(`Next ${alert.forecastDays}d`)
+  }
+
   if (alert.daysOfWeek?.enabled && alert.daysOfWeek.days?.length) {
     const days = [...alert.daysOfWeek.days].sort((a, b) => a - b)
     // Check if it's a contiguous run

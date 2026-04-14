@@ -1,9 +1,10 @@
 <template>
   <div class="daily-card card">
     <div v-if="layout.showTitle" class="daily-header">
+      <span class="card-title-icon" v-html="CARD_ICONS.dailyForecast"></span>
       <h3 class="daily-title">Daily Forecast</h3>
     </div>
-    <div class="forecast-grid">
+    <div v-if="layout.chartStyle !== 'vertical'" class="forecast-grid">
       <!-- Sticky left column: icons only -->
       <div class="labels-col">
         <div class="lbl-day-row"></div>
@@ -27,10 +28,9 @@
       <div class="days-scroll" ref="daysScrollRef">
         <div class="days-row">
           <div
-            v-for="(date, i) in days"
+            v-for="(date, i) in displayDays"
             :key="date"
             class="day-col"
-            :class="{ 'is-selected': i === selectedDay }"
             :ref="el => { if (el) dayColRefs[i] = el }"
             @click="emit('day-selected', i)"
           >
@@ -141,7 +141,7 @@
           <svg
             v-if="layout.chartStyle === 'line' && dailyLinePoints.length > 1"
             class="daily-line-svg"
-            :width="days.length * COL_WIDTH"
+            :width="displayDays.length * COL_WIDTH"
             :height="DAY_COL_TOP_OFFSET + ICON_TRACK_H"
             aria-hidden="true"
           >
@@ -155,6 +155,70 @@
               stroke-linejoin="round"
             />
           </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical list style -->
+    <div v-if="layout.chartStyle === 'vertical'" class="vertical-list">
+      <div
+        v-for="(date, i) in displayDays"
+        :key="date"
+        class="vrow"
+        :style="{ gridTemplateColumns: [
+          '52px',
+          layout.showConditions ? '28px' : null,
+          '1fr',
+          visibleOtherPoints.length ? '44px' : null,
+        ].filter(Boolean).join(' ') }"
+        @click="emit('day-selected', i)"
+      >
+        <!-- Day label -->
+        <div class="vrow-day">{{ dayLabel(date) }}</div>
+
+        <!-- Condition icon -->
+        <div v-if="layout.showConditions" class="vrow-icon">
+          <WeatherIcon :code="wxCode(i)" />
+        </div>
+
+        <!-- Horizontal data bar -->
+        <div class="vrow-bar-wrap">
+          <template v-if="FLOATING_BAR_TYPES.has(activeDataPoint)">
+            <span class="vbar-lo">{{ fmtTemp(mainLo[i]) }}</span>
+            <div class="vbar-track">
+              <div class="vbar-fill" :style="hBarStyle(i)"></div>
+            </div>
+            <span class="vbar-hi">{{ fmtTemp(mainHi[i]) }}</span>
+          </template>
+          <template v-else>
+            <div class="vbar-track">
+              <div class="vbar-fill vbar-fill--simple" :style="hBarStyleSimple(i)"></div>
+            </div>
+            <span class="vbar-val">{{ fmtMainValue(i) }}</span>
+          </template>
+        </div>
+
+        <!-- First other data point (units hidden for compact fit) -->
+        <div v-if="visibleOtherPoints.length" class="vrow-extra" :style="{ color: ptColor(visibleOtherPoints[0].type) }">
+          <template v-if="visibleOtherPoints[0].type === 'rainProb'">{{ fmtProb(i).replace('%', '') }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'rainAmount'">{{ fmtPrecip(i) }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'wind'">
+            <span v-if="windDirs[i] != null" class="wind-dir-arrow">
+              <svg viewBox="0 0 14 14" fill="none" aria-hidden="true"
+                   :style="{ transform: `rotate(${windRotation(i)}deg)`, transformOrigin: '50% 50%' }">
+                <line x1="7" y1="12" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <polygon points="7,2 4,7 10,7" fill="currentColor"/>
+              </svg>
+            </span>
+            {{ fmtWind(i) }}
+          </template>
+          <template v-else-if="visibleOtherPoints[0].type === 'gusts'">{{ fmtGusts(i) }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'feelsLike'">{{ fmtTemp(feelsLikeMax[i]).replace('°', '') }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'uv'">{{ fmtUv(i) }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'humidity'">{{ fmtHumidity(i).replace('%', '') }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'cloudCover'">{{ fmtCloudCover(i).replace('%', '') }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'pressure'">{{ fmtPressure(i) }}</template>
+          <template v-else-if="visibleOtherPoints[0].type === 'visibility'">{{ fmtVisibility(i) }}</template>
         </div>
       </div>
     </div>
@@ -173,7 +237,7 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import { DATA_TYPES, DATA_TYPE_LIST, getDailyAvgFromHourly } from '../utils/dataTypes.js'
 import { DEFAULT_DAILY_FORECAST_LAYOUT } from '../composables/useSettings.js'
-import { TILE_ICONS } from '../utils/tileIcons.js'
+import { TILE_ICONS, CARD_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
 import WeatherIcon from '../components/WeatherIcon.vue'
 
@@ -259,7 +323,11 @@ function ptColor(type) {
   return DATA_TYPES[type]?.color ?? 'inherit'
 }
 
-const days     = computed(() => props.daily?.time ?? [])
+const days        = computed(() => props.daily?.time ?? [])
+const displayDays = computed(() => {
+  const n = layout.value.numDays
+  return n != null ? days.value.slice(0, n) : days.value
+})
 const maxTemps = computed(() => props.daily?.temperature_2m_max ?? [])
 const minTemps = computed(() => props.daily?.temperature_2m_min ?? [])
 const windDirs = computed(() => props.daily?.wind_direction_10m_dominant ?? [])
@@ -528,6 +596,32 @@ function barStyleSimple(i) {
   return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
 }
 
+// ── Vertical style — horizontal bars ─────────────────────────────────────────
+
+// Floating bar (temperature / feelsLike): position + width within the global range
+function hBarStyle(i) {
+  const lo    = globalTempMin.value
+  const hi    = globalTempMax.value
+  const range = hi - lo || 1
+  const hiSrc = activeDataPoint.value === 'feelsLike' ? feelsLikeMax.value : maxTemps.value
+  const loSrc = activeDataPoint.value === 'feelsLike' ? feelsLikeMin.value : minTemps.value
+  const dayMax = hiSrc[i] ?? hi
+  const dayMin = loSrc[i] ?? lo
+  const leftPct  = ((dayMin - lo) / range) * 100
+  const widthPct = ((dayMax - dayMin) / range) * 100
+  const bg = DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color
+  return { left: `${leftPct}%`, width: `${Math.max(widthPct, 4)}%`, background: bg }
+}
+
+// Simple bottom-anchored bar (rain / wind / uv etc): fills from left proportional to value
+function hBarStyleSimple(i) {
+  const val    = mainHi.value[i] ?? 0
+  const maxVal = globalMainMax.value || 1
+  const bg     = DATA_TYPES[activeDataPoint.value]?.color ?? DATA_TYPES.temperature.color
+  const widthPct = val === 0 ? 0 : Math.max((val / maxVal) * 100, 4)
+  return { width: `${widthPct}%`, background: bg }
+}
+
 // ── Line chart ────────────────────────────────────────────────────────────────
 
 const activeColor = computed(() => DATA_TYPES[activeDataPoint.value]?.color ?? '#f97316')
@@ -538,7 +632,7 @@ const dailyLinePoints = computed(() => {
   const hi    = globalTempMax.value
   const range = hi - lo || 1
   const usable = ICON_TRACK_H - ICON_GROUP_H
-  return days.value.map((_, i) => {
+  return displayDays.value.map((_, i) => {
     let ratio
     if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
       const val = mainHi.value[i] ?? hi
@@ -562,7 +656,24 @@ const dailyLinePoints = computed(() => {
 }
 
 .daily-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 5px;
+}
+
+.card-title-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.card-title-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+.card-title-icon :deep(svg), .card-title-icon :deep(svg *) {
+  stroke: currentColor;
+  fill: none;
 }
 
 .daily-title {
@@ -851,6 +962,100 @@ const dailyLinePoints = computed(() => {
 }
 .wx-icon {
   font-size: 1.5rem;
+}
+
+/* ── Vertical list style ──────────────────────────── */
+.vertical-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vrow {
+  display: grid;
+  grid-template-columns: 52px 28px 1fr 44px;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+@media (hover: hover) {
+  .vrow:hover {
+    background: var(--card-hover);
+  }
+}
+
+.vrow-day {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vrow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.vrow-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vbar-lo,
+.vbar-hi,
+.vbar-val {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: right;
+}
+
+.vbar-hi {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.vbar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--card-hover);
+  position: relative;
+  overflow: hidden;
+  min-width: 20px;
+}
+
+.vbar-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.vbar-fill--simple {
+  left: 0;
+}
+
+.vrow-extra {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
 }
 
 /* ── Show scrollbar on non-touch devices ──────────── */

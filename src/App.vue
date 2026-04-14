@@ -140,6 +140,9 @@
             </div>
           </div>
 
+          <!-- Grass-to-background fade at bottom of scene -->
+          <div class="scene-bottom-fade"></div>
+
           <!-- Sim panel overlay -->
           <div v-if="showSim" class="sim-bar">
             <div v-if="simExpanded" class="sim-panel">
@@ -217,6 +220,7 @@
                 :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
                 :daily-forecast-layout="dailyForecastLayout"
                 :hourly-forecast-layout="hourlyForecastLayout"
+                :combined-forecast-layout="combinedForecastLayout"
                 :warnings-config="warningsConfig"
                 :custom-alerts-config="customAlertsConfig"
                 :custom-alert-results="customAlertResults"
@@ -365,7 +369,7 @@ import { useToast }  from './composables/useToast.js'
 const {
   timeFormat, showSim, cardStyle,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-  dailyForecastLayout, hourlyForecastLayout, warningsConfig,
+  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout, warningsConfig,
   customAlertsConfig, customAlerts,
   landscapeMode,
 } = useSettings()
@@ -391,7 +395,7 @@ const focusHour           = ref(null)
 const alertHighlightHours = ref(null)
 const alertHighlightColor = ref(null)
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', combinedForecast: 'combinedForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar' }
 
 function onOpenCardSettings(cardType) {
   const sub = CARD_SUBPANEL[cardType]
@@ -1017,19 +1021,43 @@ if (!isGeoActive.value) {
 .scroll-root::-webkit-scrollbar { display: none; }
 .scroll-root.blurred { filter: blur(2px); pointer-events: none; }
 
+@media (min-width: 900px) {
+  .scroll-root { scrollbar-width: thin; }
+  .scroll-root::-webkit-scrollbar { display: block; width: 6px; }
+  .scroll-root::-webkit-scrollbar-track { background: transparent; }
+  .scroll-root::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+  .scroll-root::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+}
+
 /* ── Scene block ─────────────────────────────────────────────────────────── */
 .scene-block {
   position: relative;
-  height: 300px;
-  overflow: hidden;
+  z-index: 1;
+  height: 250px;
+  overflow: visible;
   max-width: 640px;
   margin-left: auto;
   margin-right: auto;
 }
 
+.scene-bottom-fade {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, var(--grass-color), transparent);
+  pointer-events: none;
+  z-index: 5;
+}
+
 /* transparent wrapper — fills width in portrait, scrollable column in landscape */
 .cards-column {
   width: 100%;
+}
+
+.radar-fullscreen .scene-top-bar {
+  display: none;
 }
 
 .scene-top-bar {
@@ -1132,6 +1160,9 @@ if (!isGeoActive.value) {
 /* ── Card stack ──────────────────────────────────────────────────────────── */
 .card-stack {
   padding: 12px;
+  margin-top: -15px;
+  position: relative;
+  z-index: 10;
 }
 
 .card-stack-inner {
@@ -1148,8 +1179,13 @@ if (!isGeoActive.value) {
   .card-stack--flat { padding-bottom: 40px; }
 }
 
+@media (min-width: 900px) {
+  .card-stack-inner { max-width: 610px; }
+}
+
 /* ── Flat card style ─────────────────────────────────────────────────────── */
 .card-stack--flat {
+  margin-top: 0;
 }
 
 .card-stack--flat .card-stack-inner {
@@ -1565,6 +1601,7 @@ if (!isGeoActive.value) {
 }
 .app-shell--landscape .card-stack {
   padding: 12px;
+  margin-top: 0;
 }
 .app-shell--landscape .data-footer {
   display: none;

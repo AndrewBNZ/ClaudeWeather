@@ -17,7 +17,7 @@
   /* colour palette */
   --bg: #0a0a0a;
   --bg2: #141414;
-  --card: rgba(255, 255, 255, 0.05);
+  --card: #1a1a1a;
   --card-border: rgba(255, 255, 255, 0.08);
   --card-hover: rgba(255, 255, 255, 0.08);
   --text: #f1f5f9;
@@ -57,7 +57,7 @@
 .light-theme {
   --bg: #f0f4f8;
   --bg2: #e2e8f0;
-  --card: rgba(255, 255, 255, 0.78);
+  --card: #ffffff;
   --card-border: rgba(0, 0, 0, 0.09);
   --card-hover: rgba(0, 0, 0, 0.05);
   --text: #0f172a;
@@ -110,8 +110,6 @@ html, body {
   background: var(--card);
   border: 0px solid var(--card-border);
   border-radius: var(--radius);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 button {

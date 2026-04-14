@@ -33,6 +33,14 @@ export function evaluateCustomAlerts(alerts, hourly) {
   for (const alert of alerts) {
     if (!alert.enabled) continue
 
+    // Compute the cutoff date if forecastDays is set (null = no limit)
+    let cutoffDateStr = null
+    if (alert.forecastDays != null && alert.forecastDays > 0) {
+      const cutoff = new Date(now)
+      cutoff.setDate(cutoff.getDate() + alert.forecastDays - 1)
+      cutoffDateStr = cutoff.toISOString().slice(0, 10)
+    }
+
     // date string → Set of matching hours
     const matchMap = new Map()
 
@@ -47,6 +55,11 @@ export function evaluateCustomAlerts(alerts, hourly) {
 
       // Skip hours from today that have already passed
       if (dateStr === todayStr && hourOfDay < currentHour) {
+        match = false
+      }
+
+      // Skip hours beyond the forecast day limit
+      if (match && cutoffDateStr && dateStr > cutoffDateStr) {
         match = false
       }
 
