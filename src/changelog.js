@@ -2,6 +2,14 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.15",
+    entries: [
+      "New daily dashboard card",
+      "Option to adjust forecast card size",
+      "Show up to 3 other data points in vertical daily chart",
+   ],
+  },
+  {
     version: "1.2.14",
     entries: [
       "Vertical chart style for daily forecast",

@@ -31,6 +31,7 @@ const RADAR_CONFIG_KEY              = `${P}-radar-config`
 const LANDSCAPE_MODE_KEY            = `${P}-landscape-mode`
 const ICON_SET_KEY                  = `${P}-icon-set`
 const COMBINED_FORECAST_LAYOUT_KEY  = `${P}-combined-forecast-layout`
+const DAY_SEGMENT_LAYOUT_KEY        = `${P}-day-segment-layout`
 
 export const SCENE_OVERLAY_SLOT_OPTIONS = [
   { type: 'none',      label: 'None',      iconKey: null },
@@ -64,6 +65,7 @@ export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showDataPointPicker: false,
   showDate:            false,
   chartStyle:          'vertical',
+  chartSize:           'M',
   numDays:             7,
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST.filter(t => !t.isMap).map(t => ({ type: t.id, enabled: DEFAULT_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_PICKER_ENABLED.has(t.id) })),
@@ -78,10 +80,28 @@ export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showDataPointPicker: true,
   showSunriseSunset:   true,
   chartStyle:          'line',
+  chartSize:           'M',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST
     .filter(t => !t.isMap && t.hourlyKey != null)
     .map(t => ({ type: t.id, enabled: DEFAULT_HOURLY_CHART_ENABLED.has(t.id), showInPicker: DEFAULT_HOURLY_PICKER_ENABLED.has(t.id) })),
+}
+
+const DEFAULT_DAY_SEGMENT_ENABLED = new Set(['temperature', 'rainAmount', 'rainProb', 'wind'])
+
+export const DEFAULT_DAY_SEGMENT_LAYOUT = {
+  showTitle:   true,
+  size:        'M',
+  dataPoints:  DATA_TYPE_LIST
+    .filter(t => !t.isMap && t.hourlyKey != null)
+    .map(t => ({ type: t.id, enabled: DEFAULT_DAY_SEGMENT_ENABLED.has(t.id) })),
+  // Hour ranges for each segment: [startHour, endHour) — inclusive start, exclusive end
+  morningStart:   6,
+  morningEnd:     12,
+  afternoonStart: 12,
+  afternoonEnd:   18,
+  eveningStart:   18,
+  eveningEnd:     24,
 }
 
 export const DEFAULT_COMBINED_FORECAST_LAYOUT = {
@@ -90,6 +110,7 @@ export const DEFAULT_COMBINED_FORECAST_LAYOUT = {
   showDataPointPicker: true,
   showSunriseSunset:   false,
   chartStyle:          'bar',
+  chartSize:           'M',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST
     .filter(t => !t.isMap && t.hourlyKey != null)
@@ -124,6 +145,7 @@ export const CARD_META = {
   combinedHourly:   { icon: '🕐', label: 'Hourly Forecast' },
   dailyForecast:    { icon: '📅', label: 'Daily Forecast' },
   combinedForecast: { icon: '📊', label: 'Combined Forecast' },
+  daySegment:       { icon: '🌅', label: 'Daily Dashboard' },
   sunriseMoon:      { icon: '🌙', label: 'Sun & Moon' },
   radar:            { icon: '🛰️', label: 'Radar' },
   customAlerts:     { icon: '🔔', label: 'Custom Alerts' },
@@ -132,6 +154,7 @@ export const CARD_META = {
 
 const DEFAULT_CARDS = [
   { type: 'weatherWarnings',  enabled: true },
+  { type: 'daySegment',       enabled: true },
   { type: 'combinedHourly',   enabled: true },
   { type: 'dailyForecast',    enabled: true },
   { type: 'combinedForecast', enabled: false },
@@ -235,6 +258,24 @@ function loadHourlyForecastLayout() {
     }
   } catch {}
   return { ...DEFAULT_HOURLY_FORECAST_LAYOUT, otherDataPoints: DEFAULT_HOURLY_FORECAST_LAYOUT.otherDataPoints.map(p => ({ ...p })) }
+}
+
+function loadDaySegmentLayout() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DAY_SEGMENT_LAYOUT_KEY))
+    if (raw && typeof raw === 'object') {
+      let pts = Array.isArray(raw.dataPoints)
+        ? raw.dataPoints
+        : DEFAULT_DAY_SEGMENT_LAYOUT.dataPoints.map(p => ({ ...p }))
+      const seenTypes = new Set()
+      pts = pts.filter(p => seenTypes.has(p.type) ? false : seenTypes.add(p.type))
+      for (const d of DEFAULT_DAY_SEGMENT_LAYOUT.dataPoints) {
+        if (!seenTypes.has(d.type)) pts.push({ ...d })
+      }
+      return { ...DEFAULT_DAY_SEGMENT_LAYOUT, ...raw, dataPoints: pts }
+    }
+  } catch {}
+  return { ...DEFAULT_DAY_SEGMENT_LAYOUT, dataPoints: DEFAULT_DAY_SEGMENT_LAYOUT.dataPoints.map(p => ({ ...p })) }
 }
 
 function loadCombinedForecastLayout() {
@@ -348,6 +389,7 @@ const showDailySummary = ref(localStorage.getItem(DAILY_SUMMARY_KEY) !== 'false'
 const dailyForecastLayout    = ref(loadDailyForecastLayout())
 const hourlyForecastLayout   = ref(loadHourlyForecastLayout())
 const combinedForecastLayout = ref(loadCombinedForecastLayout())
+const daySegmentLayout       = ref(loadDaySegmentLayout())
 const sceneOverlayLayout   = ref(loadSceneOverlayLayout())
 const warningsConfig       = ref(loadWarningsConfig())
 const customAlertsConfig   = ref(loadCustomAlertsConfig())
@@ -376,6 +418,7 @@ watch(showDailySummary,      (v) => localStorage.setItem(DAILY_SUMMARY_KEY, Stri
 watch(dailyForecastLayout,    (v) => { try { localStorage.setItem(DAILY_FORECAST_LAYOUT_KEY,    JSON.stringify(v)) } catch {} }, { deep: true })
 watch(hourlyForecastLayout,   (v) => { try { localStorage.setItem(HOURLY_FORECAST_LAYOUT_KEY,   JSON.stringify(v)) } catch {} }, { deep: true })
 watch(combinedForecastLayout, (v) => { try { localStorage.setItem(COMBINED_FORECAST_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
+watch(daySegmentLayout,       (v) => { try { localStorage.setItem(DAY_SEGMENT_LAYOUT_KEY,        JSON.stringify(v)) } catch {} }, { deep: true })
 watch(sceneOverlayLayout,    (v) => { try { localStorage.setItem(SCENE_OVERLAY_LAYOUT_KEY, JSON.stringify(v)) } catch {} }, { deep: true })
 watch(warningsConfig,        (v) => { try { localStorage.setItem(WARNINGS_CONFIG_KEY,      JSON.stringify(v)) } catch {} }, { deep: true })
 watch(customAlertsConfig,    (v) => { try { localStorage.setItem(CUSTOM_ALERTS_CONFIG_KEY,  JSON.stringify(v)) } catch {} }, { deep: true })
@@ -493,6 +536,21 @@ function setCombinedMainDataPoint(type) {
   combinedForecastLayout.value = { ...combinedForecastLayout.value, mainDataPoint: type }
 }
 
+// ── Day segment layout helpers ───────────────────────────────────────────────
+function toggleDaySegmentPoint(type) {
+  const pts = daySegmentLayout.value.dataPoints.map(p =>
+    p.type === type ? { ...p, enabled: !p.enabled } : p
+  )
+  daySegmentLayout.value = { ...daySegmentLayout.value, dataPoints: pts }
+}
+
+function reorderDaySegmentPoints(from, to) {
+  const arr = [...daySegmentLayout.value.dataPoints]
+  const [item] = arr.splice(from, 1)
+  arr.splice(to, 0, item)
+  daySegmentLayout.value = { ...daySegmentLayout.value, dataPoints: arr }
+}
+
 // ── Scene overlay helpers ─────────────────────────────────────────────────────
 function setSceneOverlaySlot(idx, type) {
   const slots = [...sceneOverlayLayout.value.slots]
@@ -520,13 +578,14 @@ export function useSettings() {
   return {
     theme, resolvedTheme, cardStyle, timeFormat, hourlyFirst, showSim, showDailySummary,
     tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-    dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout,
+    dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout, daySegmentLayout,
     UNIT_OPTIONS, TILE_META, CARD_META,
     toggleTile, setAllTiles, reorderTiles, addPageBreak, removePageBreak,
     toggleCard, reorderCards, resetCardLayout,
     toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints, setDailyMainDataPoint,
     toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints, setHourlyMainDataPoint,
     toggleCombinedOtherPoint, toggleCombinedOtherPointPicker, reorderCombinedOtherPoints, setCombinedMainDataPoint,
+    toggleDaySegmentPoint, reorderDaySegmentPoints,
     sceneOverlayLayout, setSceneOverlaySlot,
     warningsConfig,
     customAlertsConfig, customAlerts,

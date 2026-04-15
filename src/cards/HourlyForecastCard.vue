@@ -1,5 +1,5 @@
 <template>
-  <div class="card hourly-forecast-card">
+  <div class="card hourly-forecast-card" :style="cardSizeStyle">
     <!-- Header: title -->
     <div v-if="layout.showTitle" class="hf-header">
       <span class="card-title-icon" v-html="CARD_ICONS.combinedHourly"></span>
@@ -108,7 +108,7 @@
             v-if="layout.chartStyle === 'line' && linePoints.length > 1"
             class="hf-line-svg"
             :width="totalWidth"
-            :height="TRACK_H"
+            :height="iconTrackH"
             aria-hidden="true"
           >
             <polyline
@@ -224,6 +224,14 @@ const scrollEl = ref(null)
 // ── Layout config ─────────────────────────────────────────────────────────────
 
 const layout = computed(() => props.hourlyForecastLayout ?? DEFAULT_HOURLY_FORECAST_LAYOUT)
+
+const CHART_SIZE_MULT = { S: 1, M: 1.6, L: 2.2 }
+const chartSizeMult = computed(() => CHART_SIZE_MULT[layout.value.chartSize] ?? 1)
+const cardSizeStyle = computed(() => ({ '--chart-size-mult': chartSizeMult.value }))
+const BAR_TRACK_H_BASE  = 100 // px at S size
+const ICON_TRACK_H_BASE = 96  // px at S size
+const barTrackH  = computed(() => BAR_TRACK_H_BASE  * chartSizeMult.value)
+const iconTrackH = computed(() => ICON_TRACK_H_BASE * chartSizeMult.value)
 
 const activeDataPoint = ref(props.forecastDataPoint ?? layout.value.mainDataPoint)
 watch(() => layout.value.mainDataPoint, (v) => { activeDataPoint.value = v })
@@ -392,17 +400,17 @@ const barMax = computed(() => {
 function barFillStyle(i) {
   const v  = allMainValues.value[i]
   const bg = activeColor.value
+  const MIN_H = 26 * chartSizeMult.value
+  const trackH = barTrackH.value
   if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
     const { min, range } = barRange.value
-    const MIN_H = 26, TRACK_H = 100
     const ratio = v != null ? (v - min) / range : 0.5
-    const heightPx = MIN_H + ratio * (TRACK_H - MIN_H)
+    const heightPx = MIN_H + ratio * (trackH - MIN_H)
     return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
   } else {
-    const MIN_H = 26, TRACK_H = 100
     if (v == null || v === 0) return { bottom: '0', top: 'auto', height: '0px', background: bg }
     const ratio = v / (barMax.value || 1)
-    const heightPx = MIN_H + ratio * (TRACK_H - MIN_H)
+    const heightPx = MIN_H + ratio * (trackH - MIN_H)
     return { bottom: '0', top: 'auto', height: `${heightPx}px`, background: bg }
   }
 }
@@ -497,7 +505,6 @@ function fmtVal(type, i) {
 // ── Icons chart style ─────────────────────────────────────────────────────────
 
 const ICON_H    = 40 // px — label + icon group height (label ~14px + gap 2px + icon ~24px at 1.5rem)
-const TRACK_H   = 96 // matches .hf-icon-track height
 const LABEL_H   = 22 // px — approximate rendered height of the value label (0.85rem * ~1.2 line-height + rounding)
 const ICON_GAP  = 2  // px — gap between label and icon in .hf-float-group
 const ICON_HALF = 12 // px — half of icon height (1.5rem ≈ 24px)
@@ -513,7 +520,7 @@ function iconFloatStyle(i) {
     const max = barMax.value || 1
     ratio = v != null ? 1 - v / max : 1
   }
-  const usable = TRACK_H - ICON_H
+  const usable = iconTrackH.value - ICON_H
   const topPx  = Math.max(0, Math.min(usable, ratio * usable))
   return { top: `${topPx}px` }
 }
@@ -522,7 +529,7 @@ function iconFloatStyle(i) {
 
 const linePoints = computed(() => {
   if (layout.value.chartStyle !== 'line') return []
-  const usable = TRACK_H - ICON_H
+  const usable = iconTrackH.value - ICON_H
   return allHoursArr.value.map((slot, arrayIdx) => {
     const v = allMainValues.value[slot.index]
     let ratio
@@ -759,7 +766,7 @@ watch(() => props.focusHour, (absHour) => {
 .hf-bar-track {
   position: relative;
   width: 100%;
-  height: 100px;
+  height: calc(100px * var(--chart-size-mult, 1));
   zzzbackground: var(--card-border);
   border-radius: 6px;
   overflow: hidden;
@@ -806,7 +813,7 @@ watch(() => props.focusHour, (absHour) => {
 .hf-icon-track {
   position: relative;
   width: 100%;
-  height: 96px;
+  height: calc(96px * var(--chart-size-mult, 1));
   flex-shrink: 0;
 }
 

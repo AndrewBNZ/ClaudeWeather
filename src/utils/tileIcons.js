@@ -136,4 +136,13 @@ export const CARD_ICONS = {
     <circle cx="15" cy="14" r="4" stroke="#38bdf8"/>
     <polyline points="15,11.5 15,14 17,15.5" stroke="#38bdf8"/>
   </svg>`,
+
+  daySegment: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="5" width="16" height="11" rx="1.5"/>
+    <line x1="7.3" y1="5" x2="7.3" y2="16"/>
+    <line x1="12.7" y1="5" x2="12.7" y2="16"/>
+    <circle cx="4.7" cy="9.5" r="1.5" fill="#f59e0b" stroke="none"/>
+    <circle cx="10" cy="9.5" r="1.5" fill="#f59e0b" stroke="none"/>
+    <circle cx="15.3" cy="9.5" r="1.5" fill="#f59e0b" stroke="none"/>
+  </svg>`,
 }

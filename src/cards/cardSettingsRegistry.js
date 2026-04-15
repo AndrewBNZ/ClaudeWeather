@@ -19,6 +19,10 @@ export const CARD_SETTINGS_REGISTRY = {
     component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
     props:     { type: 'combined' },
   },
+  daySegment: {
+    title:     'Day Segments',
+    component: defineAsyncComponent(() => import('../components/settings/DaySegmentSettings.vue')),
+  },
   customAlerts: {
     title:     'Custom Alerts',
     component: defineAsyncComponent(() => import('../components/settings/CustomAlertsSettings.vue')),

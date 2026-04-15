@@ -43,6 +43,14 @@
         <button v-if="type === 'daily'" :class="['unit-pill-opt', { active: layout.chartStyle === 'vertical' }]" @click="layout.chartStyle = 'vertical'">Vertical</button>
       </div>
     </div>
+    <div v-if="layout.chartStyle !== 'vertical'" class="setting-row setting-row--col">
+      <div class="setting-label">Size</div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', { active: layout.chartSize === 'S' }]"  @click="layout.chartSize = 'S'">S</button>
+        <button :class="['unit-pill-opt', { active: layout.chartSize === 'M' }]"  @click="layout.chartSize = 'M'">M</button>
+        <button :class="['unit-pill-opt', { active: layout.chartSize === 'L' }]"  @click="layout.chartSize = 'L'">L</button>
+      </div>
+    </div>
     <div v-if="type === 'daily'" class="setting-row setting-row--col">
       <div class="setting-label">Days</div>
       <div class="unit-pill">

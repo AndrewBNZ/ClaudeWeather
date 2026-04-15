@@ -99,6 +99,11 @@
           <RadarSettings />
         </div>
 
+        <!-- Day Segments layout sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'daySegment'" :class="paneClass('daySegment')">
+          <DaySegmentSettings />
+        </div>
+
         <!-- Data tab -->
         <div class="settings-tab-pane" :data-pane="'data'" :class="paneClass('data')">
           <DataTab @navigate="navigate" @reset="resetConfirmOpen = true" />
@@ -157,6 +162,7 @@ import SceneConditionsSettings   from './settings/SceneConditionsSettings.vue'
 import WeatherWarningsSettings   from './settings/WeatherWarningsSettings.vue'
 import CustomAlertsSettings      from './settings/CustomAlertsSettings.vue'
 import RadarSettings             from './settings/RadarSettings.vue'
+import DaySegmentSettings        from './settings/DaySegmentSettings.vue'
 import ForecastModelSettings     from './settings/ForecastModelSettings.vue'
 import PwsKeySettings            from './settings/PwsKeySettings.vue'
 import TempestTokenSettings      from './settings/TempestTokenSettings.vue'
@@ -194,7 +200,7 @@ defineExpose({
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', combinedForecast: 'Combined Forecast', combinedOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar' }
+const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', combinedForecast: 'Combined Forecast', combinedOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar', daySegment: 'Daily Dashboard' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
