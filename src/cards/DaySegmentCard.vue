@@ -485,8 +485,8 @@ function fmtSegValue(type, seg) {
 
 /* Wind arrow as data icon */
 .seg-wind-arrow svg {
-  width: calc(22px * var(--seg-size-mult, 1));
-  height: calc(22px * var(--seg-size-mult, 1));
+  width: calc(30px * var(--seg-size-mult, 1));
+  height: calc(30px * var(--seg-size-mult, 1));
   color: currentColor;
 }
 
