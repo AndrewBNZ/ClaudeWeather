@@ -951,7 +951,7 @@ onMounted(() => {
 
 function onScrollRoot() {
   if (isLandscapeLayout.value) { topBarScrolled.value = false; return }
-  topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 35
+  topBarScrolled.value = (scrollRootEl.value?.scrollTop ?? 0) > 20
 }
 
 function onVisibilityChange() { if (document.visibilityState === 'visible') checkAndRefresh() }
