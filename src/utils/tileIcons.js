@@ -5,9 +5,9 @@ export const TILE_ICONS = {
     <path d="M10 11V4a2 2 0 0 0-4 0v7a3.5 3.5 0 1 0 4 0z"/>
   </svg>`,
   rain: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 13a4 4 0 0 1 .4-8A5.5 5.5 0 0 1 15.6 8H16a2.5 2.5 0 0 1 0 5"/>
-    <line x1="8" y1="15.5" x2="7" y2="18"/>
-    <line x1="12" y1="15.5" x2="11" y2="18"/>
+    <path d="M5.2 4.6C5.2 4.6 3.2 7 3.2 8.4a2 2 0 0 0 4 0c0-1.4-2-3.8-2-3.8z"/>
+    <path d="M13.9 2.8C13.9 2.8 11.4 5.9 11.4 7.6a2.5 2.5 0 0 0 5 0c0-1.7-2.5-4.8-2.5-4.8z"/>
+    <path d="M9.2 11.4C9.2 11.4 7.2 13.8 7.2 15.2a2 2 0 0 0 4 0c0-1.4-2-3.8-2-3.8z"/>
   </svg>`,
   wind: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3 7c2-2 4-2 6 0s4 2 8 0"/>
