@@ -8,7 +8,10 @@
           <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
         </div>
         <div class="cond-condition-row">
-          <span class="cond-subtitle"><WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" /> {{ info.label }}</span>
+          <span class="cond-subtitle">
+            <WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" />
+            <span>{{ info.label }}</span>
+          </span>
         </div>
         <div class="cond-scroll">
           <div class="cond-grid">
@@ -284,8 +287,16 @@ const tiles = computed(() => {
   color: var(--text);
   font-weight: 500;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  text-align: center;
+}
+
+.cond-wx-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.25));
 }
 
 .cond-close {
