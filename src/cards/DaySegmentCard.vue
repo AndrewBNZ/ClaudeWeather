@@ -92,6 +92,8 @@ const props = defineProps({
   daySegmentLayout: { type: Object, default: null },
 })
 
+const emit = defineEmits(['day-selected'])
+
 const layout = computed(() => props.daySegmentLayout ?? DEFAULT_DAY_SEGMENT_LAYOUT)
 
 const SIZE_MULT = { S: 0.7, M: 1.0, L: 1.4 }
@@ -147,7 +149,9 @@ function onTouchEnd(e) {
     setTimeout(() => {
       isAnimating.value = false
       dragOffset.value = 0
-      localDay.value++
+      const nextDay = localDay.value + 1
+      localDay.value = nextDay
+      emit('day-selected', nextDay)
     }, 280)
   } else if (dx > threshold && localDay.value > 0) {
     animateTo.value = 100
@@ -156,7 +160,9 @@ function onTouchEnd(e) {
     setTimeout(() => {
       isAnimating.value = false
       dragOffset.value = 0
-      localDay.value--
+      const nextDay = localDay.value - 1
+      localDay.value = nextDay
+      emit('day-selected', nextDay)
     }, 280)
   } else {
     // Spring back
