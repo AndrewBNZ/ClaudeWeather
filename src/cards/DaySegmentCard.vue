@@ -415,8 +415,26 @@ function fmtSegValue(type, seg) {
 .card-title-icon {
   display: flex;
   align-items: center;
-  opacity: 0.8;
-  filter: grayscale(1);
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.card-title-icon :deep(svg) {
+  width: 16px;
+  height: 16px;
+}
+
+.card-title-icon :deep(svg),
+.card-title-icon :deep(svg *) {
+  stroke: currentColor;
+}
+
+.card-title-icon :deep([fill="none"]) {
+  fill: none;
+}
+
+.card-title-icon :deep([fill]:not([fill="none"])) {
+  fill: currentColor;
 }
 
 .seg-empty {

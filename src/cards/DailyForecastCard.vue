@@ -166,8 +166,8 @@
         v-if="visibleOtherPoints.length"
         class="vrow vrow-header"
         :style="{ gridTemplateColumns: [
-          '52px',
-          layout.showConditions ? '28px' : null,
+          '48px',
+          layout.showConditions ? '24px' : null,
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
         ].filter(Boolean).join(' ') }"
@@ -190,8 +190,8 @@
         :key="date"
         class="vrow"
         :style="{ gridTemplateColumns: [
-          '52px',
-          layout.showConditions ? '28px' : null,
+          '48px',
+          layout.showConditions ? '24px' : null,
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
         ].filter(Boolean).join(' ') }"
@@ -1013,7 +1013,7 @@ const dailyLinePoints = computed(() => {
   display: grid;
   grid-template-columns: 52px 28px 1fr 44px;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 8px 4px;
   border-radius: 8px;
   cursor: pointer;
