@@ -657,7 +657,9 @@ function convertTempestFields(obs, prefs) {
   if (obs.relative_humidity != null) result.relative_humidity_2m = obs.relative_humidity
   if (obs.wind_avg != null) {
     const c = { kmh: 3.6, mph: 2.237, ms: 1, kn: 1.944 }
-    result.wind_speed_10m = obs.wind_avg * (c[prefs.wind] ?? 3.6)
+    const scale = c[prefs.wind] ?? 3.6
+    result.wind_speed_10m = obs.wind_avg * scale
+    if (obs.wind_gust != null) result.wind_gust = obs.wind_gust * scale
   }
   if (obs.wind_direction != null) result.wind_direction_10m = obs.wind_direction
   if (obs.station_pressure != null) {
@@ -665,8 +667,12 @@ function convertTempestFields(obs, prefs) {
     result.surface_pressure = obs.station_pressure * (c[prefs.pressure] ?? 1)
   }
   if (obs.uv != null) result.uv_index = obs.uv
+  if (obs.rain_accum_local_day != null)
+    result.precipitation = prefs.precipitation === 'inch' ? obs.rain_accum_local_day * 0.0393701 : obs.rain_accum_local_day
   if (obs.rain_prev_min != null)
-    result.precipitation = prefs.precipitation === 'inch' ? obs.rain_prev_min * 0.0393701 : obs.rain_prev_min
+    result.rain_rate = prefs.precipitation === 'inch' ? obs.rain_prev_min * 0.0393701 : obs.rain_prev_min
+  if (obs.precip_type != null)
+    result.precip_type = obs.precip_type
   return result
 }
 
@@ -718,10 +724,15 @@ function _assignChanged(target, source) {
   }
 }
 
+// Extra keys that PWS/Tempest may add beyond the Open-Meteo base fields
+const PWS_EXTRA_KEYS = new Set(['rain_rate', 'precip_type', 'wind_gust'])
+
 function _rebuildMerged() {
   if (!weatherData.value) return
   const base = weatherData.value.current
-  for (const k of Object.keys(mergedCurrent)) { if (!(k in base)) delete mergedCurrent[k] }
+  for (const k of Object.keys(mergedCurrent)) {
+    if (!(k in base) && !PWS_EXTRA_KEYS.has(k)) delete mergedCurrent[k]
+  }
   _assignChanged(mergedCurrent, base)
   if (tempestData.value)     _assignChanged(mergedCurrent, convertTempestFields(tempestData.value, unitPrefs.value))
   else if (pwsData.value)    _assignChanged(mergedCurrent, convertPwsFields(pwsData.value, unitPrefs.value))

@@ -115,7 +115,6 @@
               :points="linePoints.join(' ')"
               fill="none"
               :stroke="activeColor"
-              stroke-opacity="0.6"
               stroke-width="4"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -603,7 +602,10 @@ watch(() => props.selectedDay, (d) => {
   if (userScrolling.value) return
   nextTick(() => {
     if (!scrollEl.value) return
-    const targetHour = d * 24
+    // Scroll to 1 hour before sunrise (or 6am fallback) rather than midnight
+    const sunriseStr = props.daily?.sunrise?.[d]
+    const sunriseHour = sunriseStr ? parseInt(sunriseStr.split('T')[1]) : 6
+    const targetHour = d * 24 + Math.max(0, sunriseHour - 1)
     const offset = Math.max(0, targetHour - displayStartIndex.value) * COL_WIDTH
     programmaticScroll.value = true
     scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })

@@ -16,25 +16,20 @@
                 <button class="sun-sheet-close" @click="showHelp = false">✕</button>
               </div>
               <div class="sun-help-body">
-                <div class="sun-help-section">Twilight &amp; Dawn/Dusk</div>
-                <p><strong>Civil twilight</strong> begins at dawn and ends at dusk — when the sun is between 0° and −6° below the horizon. There's enough natural light to see outdoors without artificial lighting.</p>
-
-                <div class="sun-help-section">Golden Hour</div>
-                <p>The period just after sunrise and just before sunset when the sun is within <strong>6° above the horizon</strong>. Light is warm, soft, and directional — ideal for photography. Each golden hour typically lasts 20–60 minutes depending on season and latitude.</p>
-
-                <div class="sun-help-section">Solar Noon</div>
-                <p>The moment the sun reaches its <strong>highest point</strong> in the sky — exactly halfway between sunrise and sunset. Shadows are at their shortest, and UV exposure is at its peak.</p>
-
-                <div class="sun-help-section">Day Length</div>
-                <p>The time between sunrise and sunset. Day length varies throughout the year — longest at the summer solstice and shortest at the winter solstice. Near the equator it stays close to 12 hours year-round.</p>
+                <div class="sun-help-section">Dawn &amp; Dusk</div>
+                <p>Civil twilight — sun is within 6° below the horizon. Bright enough to see outdoors without artificial light.</p>
 
                 <div class="sun-help-section">Sunrise &amp; Sunset</div>
-                <p>Defined as the moment the upper edge of the sun crosses the horizon. Due to atmospheric refraction, the sun is actually slightly <strong>below the geometric horizon</strong> when it appears to rise or set.</p>
+                <p>When the upper edge of the sun crosses the horizon. Atmospheric refraction means the sun is geometrically just below the horizon at this moment.</p>
 
-                <div class="sun-help-section">Earth's Orbit</div>
-                <p>Earth orbits the Sun once every <strong>365.25 days</strong> at an average distance of 150 million km (1 AU). The orbit is slightly elliptical — Earth is closest to the Sun (<strong>perihelion</strong>, ~147M km) in early January, and farthest (<strong>aphelion</strong>, ~152M km) in early July.</p>
-                <p>Earth's axis is tilted <strong>23.5°</strong> relative to its orbital plane. This tilt — not distance — is what causes the seasons. When your hemisphere tilts toward the Sun, days are longer and the sun climbs higher, delivering more energy per square metre.</p>
-                <p>The <strong>solstices</strong> (around June 21 and December 21) mark the longest and shortest days of the year. The <strong>equinoxes</strong> (around March 20 and September 22) are when day and night are roughly equal length everywhere on Earth.</p>
+                <div class="sun-help-section">Solar Noon</div>
+                <p>The sun's highest point — midway between sunrise and sunset. Shadows are shortest; UV is at its peak.</p>
+
+                <div class="sun-help-section">Day Length</div>
+                <p>Time from sunrise to sunset. Longest at the summer solstice, shortest at the winter solstice.</p>
+
+                <div class="sun-help-section">Seasons</div>
+                <p>Caused by Earth's 23.5° axial tilt, not its distance from the Sun. When your hemisphere tilts toward the Sun, days are longer and the sun climbs higher — delivering more energy per square metre.</p>
               </div>
             </div>
           </div>
@@ -72,24 +67,26 @@
             <div class="sun-col sun-col-left">
               <span class="sun-col-val">{{ dawnFormatted }}</span>
               <span class="sun-col-label">Dawn</span>
-              <span class="sun-col-val">{{ sunriseFormatted }}</span>
+              <span class="sun-col-val sun-col-event">
+                {{ sunriseFormatted }}
+                <span class="sun-day-icon" v-html="TILE_ICONS.sunrise"></span>
+              </span>
               <span class="sun-col-label">Sunrise</span>
-              <span class="sun-col-val sun-col-golden">{{ goldenMorningEndFormatted }}</span>
-              <span class="sun-col-label">Golden Hour</span>
             </div>
             <div class="sun-col sun-col-mid">
               <span class="sun-col-val">{{ solarNoonFormatted }}</span>
               <span class="sun-col-label">Solar Noon</span>
-              <span class="sun-col-val sun-col-len">{{ dayLength }}</span>
+              <span class="sun-col-val">{{ dayLength }}</span>
               <span class="sun-col-label">Day Length</span>
             </div>
             <div class="sun-col sun-col-right">
-              <span class="sun-col-val sun-col-golden">{{ goldenEveningStartFormatted }}</span>
-              <span class="sun-col-label">Golden Hour</span>
-              <span class="sun-col-val">{{ sunsetFormatted }}</span>
-              <span class="sun-col-label">Sunset</span>
               <span class="sun-col-val">{{ duskFormatted }}</span>
               <span class="sun-col-label">Dusk</span>
+              <span class="sun-col-val sun-col-event">
+                <span class="sun-day-icon" v-html="TILE_ICONS.sunset"></span>
+                {{ sunsetFormatted }}
+              </span>
+              <span class="sun-col-label">Sunset</span>
             </div>
           </div>
         </div>
@@ -101,10 +98,17 @@
           <div class="sun-group">
             <div v-for="day in sevenDays" :key="day.dateKey" class="sun-row sun-row-7day">
               <span class="sun-day-name">{{ day.dayName }}</span>
-              <span class="sun-day-rise">{{ day.sunrise }}</span>
-              <span class="sun-day-sep">–</span>
-              <span class="sun-day-set">{{ day.sunset }}</span>
-              <span class="sun-day-len">{{ day.length }}</span>
+              <span class="sun-day-times">
+                <span class="sun-day-event">
+                  <span class="sun-day-icon" v-html="TILE_ICONS.sunrise"></span>
+                  <span class="sun-day-rise">{{ day.sunrise }}</span>
+                </span>
+                <span class="sun-day-sep">–</span>
+                <span class="sun-day-event">
+                  <span class="sun-day-icon" v-html="TILE_ICONS.sunset"></span>
+                  <span class="sun-day-set">{{ day.sunset }}</span>
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -116,6 +120,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { TILE_ICONS } from '../utils/tileIcons.js'
 
 const props = defineProps({
   daily:      { type: Object, default: null },
@@ -213,8 +218,6 @@ const solarNoonMins = computed(() => {
 })
 
 const twilightOffsetMins   = computed(() => solarOffsetMins(sunrise.value, props.lat, -6))
-const goldenHourOffsetMins = computed(() => solarOffsetMins(sunrise.value, props.lat,  6))
-
 const dawnMins = computed(() => {
   if (sunriseMins.value == null || twilightOffsetMins.value == null) return null
   return sunriseMins.value - twilightOffsetMins.value
@@ -228,20 +231,9 @@ const duskMins = computed(() => {
 const sunriseFormatted   = computed(() => formatIso(sunrise.value, props.timeFormat))
 const sunsetFormatted    = computed(() => formatIso(sunset.value,  props.timeFormat))
 const solarNoonFormatted = computed(() => formatMins(solarNoonMins.value, props.timeFormat))
-const goldenMorningEndMins = computed(() => {
-  if (sunriseMins.value == null || goldenHourOffsetMins.value == null) return null
-  return sunriseMins.value - goldenHourOffsetMins.value
-})
-const goldenEveningStartMins = computed(() => {
-  if (sunsetMins.value == null || goldenHourOffsetMins.value == null) return null
-  return sunsetMins.value - goldenHourOffsetMins.value
-})
-
-const dawnFormatted            = computed(() => formatMins(dawnMins.value,             props.timeFormat))
-const duskFormatted            = computed(() => formatMins(duskMins.value,             props.timeFormat))
-const goldenMorningEndFormatted    = computed(() => formatMins(goldenMorningEndMins.value,    props.timeFormat))
-const goldenEveningStartFormatted  = computed(() => formatMins(goldenEveningStartMins.value,  props.timeFormat))
-const dayLength          = computed(() => dayLengthStr(sunrise.value, sunset.value))
+const dawnFormatted = computed(() => formatMins(dawnMins.value, props.timeFormat))
+const duskFormatted = computed(() => formatMins(duskMins.value, props.timeFormat))
+const dayLength     = computed(() => dayLengthStr(sunrise.value, sunset.value))
 
 // ── Arc geometry (SVG viewBox 200×100, semicircle centre 100,92 radius 85) ────
 // t=0 → left end (15,92), t=1 → right end (185,92)
@@ -420,6 +412,12 @@ const sevenDays = computed(() => {
 .sun-col-mid   { align-items: center; }
 .sun-col-right { align-items: flex-end; }
 
+.sun-col-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .sun-col-val {
   font-size: 0.85rem;
   font-weight: 500;
@@ -427,8 +425,7 @@ const sevenDays = computed(() => {
   white-space: nowrap;
   line-height: 1.35;
 }
-.sun-col-len    { margin-top: 6px; }
-.sun-col-golden { color: #FFC107; }
+
 .sun-col-label {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -453,28 +450,49 @@ const sevenDays = computed(() => {
 }
 
 /* 7-day row */
-.sun-row-7day { gap: 8px; }
+.sun-row-7day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sun-day-times {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.sun-day-sep {
+  font-size: 0.85rem;
+  opacity: 0.3;
+}
 
 .sun-day-name {
   width: 44px;
   font-size: 0.85rem;
   flex-shrink: 0;
 }
+.sun-day-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sun-day-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--sun);
+}
+.sun-day-icon :deep(svg) {
+  width: 14px;
+  height: 14px;
+}
 .sun-day-rise,
 .sun-day-set {
   font-size: 0.85rem;
   opacity: 0.6;
-  white-space: nowrap;
-}
-.sun-day-sep {
-  font-size: 0.85rem;
-  opacity: 0.3;
-}
-.sun-day-len {
-  flex: 1;
-  text-align: right;
-  font-size: 0.85rem;
-  opacity: 0.5;
   white-space: nowrap;
 }
 

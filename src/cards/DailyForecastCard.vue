@@ -26,7 +26,7 @@
 
       <!-- Scrollable day columns -->
       <div class="days-scroll" ref="daysScrollRef">
-        <div class="days-row">
+        <div class="days-row" :class="{ 'days-row--with-dates': datesNeedingDay.size > 0 || layout.showDate }">
           <div
             v-for="(date, i) in displayDays"
             :key="date"
@@ -34,7 +34,10 @@
             :ref="el => { if (el) dayColRefs[i] = el }"
             @click="emit('day-selected', i)"
           >
-            <div class="day-lbl">{{ dayLabel(date) }}</div>
+            <div class="day-lbl" :class="{ 'day-lbl--with-num': dayNumber(date) }">
+              <span>{{ dayLabel(date) }}</span>
+              <span v-if="dayNumber(date)" class="day-num">{{ dayNumber(date) }}</span>
+            </div>
 
             <div class="temp-wrap" :class="{ 'temp-wrap--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line' }">
               <template v-if="layout.chartStyle === 'bar'">
@@ -166,7 +169,7 @@
         v-if="visibleOtherPoints.length"
         class="vrow vrow-header"
         :style="{ gridTemplateColumns: [
-          '48px',
+          datesNeedingDay.size > 0 || layout.showDate ? '62px' : '48px',
           layout.showConditions ? '24px' : null,
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
@@ -190,7 +193,7 @@
         :key="date"
         class="vrow"
         :style="{ gridTemplateColumns: [
-          '48px',
+          datesNeedingDay.size > 0 || layout.showDate ? '62px' : '48px',
           layout.showConditions ? '24px' : null,
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
@@ -198,7 +201,7 @@
         @click="emit('day-selected', i)"
       >
         <!-- Day label -->
-        <div class="vrow-day">{{ dayLabel(date) }}</div>
+        <div class="vrow-day">{{ dayLabel(date) }}{{ dayNumber(date) ? ` ${dayNumber(date)}` : '' }}</div>
 
         <!-- Condition icon -->
         <div v-if="layout.showConditions" class="vrow-icon">
@@ -225,7 +228,7 @@
         <!-- Up to 3 other data points as separate columns -->
         <template v-for="pt in visibleOtherPoints.slice(0, 3)" :key="pt.type">
           <div class="vrow-extra" :style="{ color: ptColor(pt.type) }">
-            <template v-if="pt.type === 'rainProb'">{{ fmtProb(i).replace('%', '') }}</template>
+            <template v-if="pt.type === 'rainProb'">{{ fmtProb(i) }}</template>
             <template v-else-if="pt.type === 'rainAmount'">{{ fmtPrecip(i) }}</template>
             <template v-else-if="pt.type === 'wind'">
               <span v-if="windDirs[i] != null" class="wind-dir-arrow">
@@ -240,8 +243,8 @@
             <template v-else-if="pt.type === 'gusts'">{{ fmtGusts(i) }}</template>
             <template v-else-if="pt.type === 'feelsLike'">{{ fmtTemp(feelsLikeMax[i]).replace('°', '') }}</template>
             <template v-else-if="pt.type === 'uv'">{{ fmtUv(i) }}</template>
-            <template v-else-if="pt.type === 'humidity'">{{ fmtHumidity(i).replace('%', '') }}</template>
-            <template v-else-if="pt.type === 'cloudCover'">{{ fmtCloudCover(i).replace('%', '') }}</template>
+            <template v-else-if="pt.type === 'humidity'">{{ fmtHumidity(i) }}</template>
+            <template v-else-if="pt.type === 'cloudCover'">{{ fmtCloudCover(i) }}</template>
             <template v-else-if="pt.type === 'pressure'">{{ fmtPressure(i) }}</template>
             <template v-else-if="pt.type === 'visibility'">{{ fmtVisibility(i) }}</template>
           </div>
@@ -267,7 +270,6 @@ import { TILE_ICONS, CARD_ICONS } from '../utils/tileIcons.js'
 import DataPointPicker from '../components/ui/DataPointPicker.vue'
 import WeatherIcon from '../components/WeatherIcon.vue'
 
-const COL_WIDTH          = 50
 const DAY_COL_TOP_OFFSET = 36 // day-col padding-top(6) + day-lbl height(26) + margin-bottom(4)
 
 // ── Props & emits ───────────────────────────────────────────────────────────
@@ -390,15 +392,34 @@ function wxCode(i) {
   return dominantDaytimeCode(i)
 }
 
+// Set of iso dates that are a duplicate weekday (i.e. the weekday already appeared earlier in the list)
+const datesNeedingDay = computed(() => {
+  const seen = new Set(), needsDay = new Set()
+  for (const isoDate of displayDays.value) {
+    const [y, m, d] = isoDate.split('-').map(Number)
+    const wd = new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+    if (seen.has(wd)) needsDay.add(isoDate)
+    else seen.add(wd)
+  }
+  return needsDay
+})
+const COL_WIDTH = 50
+
 function dayLabel(isoDate) {
   const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
   if (isoDate === locDateStr) return 'Today'
   const [y, m, d] = isoDate.split('-').map(Number)
-  const date    = new Date(Date.UTC(y, m - 1, d, 12))
-  const weekday = date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
-  const day     = date.toLocaleDateString('en', { day: 'numeric', timeZone: 'UTC' })
-  if (layout.value.showDate) return `${weekday} ${day}`
-  return `${weekday}`
+  const date = new Date(Date.UTC(y, m - 1, d, 12))
+  return date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+}
+
+function dayNumber(isoDate) {
+  const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
+  if (isoDate === locDateStr) return null
+  if (!layout.value.showDate && !datesNeedingDay.value.has(isoDate)) return null
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d, 12))
+  return date.toLocaleDateString('en', { day: 'numeric', timeZone: 'UTC' })
 }
 
 function fmtTemp(v) {
@@ -814,17 +835,27 @@ const dailyLinePoints = computed(() => {
 
 /* ── Day label ────────────────────────────────────── */
 .day-lbl {
-  height: var(--h-day);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   font-size: 0.8rem;
   color: var(--text-faint);
   text-align: center;
-  white-space: nowrap;
   flex-shrink: 0;
   height: 26px;
   margin-bottom: 4px;
+  line-height: 1.1;
+}
+
+.days-row--with-dates .day-lbl {
+  height: 36px;
+}
+
+.day-num {
+  font-size: 0.65rem;
+  color: var(--text-faint);
+  line-height: 1;
 }
 
 /* ── Condition icon (now inside stats, first stat-row) ── */

@@ -163,7 +163,7 @@ const DEFAULT_CARDS = [
   { type: 'radar',            enabled: true },
 ]
 
-export const DEFAULT_WARNINGS_CONFIG = { show: 'active-only', feedOverride: null, locationFilter: 'location', showTitle: true }
+export const DEFAULT_WARNINGS_CONFIG = { show: 'active-only', feedOverride: null, locationFilter: 'location', showTitle: false }
 
 function loadWarningsConfig() {
   try {

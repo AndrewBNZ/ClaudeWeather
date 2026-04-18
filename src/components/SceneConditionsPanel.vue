@@ -120,7 +120,7 @@ const moonIllumination = computed(() =>
 )
 
 // ── Tiles ───────────────────────────────────────────────────────────────────
-const STATION_TILE_IDS = new Set(['temperature', 'feelsLike', 'rain', 'wind', 'humidity', 'uv', 'pressure'])
+const STATION_TILE_IDS = new Set(['temperature', 'rain', 'wind', 'humidity', 'uv', 'pressure'])
 
 const tiles = computed(() => {
   const d     = props.data
@@ -152,21 +152,32 @@ const tiles = computed(() => {
       value: fmt(d.apparent_temperature, 1),
       unit: DATA_TYPES.feelsLike.getUnit(up),
     }),
-    st('rain', {
-      id: 'rain', label: 'Precipitation',
-      icon: TILE_ICONS.rain, color: '#3b82f6',
-      value: fmt(d.precipitation, 1),
-      unit: DATA_TYPES.rainAmount.getUnit(up),
-      sub: d.precipitation_probability != null ? `${fmt(d.precipitation_probability, 0)}% chance` : null,
-    }),
-    st('wind', {
-      id: 'wind', label: 'Wind',
-      icon: TILE_ICONS.wind, color: '#06b6d4',
-      value: fmt(d.wind_speed_10m, DATA_TYPES.wind.decimals ?? 0),
-      unit: DATA_TYPES.wind.getUnit(up),
-      sub: d.wind_direction_10m != null ? windCardinal(d.wind_direction_10m) : null,
-      windDeg: d.wind_direction_10m ?? null,
-    }),
+    st('rain', (() => {
+      const precipTypeLabel = { 1: 'Rain', 2: 'Hail', 3: 'Rain + Hail' }
+      const typeStr = d.precip_type != null && d.precip_type > 0 ? precipTypeLabel[d.precip_type] : null
+      const rateStr = d.rain_rate != null && d.rain_rate > 0 ? `${fmt(d.rain_rate, 2)} ${DATA_TYPES.rainAmount.getUnit(up)}/min` : null
+      const sub = [typeStr, rateStr].filter(Boolean).join(' · ')
+        || (d.precipitation_probability != null ? `${fmt(d.precipitation_probability, 0)}% chance` : null)
+      return {
+        id: 'rain', label: 'Precipitation',
+        icon: TILE_ICONS.rain, color: '#3b82f6',
+        value: fmt(d.precipitation, 1),
+        unit: d.rain_rate != null ? `${DATA_TYPES.rainAmount.getUnit(up)} today` : DATA_TYPES.rainAmount.getUnit(up),
+        sub,
+      }
+    })()),
+    st('wind', (() => {
+      const dir = d.wind_direction_10m != null ? windCardinal(d.wind_direction_10m) : null
+      const gust = d.wind_gust != null ? `Gust: ${fmt(d.wind_gust, DATA_TYPES.wind.decimals ?? 0)}` : null
+      return {
+        id: 'wind', label: 'Wind',
+        icon: TILE_ICONS.wind, color: '#06b6d4',
+        value: fmt(d.wind_speed_10m, DATA_TYPES.wind.decimals ?? 0),
+        unit: DATA_TYPES.wind.getUnit(up),
+        sub: [dir, gust].filter(Boolean).join(' · ') || null,
+        windDeg: d.wind_direction_10m ?? null,
+      }
+    })()),
     st('humidity', {
       id: 'humidity', label: 'Humidity',
       icon: TILE_ICONS.humidity, color: '#14b8a6',

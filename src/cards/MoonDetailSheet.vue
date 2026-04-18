@@ -17,12 +17,11 @@
                 <button class="moon-sheet-close" @click="showHelp = false">✕</button>
               </div>
               <div class="moon-help-body">
-                <p>The Moon orbits Earth every <strong>29.5 days</strong>, cycling through eight phases as sunlight illuminates different portions of its face.</p>
-
                 <div class="moon-help-section">Phases</div>
+                <p>The Moon cycles through eight phases every <strong>29.5 days</strong> as sunlight illuminates different portions of its face.</p>
                 <div class="moon-help-phases">
                   <div class="moon-help-phase" v-for="p in PHASE_INFO" :key="p.key">
-                    <svg viewBox="0 0 40 40" width="32" height="32">
+                    <svg viewBox="0 0 40 40" width="26" height="26">
                       <defs>
                         <clipPath :id="`help-clip-${p.key}`">
                           <circle cx="20" cy="20" r="18"/>
@@ -39,13 +38,10 @@
                 </div>
 
                 <div class="moon-help-section">Rise &amp; Set</div>
-                <p>The Moon rises and sets at different times each day — roughly <strong>50 minutes later</strong> than the day before. A full moon rises near sunset and sets near sunrise, while a new moon rises and sets with the sun.</p>
-
-                <div class="moon-help-section">Illumination</div>
-                <p>Illumination is the percentage of the Moon's visible face lit by the Sun. It reaches 100% at full moon and 0% at new moon.</p>
+                <p>The Moon rises ~<strong>50 minutes later</strong> each day. A full moon rises near sunset; a new moon rises with the sun.</p>
 
                 <div class="moon-help-section">Southern Hemisphere</div>
-                <p>In the southern hemisphere the Moon appears rotated 180° — a waxing crescent lights the <strong>left</strong> side rather than the right.</p>
+                <p>The Moon appears rotated 180° — a waxing crescent lights the <strong>left</strong> side rather than the right.</p>
               </div>
             </div>
           </div>
@@ -75,6 +71,14 @@
             <!-- Moon dot -->
             <circle v-if="moonProgress >= 0 && moonProgress <= 1"
               :cx="moonDotPos.x" :cy="moonDotPos.y" r="5.5" fill="#E040FB"/>
+            <!-- Phase graphic centred in arch -->
+            <defs>
+              <clipPath id="sheet-moon-clip">
+                <circle cx="100" cy="60" r="22"/>
+              </clipPath>
+            </defs>
+            <circle cx="100" cy="60" r="22" fill="#7C4DFF" stroke="rgba(148,163,184,0.2)" stroke-width="1"/>
+            <path v-if="moonPathCurrent" :d="moonPathCurrent" :transform="sheetMoonTransform" fill="#E040FB" opacity="0.95" clip-path="url(#sheet-moon-clip)"/>
           </svg>
           <div class="moon-arc-times">
             <div class="moon-arc-col moon-arc-left">
@@ -164,14 +168,14 @@ defineEmits(['close'])
 const showHelp = ref(false)
 
 const PHASE_INFO = [
-  { key: 'new',       name: 'New Moon',        desc: 'Moon is between Earth and Sun — invisible.',               path: '' },
-  { key: 'wax-cres',  name: 'Waxing Crescent', desc: 'A slim lit sliver growing on the right.',                  path: moonPathForPhase(0.12, 0) },
-  { key: 'first-q',  name: 'First Quarter',   desc: 'Half lit — right side. Rising at noon, sets at midnight.',  path: moonPathForPhase(0.25, 0) },
-  { key: 'wax-gib',  name: 'Waxing Gibbous',  desc: 'More than half lit, growing toward full.',                  path: moonPathForPhase(0.37, 0) },
-  { key: 'full',     name: 'Full Moon',        desc: 'Fully illuminated. Rises at sunset, sets at sunrise.',      path: moonPathForPhase(0.5,  0) },
-  { key: 'wan-gib',  name: 'Waning Gibbous',  desc: 'More than half lit, shrinking from full.',                  path: moonPathForPhase(0.63, 0) },
-  { key: 'last-q',   name: 'Last Quarter',    desc: 'Half lit — left side. Rising at midnight, sets at noon.',   path: moonPathForPhase(0.75, 0) },
-  { key: 'wan-cres', name: 'Waning Crescent', desc: 'A slim lit sliver shrinking on the left.',                  path: moonPathForPhase(0.88, 0) },
+  { key: 'new',       name: 'New Moon',        desc: 'Between Earth and Sun — invisible.',          path: '' },
+  { key: 'wax-cres',  name: 'Waxing Crescent', desc: 'Slim sliver on the right, growing.',          path: moonPathForPhase(0.12, 0) },
+  { key: 'first-q',   name: 'First Quarter',   desc: 'Half lit on the right. Rises at noon.',       path: moonPathForPhase(0.25, 0) },
+  { key: 'wax-gib',   name: 'Waxing Gibbous',  desc: 'More than half lit, approaching full.',       path: moonPathForPhase(0.37, 0) },
+  { key: 'full',      name: 'Full Moon',        desc: 'Fully lit. Rises at sunset, sets at sunrise.',path: moonPathForPhase(0.5,  0) },
+  { key: 'wan-gib',   name: 'Waning Gibbous',  desc: 'More than half lit, fading from full.',       path: moonPathForPhase(0.63, 0) },
+  { key: 'last-q',    name: 'Last Quarter',    desc: 'Half lit on the left. Rises at midnight.',    path: moonPathForPhase(0.75, 0) },
+  { key: 'wan-cres',  name: 'Waning Crescent', desc: 'Slim sliver on the left, shrinking.',         path: moonPathForPhase(0.88, 0) },
 ]
 
 // ── Moonrise / Moonset (calculated) ──────────────────────────────────────────
@@ -239,8 +243,10 @@ const moonriseFormatted = computed(() => formatTimeDate(riseSet.value.rise, prop
 const moonsetFormatted  = computed(() => formatTimeDate(riseSet.value.set,  props.timeFormat))
 
 const currentPhase  = computed(() => getMoonPhase(refMs.value))
-const phaseName     = computed(() => moonPhaseName(currentPhase.value))
-const illumination  = computed(() => moonIllumination(currentPhase.value))
+const phaseName        = computed(() => moonPhaseName(currentPhase.value))
+const illumination     = computed(() => moonIllumination(currentPhase.value))
+const moonPathCurrent  = computed(() => moonPathForPhase(currentPhase.value, props.lat))
+const sheetMoonTransform = `translate(${(100 - 20 * 22/18).toFixed(3)},${(60 - 20 * 22/18).toFixed(3)}) scale(${(22/18).toFixed(6)})`
 
 // ── Moon arc ──────────────────────────────────────────────────────────────────
 // t=0 → left (15,92), t=1 → right (185,92), centre 100,92 radius 85
@@ -415,9 +421,8 @@ const sevenDays = computed(() => {
 }
 
 .moon-help-phases {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   background: var(--sheet-item-bg);
   border-radius: 12px;
   overflow: hidden;
@@ -425,23 +430,22 @@ const sevenDays = computed(() => {
 .moon-help-phase {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 12px;
+  gap: 8px;
+  padding: 8px 10px;
 }
-.moon-help-phase + .moon-help-phase {
-  border-top: 1px solid var(--row-border);
-}
+.moon-help-phase:nth-child(odd)  { border-right: 1px solid var(--row-border); }
+.moon-help-phase:nth-child(n+3)  { border-top: 1px solid var(--row-border); }
 .moon-help-phase-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
 .moon-help-phase-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 .moon-help-phase-desc {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   opacity: 0.55;
 }
 

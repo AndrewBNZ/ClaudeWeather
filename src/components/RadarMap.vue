@@ -156,13 +156,26 @@ function getIconColor(alert) {
 }
 
 function calculatePolygonCentroid(polygon) {
-  // Calculate the centroid by averaging all polygon coordinates
-  let lat = 0, lng = 0
-  for (const [pLat, pLng] of polygon) {
-    lat += pLat
-    lng += pLng
+  // True area-weighted centroid — not skewed by uneven vertex density
+  let area = 0, lat = 0, lng = 0
+  const n = polygon.length
+  for (let i = 0; i < n; i++) {
+    const [y0, x0] = polygon[i]
+    const [y1, x1] = polygon[(i + 1) % n]
+    const cross = x0 * y1 - x1 * y0
+    area += cross
+    lng  += (x0 + x1) * cross
+    lat  += (y0 + y1) * cross
   }
-  return [lat / polygon.length, lng / polygon.length]
+  area *= 0.5
+  if (Math.abs(area) < 1e-10) {
+    // Degenerate polygon — fall back to vertex average
+    let sLat = 0, sLng = 0
+    for (const [pLat, pLng] of polygon) { sLat += pLat; sLng += pLng }
+    return [sLat / n, sLng / n]
+  }
+  const factor = 1 / (6 * area)
+  return [lat * factor, lng * factor]
 }
 
 function getIconPositionForAlert(alert, allAlerts, existingPositions) {

@@ -38,20 +38,44 @@
       <!-- Moon section -->
       <button class="sm-section sm-moon sm-moon-btn" @click="showMoonSheet = true">
         <div class="sm-section-title">Moon</div>
-        <div class="sm-moon-vis">
-          <svg viewBox="0 0 40 40" width="56" height="56" class="moon-svg">
+        <div class="sm-moon-arc">
+          <svg viewBox="0 0 100 58" class="moon-arc-svg">
+            <!-- Horizon line -->
+            <line x1="2" y1="50" x2="98" y2="50" stroke="currentColor" stroke-opacity="0.12" stroke-width="1"/>
+            <!-- Endpoint ticks -->
+            <line x1="5" y1="46" x2="5" y2="54" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="95" y1="46" x2="95" y2="54" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- Arc track -->
+            <path d="M 5,50 A 45,45 0 0,1 95,50" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="5"/>
+            <!-- Progress arc -->
+            <path v-if="moonProgress > 0 && moonArcEnd"
+              :d="`M 5,50 A 45,45 0 0,1 ${moonArcEnd.x.toFixed(1)},${moonArcEnd.y.toFixed(1)}`"
+              fill="none" stroke="#E040FB" stroke-width="5" stroke-linecap="round"/>
+            <!-- Moon glow -->
+            <circle v-if="moonProgress >= 0 && moonProgress <= 1"
+              :cx="moonDotX" :cy="moonDotY" r="7" fill="#E040FB" opacity="0.25"/>
+            <!-- Moon dot -->
+            <circle v-if="moonProgress >= 0 && moonProgress <= 1"
+              :cx="moonDotX" :cy="moonDotY" r="4" fill="#E040FB"/>
+            <!-- Phase graphic centred in arch -->
             <defs>
-              <clipPath id="moon-clip">
-                <circle cx="20" cy="20" r="18"/>
+              <clipPath id="card-moon-clip">
+                <circle cx="50" cy="30" r="11"/>
               </clipPath>
             </defs>
-            <circle cx="20" cy="20" r="18" fill="#7C4DFF" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>
-            <path v-if="moonPath" :d="moonPath" fill="#E040FB" opacity="0.95" clip-path="url(#moon-clip)"/>
+            <circle cx="50" cy="30" r="11" fill="#7C4DFF" stroke="rgba(148,163,184,0.2)" stroke-width="0.75"/>
+            <path v-if="moonPath" :d="moonPath" :transform="moonTransform" fill="#E040FB" opacity="0.95" clip-path="url(#card-moon-clip)"/>
           </svg>
         </div>
-        <div class="sm-moon-info">
-          <div class="sm-moon-name">{{ phaseName }}</div>
-          <div class="sm-moon-sub">{{ illumination }}% illuminated</div>
+        <div class="sm-moon-times">
+          <div class="sm-time-col">
+            <span class="sm-time-val">{{ moonriseFormatted }}</span>
+            <span class="sm-time-label">Moonrise</span>
+          </div>
+          <div class="sm-time-col">
+            <span class="sm-time-val">{{ moonsetFormatted }}<sup v-if="moonsetNextDay" class="sm-next-day">+1</sup></span>
+            <span class="sm-time-label">Moonset</span>
+          </div>
         </div>
       </button>
     </div>
@@ -88,7 +112,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { getMoonPhase, moonPathForPhase, moonPhaseName, moonIllumination } from '../utils/moonPhase.js'
+import { getMoonPhase, moonPathForPhase, moonRiseSet } from '../utils/moonPhase.js'
 import MoonDetailSheet from './MoonDetailSheet.vue'
 import SunDetailSheet from './SunDetailSheet.vue'
 
@@ -161,17 +185,99 @@ const sunProgressArc = computed(() => {
   return `M 5,50 A 45,45 0 0,1 ${end.x.toFixed(1)},${end.y.toFixed(1)}`
 })
 
-// Moon phase always for today (day 0)
-const moonReferenceMs = computed(() => {
+// ── Moon (identical logic to MoonDetailSheet) ─────────────────────────────────
+
+const moonRefDate = computed(() => {
   const src = sunrise.value
-  if (!src) return Date.now()
-  return new Date(src.slice(0, 10) + 'T12:00:00Z').getTime()
+  return src
+    ? new Date(src.slice(0, 10) + 'T00:00:00Z')
+    : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
 })
 
-const phase        = computed(() => getMoonPhase(moonReferenceMs.value))
-const moonPath     = computed(() => moonPathForPhase(phase.value, props.lat))
-const phaseName    = computed(() => moonPhaseName(phase.value))
-const illumination = computed(() => moonIllumination(phase.value))
+const showingTomorrow = computed(() => {
+  const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
+  return !!(today.set && Date.now() > today.set.getTime())
+})
+
+const moonRefMs = computed(() => {
+  const base = moonRefDate.value.getTime() + 12 * 3600000
+  return showingTomorrow.value ? base + 86400000 : base
+})
+
+const riseSet = computed(() => {
+  const tomorrow = new Date(moonRefDate.value.getTime() + 86400000)
+  const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
+  const now = Date.now()
+
+  if (today.set && now > today.set.getTime()) {
+    return moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+  }
+  if (today.rise && !today.set) {
+    const tomorrowRiseSet = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+    return { rise: today.rise, set: tomorrowRiseSet.set }
+  }
+  return today
+})
+
+function formatTimeMs(date) {
+  if (!date) return '—'
+  const localMs = date.getTime() + props.utcOffset * 1000
+  const d = new Date(localMs)
+  const h = d.getUTCHours()
+  const m = d.getUTCMinutes()
+  if (props.timeFormat === '24h') return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`
+}
+
+const moonriseFormatted = computed(() => formatTimeMs(riseSet.value.rise))
+const moonsetFormatted  = computed(() => formatTimeMs(riseSet.value.set))
+
+// True when moonset falls on the next calendar day (set timestamp > rise timestamp but earlier clock time)
+const moonsetNextDay = computed(() => {
+  const { rise, set } = riseSet.value
+  if (!rise || !set) return false
+  const riseLocal = rise.getTime() + props.utcOffset * 1000
+  const setLocal  = set.getTime()  + props.utcOffset * 1000
+  return Math.floor(setLocal / 86400000) > Math.floor(riseLocal / 86400000)
+})
+
+const phase    = computed(() => getMoonPhase(moonRefMs.value))
+const moonPath = computed(() => moonPathForPhase(phase.value, props.lat))
+const moonTransform = `translate(${(50 - 20 * 11/18).toFixed(3)},${(30 - 20 * 11/18).toFixed(3)}) scale(${(11/18).toFixed(6)})`
+
+// Moon arc progress
+const moonProgress = computed(() => {
+  const now = Date.now()
+  let rise = riseSet.value.rise
+  let set  = riseSet.value.set
+
+  // If rise is in the future and set is before rise, the rise found belongs to the
+  // next cycle — the moon actually rose yesterday. Use yesterday's rise with today's set.
+  // Also handle the case where today has no rise at all (rise is null).
+  const needsYesterday = !rise || (set && rise.getTime() > set.getTime() && now < rise.getTime())
+  if (needsYesterday) {
+    const yesterday = new Date(moonRefDate.value.getTime() - 86400000)
+    const prev = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
+    if (prev.rise) {
+      rise = prev.rise
+      if (!set) set = prev.set
+      // Correct for JD interpolation pushing the rise past midnight by one day
+      if (set && rise.getTime() > set.getTime()) {
+        rise = new Date(rise.getTime() - 86400000)
+      }
+    }
+  }
+
+  if (!rise || !set) return -1
+  if (now > set.getTime()) return -1
+  return (now - rise.getTime()) / (set.getTime() - rise.getTime())
+})
+
+const moonDotPos = computed(() => arcPoint(Math.min(Math.max(moonProgress.value, 0), 1)))
+const moonDotX   = computed(() => moonDotPos.value.x)
+const moonDotY   = computed(() => moonDotPos.value.y)
+const moonArcEnd = computed(() => moonProgress.value > 0 && moonProgress.value <= 1 ? moonDotPos.value : null)
 </script>
 
 <style scoped>
@@ -219,6 +325,7 @@ const illumination = computed(() => moonIllumination(phase.value))
 .sm-time-rise { align-items: center; }
 .sm-time-set  { align-items: center; }
 .sm-time-label  { font-size: 0.8rem; color: var(--text-muted); }
+.sm-next-day    { font-size: 0.6rem; opacity: 0.6; vertical-align: super; margin-left: 1px; }
 .sm-time-val    { font-size: 0.85rem; font-weight: 500; color: var(--text); }
 
 /* Sun button */
@@ -232,7 +339,7 @@ const illumination = computed(() => moonIllumination(phase.value))
   border-radius: 10px;
   transition: background 0.15s;
 }
-.sm-sun-btn:hover { background: var(--btn-hover); }
+.sm-sun-btn:hover { background: var(--card-hover); }
 
 /* Moon */
 .sm-moon-btn {
@@ -245,17 +352,16 @@ const illumination = computed(() => moonIllumination(phase.value))
   border-radius: 10px;
   transition: background 0.15s;
 }
-.sm-moon-btn:hover { background: var(--btn-hover); }
+.sm-moon-btn:hover { background: var(--card-hover); }
 
-.sm-moon-vis { display: flex; justify-content: center; }
-.moon-svg { display: block; }
+/* Moon arc */
+.sm-moon-arc { width: 100%; padding: 0 4px; }
+.moon-arc-svg { width: 100%; height: 56px; }
 
-.sm-moon-info {
+.sm-moon-times {
+  width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: space-around;
 }
-.sm-moon-name { font-size: 0.85rem; font-weight: 500; color: var(--text); }
-.sm-moon-sub  { font-size: 0.8rem; color: var(--text-muted); }
 </style>
