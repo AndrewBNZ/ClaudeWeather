@@ -212,7 +212,7 @@ function geoLocate() {
 }
 .sheet-search :deep(.search-input) {
   background: var(--sheet-input-bg);
-  font-size: 1rem;
+  font-size: 0.85rem;
   padding: 10px 14px 10px 30px;
   border-radius: 12px;
 }
@@ -261,7 +261,7 @@ function geoLocate() {
   background: none;
   border: none;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-family: inherit;
   text-align: left;
   cursor: pointer;

@@ -13,9 +13,9 @@
     <div v-for="(card, i) in cardConfig" :key="card.type"
       :data-card-idx="i"
       class="setting-row setting-row--draggable"
-      :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts') }"
+      :class="{ 'tile-dragging': cardDragIndex === i, 'tile-drag-over': cardDragOver === i && cardDragIndex !== i, 'setting-row--nav': !!CARD_SUBPANEL[card.type] }"
       draggable="true"
-      @click="CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts') && $emit('navigate', CARD_SUBPANEL[card.type])"
+      @click="CARD_SUBPANEL[card.type] && $emit('navigate', CARD_SUBPANEL[card.type])"
       @dragstart="onCardDragStart($event, i)"
       @dragover="onCardDragOver($event, i)"
       @dragend="onCardDragEnd"
@@ -29,7 +29,7 @@
           <div>
             <div class="setting-label">
               {{ CARD_META[card.type].label }}
-              <span v-if="card.type === 'combinedForecast'" class="beta-tag">beta</span>
+              <span v-if="card.type === 'airQuality'" class="beta-tag">beta</span>
             </div>
             <div class="setting-hint" style="display: none;">{{ CARD_HINTS[card.type] }}</div>
           </div>
@@ -39,7 +39,7 @@
         <span class="toggle-thumb" />
       </button>
       <button
-        v-if="CARD_SUBPANEL[card.type] && (card.enabled || card.type === 'customAlerts')"
+        v-if="CARD_SUBPANEL[card.type]"
         class="setting-chevron-btn"
         @click.stop="$emit('navigate', CARD_SUBPANEL[card.type])"
       >
@@ -62,16 +62,16 @@ defineEmits(['navigate'])
 
 const { cardConfig, toggleCard, reorderCards, resetCardLayout } = useSettings()
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', combinedForecast: 'combinedForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment', airQuality: 'airQuality' }
 const CARD_HINTS = {
   combinedHourly:   'Configure the hourly forecast card',
   dailyForecast:    'Configure the daily forecast card',
-  combinedForecast: 'Configure the combined daily + hourly forecast card',
   sunriseMoon:      'Sunrise, sunset and moon phase',
   radar:            'Radar map',
   customAlerts:     'Set up custom weather alerts',
   weatherWarnings:  'Configure the weather warnings feed',
   daySegment:       'Configure the daily dashboard card',
+  airQuality:       'Configure the air quality card',
 }
 
 const cardDragIndex = ref(null)

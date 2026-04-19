@@ -465,8 +465,13 @@ function positionDateLabels(scrollLeft) {
 // ── Current/past hour ─────────────────────────────────────────────────────────
 
 const currentAbsoluteHour = computed(() => {
-  const ms = Date.now() + (props.utcOffset ?? 0) * 1000
-  return new Date(ms).getUTCHours()
+  if (!props.hourly?.time?.length) return 0
+  const now = new Date(Date.now() + (props.utcOffset ?? 0) * 1000)
+  // Build a UTC timestamp string matching the hourly time format (YYYY-MM-DDTHH:00)
+  const pad = (n) => String(n).padStart(2, '0')
+  const target = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}T${pad(now.getUTCHours())}:00`
+  const idx = props.hourly.time.findIndex(t => t === target)
+  return idx >= 0 ? idx : now.getUTCHours()
 })
 
 function isCurrent(i) { return i === currentAbsoluteHour.value }
@@ -583,8 +588,8 @@ function onHourlyScroll() {
   userScrolling.value = true
   clearTimeout(userScrollTimer)
   userScrollTimer = setTimeout(() => { userScrolling.value = false }, 150)
-  const centerX  = sl + scrollEl.value.clientWidth / 2
-  const slotIdx  = Math.round(centerX / COL_WIDTH)
+  // Use left edge so day ticks over only when midnight reaches the left side
+  const slotIdx  = Math.floor(sl / COL_WIDTH)
   const slot     = allHoursArr.value[Math.min(slotIdx, allHoursArr.value.length - 1)]
   if (slot) emit('day-selected', Math.floor(slot.index / 24))
 }

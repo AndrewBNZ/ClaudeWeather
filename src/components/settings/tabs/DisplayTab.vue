@@ -12,7 +12,23 @@
         <button :class="['unit-pill-opt', { active: theme === 'dark' }]"   @click="theme = 'dark'">Dark</button>
       </div>
     </div>
-
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Style</div>
+        <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list of weather info' }}</div>
+      </div>
+      <div class="unit-pill">
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'cards' }]" @click="cardStyle = 'cards'">Cards</button>
+        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
+      </div>
+    </div>
+    <button class="setting-row setting-row--nav" @click="$emit('navigate', 'weatherIcons')">
+      <div>
+        <div class="setting-label">Weather icons</div>
+        <div class="setting-hint">{{ ICON_SETS.find(s => s.id === iconSet)?.label ?? 'Emoji' }}</div>
+      </div>
+      <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
   <div class="settings-group">
     <button class="setting-row setting-row--nav" @click="$emit('navigate', 'units')">
@@ -32,23 +48,6 @@
         <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: timeFormat === '24h' }]" @click="timeFormat = '24h'">24h</button>
       </div>
     </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-label">Style</div>
-        <div class="setting-hint">{{ cardStyle === 'cards' ? 'Cards with rounded backgrounds' : 'Flat list of weather info' }}</div>
-      </div>
-      <div class="unit-pill">
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'cards' }]" @click="cardStyle = 'cards'">Cards</button>
-        <button :class="['unit-pill-opt', 'unit-pill-opt--sm', { active: cardStyle === 'flat' }]"  @click="cardStyle = 'flat'">Flat</button>
-      </div>
-    </div>
-    <button class="setting-row setting-row--nav" @click="$emit('navigate', 'weatherIcons')">
-      <div>
-        <div class="setting-label">Weather icons</div>
-        <div class="setting-hint">{{ ICON_SETS.find(s => s.id === iconSet)?.label ?? 'Emoji' }}</div>
-      </div>
-      <svg class="setting-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </button>
   </div>
   <div class="settings-group">
     <div class="setting-row">

@@ -2,6 +2,13 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.18",
+    entries: [
+      "New card - Air Quality",
+      "Sun & Moon improvements",
+   ],
+  },
+  {
     version: "1.2.15",
     entries: [
       "New daily dashboard card",

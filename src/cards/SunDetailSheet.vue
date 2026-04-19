@@ -196,18 +196,30 @@ function solarOffsetMins(riseIso, lat, altitudeDeg) {
 
 // ── Selected day computed values ──────────────────────────────────────────────
 
+const showingSunTomorrow = computed(() => {
+  const s = props.daily?.sunset?.[0]
+  if (!s) return false
+  const [h, m] = s.slice(11, 16).split(':').map(Number)
+  const setMins = h * 60 + m
+  const localDate = new Date(Date.now() + props.utcOffset * 1000)
+  const nowMins = localDate.getUTCHours() * 60 + localDate.getUTCMinutes()
+  return nowMins > setMins
+})
+
+const dayIdx = computed(() => showingSunTomorrow.value ? 1 : 0)
+
 const todayLabel = computed(() => {
-  const src = props.daily?.sunrise?.[0]
-  if (!src) return 'Today'
+  const src = props.daily?.sunrise?.[dayIdx.value]
+  if (!src) return showingSunTomorrow.value ? 'Tomorrow' : 'Today'
   const dateStr = src.slice(0, 10)
   const [y, mo, d] = dateStr.split('-').map(Number)
   const dt = new Date(Date.UTC(y, mo - 1, d, 12))
   const label = dt.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
-  return 0 === 0 ? 'Today · ' + label : label
+  return (showingSunTomorrow.value ? 'Tomorrow · ' : 'Today · ') + label
 })
 
-const sunrise = computed(() => props.daily?.sunrise?.[0] ?? null)
-const sunset  = computed(() => props.daily?.sunset?.[0]  ?? null)
+const sunrise = computed(() => props.daily?.sunrise?.[dayIdx.value] ?? null)
+const sunset  = computed(() => props.daily?.sunset?.[dayIdx.value]  ?? null)
 
 const sunriseMins = computed(() => isoToLocalMins(sunrise.value))
 const sunsetMins  = computed(() => isoToLocalMins(sunset.value))
@@ -249,6 +261,7 @@ function minsToT(mins) {
 }
 
 const sunProgress = computed(() => {
+  if (showingSunTomorrow.value) return -1
   if (sunriseMins.value == null || sunsetMins.value == null) return -1
   const localDate = new Date(Date.now() + props.utcOffset * 1000)
   const nowMins = localDate.getUTCHours() * 60 + localDate.getUTCMinutes()
@@ -275,14 +288,14 @@ const sevenDays = computed(() => {
   const rises = props.daily?.sunrise ?? []
   const sets  = props.daily?.sunset  ?? []
   return Array.from({ length: 7 }, (_, i) => {
-    const idx = 0 + i
+    const idx = i
     const riseIso = rises[idx] ?? null
     const setIso  = sets[idx]  ?? null
     const dateKey = times[idx] ?? String(i)
     const date    = riseIso ? new Date(riseIso.slice(0, 10) + 'T12:00:00Z') : null
     return {
       dateKey,
-      dayName: i === 0 && 0 === 0
+      dayName: i === 0
         ? 'Today'
         : date?.toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' }) ?? '—',
       sunrise: formatIso(riseIso, props.timeFormat),

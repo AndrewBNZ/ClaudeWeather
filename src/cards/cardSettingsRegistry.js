@@ -14,11 +14,6 @@ export const CARD_SETTINGS_REGISTRY = {
     component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
     props:     { type: 'hourly' },
   },
-  combinedForecast: {
-    title:     'Combined Forecast',
-    component: defineAsyncComponent(() => import('../components/settings/ForecastSettings.vue')),
-    props:     { type: 'combined' },
-  },
   daySegment: {
     title:     'Day Segments',
     component: defineAsyncComponent(() => import('../components/settings/DaySegmentSettings.vue')),
@@ -34,5 +29,9 @@ export const CARD_SETTINGS_REGISTRY = {
   radar: {
     title:     'Radar',
     component: defineAsyncComponent(() => import('../components/settings/RadarSettings.vue')),
+  },
+  airQuality: {
+    title:     'Air Quality',
+    component: defineAsyncComponent(() => import('../components/settings/AirQualitySettings.vue')),
   },
 }

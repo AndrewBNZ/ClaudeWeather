@@ -105,13 +105,12 @@ const props = defineProps({
 defineEmits(['navigate'])
 
 const {
-  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout,
-  setDailyMainDataPoint, setHourlyMainDataPoint, setCombinedMainDataPoint,
+  dailyForecastLayout, hourlyForecastLayout,
+  setDailyMainDataPoint, setHourlyMainDataPoint,
 } = useSettings()
 
 const layout = computed(() => {
-  if (props.type === 'daily')    return dailyForecastLayout.value
-  if (props.type === 'combined') return combinedForecastLayout.value
+  if (props.type === 'daily') return dailyForecastLayout.value
   return hourlyForecastLayout.value
 })
 
@@ -120,8 +119,7 @@ const mainOptions = computed(() =>
 )
 
 const setMainDataPoint = computed(() => {
-  if (props.type === 'daily')    return setDailyMainDataPoint
-  if (props.type === 'combined') return setCombinedMainDataPoint
+  if (props.type === 'daily') return setDailyMainDataPoint
   return setHourlyMainDataPoint
 })
 

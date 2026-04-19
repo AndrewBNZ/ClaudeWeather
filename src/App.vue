@@ -220,7 +220,6 @@
                 :model-label="OPEN_METEO_MODELS.find(m => m.value === openMeteoModel)?.label"
                 :daily-forecast-layout="dailyForecastLayout"
                 :hourly-forecast-layout="hourlyForecastLayout"
-                :combined-forecast-layout="combinedForecastLayout"
                 :day-segment-layout="daySegmentLayout"
                 :warnings-config="warningsConfig"
                 :custom-alerts-config="customAlertsConfig"
@@ -370,7 +369,7 @@ import { useToast }  from './composables/useToast.js'
 const {
   timeFormat, showSim, cardStyle,
   tileConfig, cardConfig, unitPrefs, pwsEnabled, pwsApiKey, tempestEnabled, tempestToken, openMeteoModel, activeDataType,
-  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout, daySegmentLayout, warningsConfig,
+  dailyForecastLayout, hourlyForecastLayout, daySegmentLayout, warningsConfig,
   customAlertsConfig, customAlerts,
   landscapeMode,
 } = useSettings()
@@ -396,7 +395,7 @@ const focusHour           = ref(null)
 const alertHighlightHours = ref(null)
 const alertHighlightColor = ref(null)
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', combinedForecast: 'combinedForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment', airQuality: 'airQuality' }
 
 function onOpenCardSettings(cardType) {
   const sub = CARD_SUBPANEL[cardType]

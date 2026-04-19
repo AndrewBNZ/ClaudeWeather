@@ -50,7 +50,7 @@ function doUpdate() {
 
 watch(needRefresh, (val) => {
   if (val) {
-    addToast({ id: 'app-update', message: 'Update available', action: { label: 'Update now', fn: doUpdate }, color: 'blue' })
+    addToast({ id: 'app-update', message: 'App update available', action: { label: 'Update now', fn: doUpdate }, color: 'blue' })
   } else {
     removeToast('app-update')
   }

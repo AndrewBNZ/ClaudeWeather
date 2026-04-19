@@ -4,6 +4,7 @@
       <!-- Sunrise/Sunset section -->
       <button class="sm-section sm-sun sm-sun-btn" @click="showSunSheet = true">
         <div class="sm-section-title">Sun</div>
+        <div v-if="showingSunTomorrow" class="sm-tomorrow">Tomorrow</div>
         <div class="sm-sun-arc">
           <svg viewBox="0 0 100 58" class="sun-arc-svg">
             <!-- Horizon line -->
@@ -38,6 +39,7 @@
       <!-- Moon section -->
       <button class="sm-section sm-moon sm-moon-btn" @click="showMoonSheet = true">
         <div class="sm-section-title">Moon</div>
+        <div v-if="showingTomorrow" class="sm-tomorrow">Tomorrow</div>
         <div class="sm-moon-arc">
           <svg viewBox="0 0 100 58" class="moon-arc-svg">
             <!-- Horizon line -->
@@ -128,9 +130,17 @@ const props = defineProps({
   utcOffset:  { type: Number, default: 0 },  // seconds
 })
 
-// Sunrise/sunset always for today (day 0) — card shows current day only
-const sunrise = computed(() => props.daily?.sunrise?.[0] ?? null)
-const sunset  = computed(() => props.daily?.sunset?.[0] ?? null)
+const showingSunTomorrow = computed(() => {
+  const s = props.daily?.sunset?.[0]
+  if (!s) return false
+  const localDate = new Date(Date.now() + props.utcOffset * 1000)
+  const nowH = localDate.getUTCHours() + localDate.getUTCMinutes() / 60
+  const [h, m] = s.slice(11, 16).split(':').map(Number)
+  return nowH > h + m / 60
+})
+
+const sunrise = computed(() => props.daily?.sunrise?.[showingSunTomorrow.value ? 1 : 0] ?? null)
+const sunset  = computed(() => props.daily?.sunset?.[showingSunTomorrow.value ? 1 : 0] ?? null)
 
 function formatTime(isoStr, format) {
   if (!isoStr) return '—'
@@ -159,6 +169,7 @@ function parseHour(isoStr) {
 }
 
 const sunProgress = computed(() => {
+  if (showingSunTomorrow.value) return -1
   const riseH = parseHour(sunrise.value)
   const setH  = parseHour(sunset.value)
   if (riseH == null || setH == null) return -1
@@ -188,7 +199,7 @@ const sunProgressArc = computed(() => {
 // ── Moon (identical logic to MoonDetailSheet) ─────────────────────────────────
 
 const moonRefDate = computed(() => {
-  const src = sunrise.value
+  const src = props.daily?.sunrise?.[0]
   return src
     ? new Date(src.slice(0, 10) + 'T00:00:00Z')
     : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
@@ -325,6 +336,7 @@ const moonArcEnd = computed(() => moonProgress.value > 0 && moonProgress.value <
 .sm-time-rise { align-items: center; }
 .sm-time-set  { align-items: center; }
 .sm-time-label  { font-size: 0.8rem; color: var(--text-muted); }
+.sm-tomorrow    { font-size: 0.65rem; color: var(--text-muted); opacity: 0.7; font-weight: 400; text-transform: none; letter-spacing: 0; margin-top: -4px; }
 .sm-next-day    { font-size: 0.6rem; opacity: 0.6; vertical-align: super; margin-left: 1px; }
 .sm-time-val    { font-size: 0.85rem; font-weight: 500; color: var(--text); }
 
