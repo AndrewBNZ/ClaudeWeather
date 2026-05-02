@@ -4,8 +4,8 @@ export default [
   {
     version: "1.2.19",
     entries: [
-      "Hourly card can be displayed in strip style.",
-      "A preview of the card is displayed while you change its settings.",
+      "New strip style for hourly card.",
+      "Preview cards while customising them.",
    ],
   },
   {
