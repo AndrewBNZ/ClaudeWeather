@@ -5,13 +5,11 @@
       <div v-if="modelValue" class="cond-panel">
         <div class="cond-header">
           <span class="cond-title">Current Conditions</span>
-          <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
-        </div>
-        <div class="cond-condition-row">
           <span class="cond-subtitle">
             <WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" />
             <span>{{ info.label }}</span>
           </span>
+          <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
         </div>
         <div class="cond-scroll">
           <div class="cond-grid">
@@ -20,7 +18,7 @@
                 <span class="cond-tile-icon" v-html="tile.icon"></span>
                 <span class="cond-tile-label" :style="{ color: tile.color }">{{ tile.label }}</span>
                 <span v-if="tile.fromStation" class="cond-tile-pws-icon" :title="pwsName ? `PWS: ${pwsName}` : 'PWS: Personal weather station'">
-                  <svg width="13" height="13" viewBox="0 -1 20 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <svg width="16" height="16" viewBox="0 -1 20 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="7" y1="18" x2="13" y2="18"/>
                     <line x1="10" y1="18" x2="10" y2="11.5"/>
                     <path d="M7 11a4.2 4.2 0 0 1 6 0"/>
@@ -258,7 +256,7 @@ const tiles = computed(() => {
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
-  height: 65dvh;
+  max-height: 85dvh;
   overflow: hidden;
 }
 
@@ -286,28 +284,18 @@ const tiles = computed(() => {
   color: var(--text);
 }
 
-.cond-condition-row {
-  display: flex;
-  justify-content: center;
-  padding: 10px 16px 10px;
-  flex-shrink: 0;
-}
-
 .cond-subtitle {
-  font-size: 0.9rem;
-  color: var(--text);
+  font-size: 0.85rem;
+  color: var(--text-muted);
   font-weight: 500;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  text-align: center;
+  gap: 6px;
 }
 
 .cond-wx-icon {
-  font-size: 2.5rem;
+  font-size: 1.4rem;
   line-height: 1;
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.25));
 }
 
 .cond-close {
@@ -333,7 +321,7 @@ const tiles = computed(() => {
   grid-template-columns: 1fr 1fr;
   grid-auto-rows: 80px;
   gap: 8px;
-  padding: 0 12px 12px 12px;
+  padding: 12px 12px 12px 12px;
 }
 
 .cond-tile {
