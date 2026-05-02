@@ -1,4 +1,30 @@
 <template>
+  <!-- Live preview -->
+  <div v-if="weather" class="fs-preview-label">Preview</div>
+  <div v-if="weather" class="fs-preview">
+    <HourlyForecastCard
+      v-if="type === 'hourly'"
+      :hourly="weather.hourly"
+      :daily="weather.daily"
+      :unit-prefs="unitPrefs"
+      :selected-day="0"
+      :utc-offset="weather.utc_offset_seconds ?? 0"
+      :time-format="timeFormat"
+      :hourly-forecast-layout="hourlyForecastLayout"
+      :forecast-data-point="null"
+    />
+    <DailyForecastCard
+      v-else
+      :daily="weather.daily"
+      :hourly="weather.hourly"
+      :unit-prefs="unitPrefs"
+      :selected-day="0"
+      :utc-offset="weather.utc_offset_seconds ?? 0"
+      :daily-forecast-layout="dailyForecastLayout"
+      :forecast-data-point="null"
+    />
+  </div>
+
   <div class="settings-group">
     <div class="setting-row">
       <div>
@@ -36,7 +62,7 @@
         <button v-if="type === 'daily'" :class="['unit-pill-opt', { active: layout.chartStyle === 'vertical' }]" @click="layout.chartStyle = 'vertical'">Vertical</button>
       </div>
     </div>
-    <div v-if="layout.chartStyle !== 'vertical'" class="setting-row setting-row--col">
+    <div v-if="layout.chartStyle !== 'vertical' && layout.chartStyle !== 'strip'" class="setting-row setting-row--col">
       <div class="setting-label">Size</div>
       <div class="unit-pill">
         <button :class="['unit-pill-opt', { active: layout.chartSize === 'S' }]"  @click="layout.chartSize = 'S'">S</button>
@@ -91,14 +117,18 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useSettings, MAIN_DATA_POINT_OPTIONS, HOURLY_MAIN_DATA_POINT_OPTIONS } from '../../composables/useSettings.js'
 import { TILE_ICONS } from '../../utils/tileIcons.js'
+import HourlyForecastCard from '../../cards/HourlyForecastCard.vue'
+import DailyForecastCard  from '../../cards/DailyForecastCard.vue'
 
 const props = defineProps({
-  type: { type: String, required: true }, // 'daily' | 'hourly' | 'combined'
+  type:      { type: String, required: true }, // 'daily' | 'hourly' | 'combined'
+  weather:   { type: Object, default: null },
+  unitPrefs: { type: Object, default: null },
 })
 defineEmits(['navigate'])
 
 const {
-  dailyForecastLayout, hourlyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout, timeFormat,
   setDailyMainDataPoint, setHourlyMainDataPoint,
 } = useSettings()
 
@@ -129,6 +159,27 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.fs-preview-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 0 4px;
+}
+
+.fs-preview {
+  background: var(--card);
+  border-radius: 12px;
+  pointer-events: none;
+  border: 2px dashed rgba(0,0,0,0.15);
+}
+
+.fs-preview :deep(.card) {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
 
 .slot-scroll {
   overflow-x: auto;

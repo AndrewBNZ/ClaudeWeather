@@ -1,4 +1,15 @@
 <template>
+  <div v-if="props.weather" class="fs-preview-label">Preview</div>
+  <div v-if="props.weather" class="fs-preview">
+    <DaySegmentCard
+      :daily="props.weather.daily"
+      :hourly="props.weather.hourly"
+      :unit-prefs="props.unitPrefs"
+      :selected-day="0"
+      :utc-offset="props.weather.utc_offset_seconds ?? 0"
+      :day-segment-layout="daySegmentLayout"
+    />
+  </div>
   <div class="settings-group">
     <div class="setting-row">
       <div>
@@ -65,6 +76,12 @@ import { ref, computed } from 'vue'
 import { useSettings } from '../../composables/useSettings.js'
 import { TILE_ICONS } from '../../utils/tileIcons.js'
 import { DATA_TYPES, POINT_LABELS } from '../../utils/dataTypes.js'
+import DaySegmentCard from '../../cards/DaySegmentCard.vue'
+
+const props = defineProps({
+  weather:   { type: Object, default: null },
+  unitPrefs: { type: Object, default: null },
+})
 
 const { daySegmentLayout, toggleDaySegmentPoint, reorderDaySegmentPoints } = useSettings()
 
@@ -112,3 +129,27 @@ function _onTouchEnd() {
   document.removeEventListener('touchend', _onTouchEnd)
 }
 </script>
+
+<style scoped>
+.fs-preview-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 0 4px;
+}
+
+.fs-preview {
+  background: var(--card);
+  border-radius: 12px;
+  pointer-events: none;
+  border: 2px dashed rgba(0,0,0,0.15);
+}
+
+.fs-preview :deep(.card) {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+</style>

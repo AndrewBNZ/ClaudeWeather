@@ -56,7 +56,7 @@
 
         <!-- Hourly Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'hourlyForecast'" :class="paneClass('hourlyForecast')">
-          <ForecastSettings type="hourly" @navigate="navigate" />
+          <ForecastSettings type="hourly" :weather="props.weather" :unit-prefs="props.unitPrefs" @navigate="navigate" />
         </div>
 
         <!-- Hourly Forecast → Other data points sub-panel -->
@@ -66,7 +66,7 @@
 
         <!-- Daily Forecast layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'dailyForecast'" :class="paneClass('dailyForecast')">
-          <ForecastSettings type="daily" @navigate="navigate" />
+          <ForecastSettings type="daily" :weather="props.weather" :unit-prefs="props.unitPrefs" @navigate="navigate" />
         </div>
 
         <!-- Daily Forecast → Other data points sub-panel -->
@@ -92,12 +92,12 @@
 
         <!-- Day Segments layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'daySegment'" :class="paneClass('daySegment')">
-          <DaySegmentSettings />
+          <DaySegmentSettings :weather="props.weather" :unit-prefs="props.unitPrefs" />
         </div>
 
         <!-- Air Quality layout sub-panel -->
         <div class="settings-tab-pane" :data-pane="'airQuality'" :class="paneClass('airQuality')">
-          <AirQualitySettings />
+          <AirQualitySettings :lat="props.lat" :lng="props.lng" :utc-offset="props.weather?.utc_offset_seconds ?? 0" />
         </div>
 
         <!-- Data tab -->
@@ -174,6 +174,10 @@ const props = defineProps({
   isOpen:          Boolean,
   locationCountry: { type: String, default: null },
   editAlertId:     { type: String, default: null },
+  weather:         { type: Object, default: null },
+  unitPrefs:       { type: Object, default: null },
+  lat:             { type: Number, default: 0 },
+  lng:             { type: Number, default: 0 },
 })
 const emit = defineEmits(['close'])
 function jumpToSubPanel(sub) {

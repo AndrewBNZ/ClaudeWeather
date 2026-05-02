@@ -17,7 +17,6 @@
       </button>
       <div class="scene-top-location">
         <span class="scene-top-name">{{ (locationName || 'ClaudeWeather').split(',')[0] }}</span>
-        <span v-if="weatherData && localDateTime" class="scene-top-datetime">{{ localDateTime }}</span>
       </div>
       <button
         data-settings-btn
@@ -274,6 +273,10 @@
       :is-open="settingsOpen"
       :location-country="location?.country ?? null"
       :edit-alert-id="editAlertId"
+      :weather="weatherData"
+      :unit-prefs="unitPrefs"
+      :lat="location?.lat ?? 0"
+      :lng="location?.lon ?? 0"
       @close="settingsOpen = false; editAlertId = null"
     />
 
@@ -563,21 +566,6 @@ const updatedAt = computed(() =>
     : ''
 )
 
-const localDateTime = computed(() => {
-  if (!weatherData.value) return ''
-  const offsetMs = (weatherData.value.utc_offset_seconds ?? 0) * 1000
-  const d = new Date(tickNow.value + offsetMs)
-  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  const dow = days[d.getUTCDay()]
-  const date = d.getUTCDate()
-  const mon  = months[d.getUTCMonth()]
-  const h = d.getUTCHours()
-  const m = String(d.getUTCMinutes()).padStart(2,'0')
-  if (timeFormat.value === '24h') return `${dow} ${date} ${mon} · ${String(h).padStart(2,'0')}:${m}`
-  const ampm = h >= 12 ? 'pm' : 'am'
-  return `${dow} ${date} ${mon} · ${h % 12 || 12}:${m} ${ampm}`
-})
 
 const activePwsStation = computed(() => {
   if (!location.value) return null
@@ -1126,23 +1114,6 @@ if (!isGeoActive.value) {
   white-space: nowrap;
   max-width: 100%;
 }
-.scene-top-datetime {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: rgba(255,255,255,0.7);
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  white-space: nowrap;
-  letter-spacing: 0.01em;
-  transition: opacity 0.2s;
-}
-.scene-top-bar.scrolled .scene-top-datetime {
-  opacity: 0;
-  pointer-events: none;
-}
 .scene-top-btn {
   pointer-events: all;
   background: rgba(0,0,0,0.22);
@@ -1601,10 +1572,6 @@ if (!isGeoActive.value) {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-}
-.app-shell--landscape .scene-top-bar.scrolled .scene-top-datetime {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .app-shell--landscape .card-stack-inner {

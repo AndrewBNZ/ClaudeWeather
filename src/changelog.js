@@ -2,6 +2,13 @@
 // The version must match package.json exactly.
 export default [
   {
+    version: "1.2.19",
+    entries: [
+      "Hourly card can be displayed in strip style.",
+      "A preview of the card is displayed while you change its settings.",
+   ],
+  },
+  {
     version: "1.2.18",
     entries: [
       "New card - Air Quality",

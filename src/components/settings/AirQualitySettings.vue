@@ -1,4 +1,8 @@
 <template>
+  <div v-if="props.lat || props.lng" class="fs-preview-label">Preview</div>
+  <div v-if="props.lat || props.lng" class="fs-preview">
+    <AirQualityCard :lat="props.lat" :lng="props.lng" :utc-offset="props.utcOffset" />
+  </div>
   <div class="settings-group">
     <div class="setting-row">
       <div>
@@ -33,6 +37,37 @@
 
 <script setup>
 import { useSettings } from '../../composables/useSettings.js'
+import AirQualityCard from '../../cards/AirQualityCard.vue'
 
+const props = defineProps({
+  lat:       { type: Number, default: 0 },
+  lng:       { type: Number, default: 0 },
+  utcOffset: { type: Number, default: 0 },
+})
 const { airQualityConfig } = useSettings()
 </script>
+
+<style scoped>
+.fs-preview-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  padding: 0 4px;
+}
+
+.fs-preview {
+  background: var(--sheet-item-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  border: 2px dashed rgba(0,0,0,0.15);
+}
+
+.fs-preview :deep(.card) {
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+</style>

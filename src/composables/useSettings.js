@@ -77,7 +77,7 @@ export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showTitle:           true,
   showDataPointPicker: true,
   showSunriseSunset:   true,
-  chartStyle:          'line',
+  chartStyle:          'strip',
   chartSize:           'M',
   mainDataPoint:       'temperature',
   otherDataPoints:     DATA_TYPE_LIST
