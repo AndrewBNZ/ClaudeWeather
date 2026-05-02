@@ -19,6 +19,14 @@
         <span class="toggle-thumb" />
       </button>
     </div>
+    <div class="setting-row">
+      <div>
+        <div class="setting-label">Progress bar</div>
+      </div>
+      <button class="toggle-switch" :class="{ on: layout.showProgress }" @click="layout.showProgress = !layout.showProgress">
+        <span class="toggle-thumb" />
+      </button>
+    </div>
     <div class="setting-row setting-row--col">
       <div class="setting-label">Size</div>
       <div class="unit-pill">
@@ -33,7 +41,7 @@
     <div class="other-pts-header">
       <span class="setting-hint">Drag to reorder</span>
       <span class="other-pts-header-spacer"></span>
-      <span class="other-pts-col-lbl">Show</span>
+      <span class="other-pts-col-lbl"></span>
     </div>
     <div class="tile-list">
       <div

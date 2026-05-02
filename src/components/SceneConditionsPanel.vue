@@ -5,11 +5,13 @@
       <div v-if="modelValue" class="cond-panel">
         <div class="cond-header">
           <span class="cond-title">Current Conditions</span>
-          <span class="cond-subtitle">
-            <WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" />
-            <span>{{ info.label }}</span>
-          </span>
-          <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
+          <div class="cond-header-right">
+            <span class="cond-subtitle">
+              <WeatherIcon :code="data.weather_code" :is-day="isDay" class="cond-wx-icon" />
+              <span>{{ info.label }}</span>
+            </span>
+            <button class="cond-close" @click="$emit('update:modelValue', false)">✕</button>
+          </div>
         </div>
         <div class="cond-scroll">
           <div class="cond-grid">
@@ -276,6 +278,12 @@ const tiles = computed(() => {
   padding: 14px 16px;
   border-bottom: 1px solid var(--panel-border, rgba(255,255,255,0.08));
   flex-shrink: 0;
+}
+
+.cond-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .cond-title {

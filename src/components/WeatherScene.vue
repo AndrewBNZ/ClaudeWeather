@@ -566,13 +566,21 @@ const starsOpacity = computed(() => {
   return (g === 'clear' || g === 'partly') ? 1 : 0
 })
 
+const STAR_COLORS = ['#ffffff', '#ffffff', '#ffffff', '#fffde7', '#e8eaf6', '#e3f2fd', '#fff9c4', '#ede7f6']
+// Mulberry32 seeded PRNG — stable positions across renders, no diagonal grid artefacts
+function mulberry32(seed) {
+  let s = seed
+  return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 }
+}
+const _rng = mulberry32(0xDEADBEEF)
 const stars = Array.from({ length: 38 }, (_, i) => ({
   id: i,
   style: {
-    left:            `${(i * 31 + 17) % 88}%`,
-    top:             `${(i * 19 + 5)  % 50}%`,
+    left:            `${(_rng() * 88).toFixed(1)}%`,
+    top:             `${(_rng() * 50).toFixed(1)}%`,
     width:           `${2 + (i % 2)}px`,
     height:          `${2 + (i % 2)}px`,
+    background:      STAR_COLORS[Math.floor(_rng() * STAR_COLORS.length)],
     '--star-op':      0.4 + (i % 5) * 0.12,
     animationDelay:  `${((i * 0.7) % 3).toFixed(1)}s`,
   },
@@ -813,7 +821,6 @@ const treeStyleC = computed(() => { const v = swayVars(); return v ? { ...v, ani
 /* ── Stars ────────────────────────────────────────────────────────────────── */
 .star {
   position: absolute;
-  background: #fff;
   border-radius: 50%;
   animation: scene-twinkle 3s ease-in-out infinite;
 }

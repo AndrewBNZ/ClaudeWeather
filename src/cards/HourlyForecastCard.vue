@@ -613,6 +613,29 @@ onMounted(() => {
   })
 })
 
+function animateScrollTo(targetLeft, duration = 220) {
+  if (!scrollEl.value) return
+  const el = scrollEl.value
+  const startLeft = el.scrollLeft
+  const delta = targetLeft - startLeft
+  if (Math.abs(delta) < 1) return
+  programmaticScroll.value = true
+  const startTime = performance.now()
+  function step(now) {
+    const elapsed = now - startTime
+    const t = Math.min(elapsed / duration, 1)
+    // ease-out cubic
+    const eased = 1 - Math.pow(1 - t, 3)
+    el.scrollLeft = startLeft + delta * eased
+    if (t < 1) {
+      requestAnimationFrame(step)
+    } else {
+      el.scrollLeft = targetLeft
+    }
+  }
+  requestAnimationFrame(step)
+}
+
 // Scroll to the selected day only when the change came from the daily card, not from our own scroll
 watch(() => props.selectedDay, (d) => {
   if (userScrolling.value) return
@@ -623,8 +646,7 @@ watch(() => props.selectedDay, (d) => {
     const sunriseHour = sunriseStr ? parseInt(sunriseStr.split('T')[1]) : 6
     const targetHour = d * 24 + Math.max(0, sunriseHour - 1)
     const offset = Math.max(0, targetHour - displayStartIndex.value) * COL_WIDTH
-    programmaticScroll.value = true
-    scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })
+    animateScrollTo(offset)
   })
 })
 
@@ -634,8 +656,7 @@ watch(() => props.focusHour, (absHour) => {
   nextTick(() => {
     if (!scrollEl.value) return
     const offset = Math.max(0, absHour - displayStartIndex.value) * COL_WIDTH
-    programmaticScroll.value = true
-    scrollEl.value.scrollTo({ left: offset, behavior: 'smooth' })
+    animateScrollTo(offset)
   })
 })
 </script>

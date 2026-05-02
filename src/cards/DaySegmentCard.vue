@@ -45,6 +45,13 @@
           <div class="seg-col-label">Morning</div>
           <div class="seg-col-label">Afternoon</div>
           <div class="seg-col-label">Evening</div>
+          <div class="seg-col-label">Night</div>
+
+          <!-- Today progress bar -->
+          <div v-if="isToday && layout.showProgress" class="seg-progress-track">
+            <div class="seg-progress-bar" :style="{ width: progressPct + '%', background: progressColor }"></div>
+            <div class="seg-progress-dot" :style="{ left: progressPct + '%', background: progressColor, boxShadow: `0 0 4px ${progressColor}` }"></div>
+          </div>
 
           <!-- Condition row: weather icon left, temp + feelsLike stacked right -->
           <div v-for="seg in segments" :key="'cond-' + seg.key" class="seg-cell seg-cell--condition">
@@ -108,6 +115,7 @@
           <div class="seg-col-label">Morning</div>
           <div class="seg-col-label">Afternoon</div>
           <div class="seg-col-label">Evening</div>
+          <div class="seg-col-label">Night</div>
 
           <div v-for="seg in adjacentSegments" :key="'adj-cond-' + seg.key" class="seg-cell seg-cell--condition">
             <WeatherIcon class="seg-wx-icon" :code="seg.dominantCode" :is-day="seg.isDay" />
@@ -164,7 +172,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { DATA_TYPES } from '../utils/dataTypes.js'
 import { TILE_ICONS, CARD_ICONS } from '../utils/tileIcons.js'
 import { DEFAULT_DAY_SEGMENT_LAYOUT } from '../composables/useSettings.js'
@@ -533,6 +541,50 @@ const dayTitle = computed(() => {
   return weekday
 })
 
+// ── Today progress bar ───────────────────────────────────────────────────────
+
+const isToday = computed(() => localDay.value === 0)
+
+const nowTick = ref(Date.now())
+let tickTimer = null
+onMounted(() => { tickTimer = setInterval(() => { nowTick.value = Date.now() }, 60_000) })
+onUnmounted(() => { clearInterval(tickTimer) })
+
+// Position as % across the displayed window (morningStart → nightEnd)
+const progressPct = computed(() => {
+  const localMs  = nowTick.value + props.utcOffset * 1000
+  const nowHour  = (new Date(localMs).getUTCHours()) + new Date(localMs).getUTCMinutes() / 60
+  const winStart = layout.value.morningStart   // 6
+  const winEnd   = layout.value.nightEnd       // 24
+  const clamped  = Math.min(Math.max(nowHour, winStart), winEnd)
+  return ((clamped - winStart) / (winEnd - winStart)) * 100
+})
+
+// Time-of-day colour for the progress bar — mirrors WeatherScene timeOfDay logic
+const progressColor = computed(() => {
+  const localMs = nowTick.value + props.utcOffset * 1000
+  const sunrise = props.daily?.sunrise?.[0]
+  const sunset  = props.daily?.sunset?.[0]
+  let tod = 'day'
+  if (sunrise && sunset) {
+    const riseMs       = new Date(sunrise + 'Z').getTime()
+    const setMs        = new Date(sunset  + 'Z').getTime()
+    const transitionMs = 25 * 60 * 1000
+    if      (localMs < riseMs - transitionMs) tod = 'night'
+    else if (localMs < riseMs + transitionMs) tod = 'sunrise'
+    else if (localMs < setMs  - transitionMs) tod = 'day'
+    else if (localMs < setMs  + transitionMs) tod = 'sunset'
+    else                                       tod = 'night'
+  } else {
+    const h = new Date(localMs).getUTCHours()
+    if      (h >= 5  && h < 8)  tod = 'sunrise'
+    else if (h >= 8  && h < 18) tod = 'day'
+    else if (h >= 18 && h < 21) tod = 'sunset'
+    else                         tod = 'night'
+  }
+  return { night: '#3949AB', sunrise: '#FF9800', day: '#64B5F6', sunset: '#FF5722' }[tod] ?? '#4a9eff'
+})
+
 // ── Segment computation ──────────────────────────────────────────────────────
 
 function hourlySlice(key, startHour, endHour) {
@@ -600,6 +652,7 @@ const segments = computed(() => [
   buildSegment('morning',   layout.value.morningStart,   layout.value.morningEnd,   'Morning'),
   buildSegment('afternoon', layout.value.afternoonStart, layout.value.afternoonEnd, 'Afternoon'),
   buildSegment('evening',   layout.value.eveningStart,   layout.value.eveningEnd,   'Evening'),
+  buildSegment('night',     layout.value.nightStart,     layout.value.nightEnd,     'Night'),
 ])
 
 // Segments for the adjacent (preview) day
@@ -631,6 +684,7 @@ const adjacentSegments = computed(() => {
     buildSegmentForDay(d, 'morning',   layout.value.morningStart,   layout.value.morningEnd),
     buildSegmentForDay(d, 'afternoon', layout.value.afternoonStart, layout.value.afternoonEnd),
     buildSegmentForDay(d, 'evening',   layout.value.eveningStart,   layout.value.eveningEnd),
+    buildSegmentForDay(d, 'night',     layout.value.nightStart,     layout.value.nightEnd),
   ]
 })
 
@@ -848,10 +902,10 @@ function fmtSegValueForDay(day, type, seg) {
   will-change: transform;
 }
 
-/* 3-column grid */
+/* 4-column grid */
 .seg-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 0;
 }
 
@@ -877,7 +931,36 @@ function fmtSegValueForDay(day, type, seg) {
   letter-spacing: 0.04em;
   color: var(--text-faint);
   text-align: center;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
+}
+
+.seg-progress-track {
+  grid-column: 1 / -1;
+  position: relative;
+  height: 5px;
+  background: var(--row-border);
+  border-radius: 5px;
+  margin: 8px 25px 8px;
+  overflow: visible;
+}
+
+
+.seg-progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  opacity: 0.5;
+  transition: background 3s ease;
+}
+
+.seg-progress-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: background 3s ease, box-shadow 3s ease;
 }
 
 /* Every cell: centered column, icon on top then values */

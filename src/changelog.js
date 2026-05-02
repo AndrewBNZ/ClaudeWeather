@@ -2,7 +2,7 @@
 // The version must match package.json exactly.
 export default [
   {
-    version: "1.2.19",
+    version: "1.2.20",
     entries: [
       "New strip style for hourly card.",
       "Preview cards while customising them.",

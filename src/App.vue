@@ -1032,7 +1032,7 @@ if (!isGeoActive.value) {
 .scene-block {
   position: relative;
   z-index: 1;
-  height: 250px;
+  height: 350px;
   overflow: visible;
   max-width: 640px;
   margin-left: auto;

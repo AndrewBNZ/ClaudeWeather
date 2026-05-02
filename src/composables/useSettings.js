@@ -88,8 +88,9 @@ export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
 const DEFAULT_DAY_SEGMENT_ENABLED = new Set(['temperature', 'rainAmount', 'rainProb', 'wind'])
 
 export const DEFAULT_DAY_SEGMENT_LAYOUT = {
-  showTitle:   true,
-  size:        'M',
+  showTitle:    true,
+  showProgress: true,
+  size:         'M',
   dataPoints:  DATA_TYPE_LIST
     .filter(t => !t.isMap && t.hourlyKey != null)
     .map(t => ({ type: t.id, enabled: DEFAULT_DAY_SEGMENT_ENABLED.has(t.id) })),
@@ -99,7 +100,9 @@ export const DEFAULT_DAY_SEGMENT_LAYOUT = {
   afternoonStart: 12,
   afternoonEnd:   18,
   eveningStart:   18,
-  eveningEnd:     24,
+  eveningEnd:     21,
+  nightStart:     21,
+  nightEnd:       24,
 }
 
 export const DEFAULT_UNIT_PREFS = {

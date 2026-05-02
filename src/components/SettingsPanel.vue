@@ -1054,7 +1054,8 @@ function resetAll() { try { localStorage.clear() } catch {}; window.location.rel
   align-items: center;
   padding: 0 20px;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 .other-pts-header-spacer { flex: 1; }
 .other-pts-col-lbl {
