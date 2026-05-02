@@ -61,7 +61,6 @@ const DEFAULT_PICKER_ENABLED = new Set(['feelsLike','rainAmount', 'wind', 'cloud
 
 export const DEFAULT_DAILY_FORECAST_LAYOUT = {
   showTitle:           true,
-  showConditions:      true,
   showDataPointPicker: false,
   showDate:            false,
   chartStyle:          'vertical',
@@ -76,7 +75,6 @@ const DEFAULT_HOURLY_PICKER_ENABLED = new Set(['feelsLike', 'rainAmount', 'wind'
 
 export const DEFAULT_HOURLY_FORECAST_LAYOUT = {
   showTitle:           true,
-  showConditions:      true,
   showDataPointPicker: true,
   showSunriseSunset:   true,
   chartStyle:          'line',

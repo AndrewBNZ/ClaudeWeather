@@ -9,8 +9,8 @@
       <div class="labels-col">
         <div class="lbl-day-row"></div>
         <div class="lbl-temp-row"></div>
-        <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle === 'bar')" class="lbl-stats-wrap">
-          <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="lbl-stat-row">
+        <div v-if="visibleOtherPoints.length || layout.chartStyle === 'bar'" class="lbl-stats-wrap">
+          <div v-if="layout.chartStyle === 'bar'" class="lbl-stat-row">
             <span class="stat-icon" v-html="TILE_ICONS['sceneConditions']"></span>
           </div>
           <div
@@ -25,8 +25,9 @@
       </div>
 
       <!-- Scrollable day columns -->
+      <div class="days-scroll-wrapper">
       <div class="days-scroll" ref="daysScrollRef">
-        <div class="days-row" :class="{ 'days-row--with-dates': datesNeedingDay.size > 0 || layout.showDate }">
+        <div class="days-row" :class="{ 'days-row--with-dates': datesNeedingDay.size > 0 || layout.showDate, 'days-row--strip': layout.chartStyle === 'strip' }">
           <div
             v-for="(date, i) in displayDays"
             :key="date"
@@ -39,7 +40,10 @@
               <span v-if="dayNumber(date)" class="day-num">{{ dayNumber(date) }}</span>
             </div>
 
-            <div class="temp-wrap" :class="{ 'temp-wrap--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line' }">
+            <div class="temp-wrap" :class="{
+              'temp-wrap--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line',
+              'temp-wrap--strip': layout.chartStyle === 'strip',
+            }">
               <template v-if="layout.chartStyle === 'bar'">
                 <div class="bar-track">
                   <template v-if="FLOATING_BAR_TYPES.has(activeDataPoint)">
@@ -86,8 +90,8 @@
               </template>
             </div>
 
-            <div v-if="visibleOtherPoints.length || (layout.showConditions && layout.chartStyle === 'bar')" class="stats">
-              <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="wx-icon stat-row"><WeatherIcon :code="wxCode(i)" /></div>
+            <div v-if="visibleOtherPoints.length || layout.chartStyle === 'bar'" class="stats">
+              <div v-if="layout.chartStyle === 'bar'" class="wx-icon stat-row"><WeatherIcon :code="wxCode(i)" /></div>
               <template v-for="pt in visibleOtherPoints" :key="pt.type">
                 <!-- Rain probability -->
                 <div v-if="pt.type === 'rainProb'" class="stat-row" :style="{ color: rainColor }">
@@ -160,6 +164,7 @@
           </svg>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- Vertical list style -->
@@ -170,13 +175,13 @@
         class="vrow vrow-header"
         :style="{ gridTemplateColumns: [
           datesNeedingDay.size > 0 || layout.showDate ? '62px' : '48px',
-          layout.showConditions ? '24px' : null,
+          '24px',
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
-        ].filter(Boolean).join(' ') }"
+        ].join(' ') }"
       >
         <div></div>
-        <div v-if="layout.showConditions"></div>
+        <div></div>
         <div></div>
         <div
           v-for="pt in visibleOtherPoints.slice(0, 3)"
@@ -194,17 +199,17 @@
         class="vrow"
         :style="{ gridTemplateColumns: [
           datesNeedingDay.size > 0 || layout.showDate ? '62px' : '48px',
-          layout.showConditions ? '24px' : null,
+          '24px',
           '1fr',
           ...visibleOtherPoints.slice(0, 3).map(() => '44px'),
-        ].filter(Boolean).join(' ') }"
+        ].join(' ') }"
         @click="emit('day-selected', i)"
       >
         <!-- Day label -->
         <div class="vrow-day">{{ dayLabel(date) }}{{ dayNumber(date) ? ` ${dayNumber(date)}` : '' }}</div>
 
         <!-- Condition icon -->
-        <div v-if="layout.showConditions" class="vrow-icon">
+        <div class="vrow-icon">
           <WeatherIcon :code="wxCode(i)" />
         </div>
 
@@ -403,7 +408,7 @@ const datesNeedingDay = computed(() => {
   }
   return needsDay
 })
-const COL_WIDTH = 50
+const COL_WIDTH = 54
 
 function dayLabel(isoDate) {
   const locDateStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
@@ -616,6 +621,9 @@ const iconTrackH = computed(() => ICON_TRACK_H_BASE * (CHART_SIZE_MULT[layout.va
 const barTrackH  = computed(() => BAR_TRACK_H_BASE  * (CHART_SIZE_MULT[layout.value.chartSize] ?? 1))
 
 function iconGroupStyle(i) {
+  if (layout.value.chartStyle === 'strip') {
+    return { top: '0px' }
+  }
   const lo    = globalTempMin.value
   const hi    = globalTempMax.value
   const range = hi - lo || 1
@@ -789,9 +797,15 @@ const dailyLinePoints = computed(() => {
 }
 
 /* ── Scrollable days ──────────────────────────────── */
-.days-scroll {
+.days-scroll-wrapper {
   flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.days-scroll {
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -806,12 +820,12 @@ const dailyLinePoints = computed(() => {
 
 /* ── Day column ───────────────────────────────────── */
 .day-col {
-  flex: 0 0 50px;
-  width: 50px;
+  flex: 0 0 54px;
+  width: 54px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 0 8px;
+  padding: 6px 0 0;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
@@ -849,7 +863,8 @@ const dailyLinePoints = computed(() => {
 }
 
 .days-row--with-dates .day-lbl {
-  height: 36px;
+  min-height: 36px;
+  height: auto;
 }
 
 .day-num {
@@ -860,10 +875,8 @@ const dailyLinePoints = computed(() => {
 
 /* ── Condition icon (now inside stats, first stat-row) ── */
 .wx-icon {
-  height: var(--h-stat);
   font-size: 1rem;
-  line-height: 1;
-  margin-bottom: 5px;
+  line-height: 1rem;
 }
 
 /* ── Temperature section ──────────────────────────── */
@@ -885,6 +898,33 @@ const dailyLinePoints = computed(() => {
   position: relative;
   overflow: visible;
   height: calc(115px * var(--chart-size-mult, 1)); /* icons/line mode uses its own track height */
+}
+
+.temp-wrap--strip {
+  position: relative;
+  overflow: visible;
+  height: 40px;
+  margin-bottom: 4px;
+  margin-top: 8px;
+}
+
+.days-row--strip .day-col {
+  padding-bottom: 0px;
+  padding-top: 3px;
+}
+
+.days-row--strip:not(.days-row--with-dates) .day-lbl {
+  height: auto;
+  margin-bottom: 2px;
+}
+
+.temp-wrap--strip .wx-float-icon {
+  order: -1;
+  margin-bottom: 4px;
+}
+
+.temp-wrap--strip .icon-val-lo {
+  display: none;
 }
 
 .icon-float-group {
@@ -988,14 +1028,12 @@ const dailyLinePoints = computed(() => {
 .stats {
   display: flex;
   flex-direction: column;
-  gap: 3px;
   width: 100%;
   padding-top: 6px;
   margin-top: 4px;
 }
 
 .stat-row {
-  height: var(--h-stat);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1155,6 +1193,9 @@ const dailyLinePoints = computed(() => {
 
 /* ── Show scrollbar on non-touch devices ──────────── */
 @media (hover: hover) and (pointer: fine) {
+  .days-scroll-wrapper {
+    overflow-x: visible;
+  }
   .days-scroll {
     scrollbar-width: thin;
     scrollbar-color: var(--card-border) transparent;

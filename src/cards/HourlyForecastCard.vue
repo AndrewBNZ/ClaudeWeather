@@ -1,21 +1,34 @@
 <template>
   <div class="card hourly-forecast-card" :style="cardSizeStyle">
-    <!-- Header: title -->
+    <!-- Header: title + day nav -->
     <div v-if="layout.showTitle" class="hf-header">
       <span class="card-title-icon" v-html="CARD_ICONS.combinedHourly"></span>
       <h3 class="hf-title">Hourly Forecast</h3>
+      <div class="hf-nav">
+        <span class="hf-rewind-slot">
+          <button v-if="selectedDay > 0" class="hf-rewind-btn" @click="jumpToToday" title="Back to today">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M4 10a6 6 0 1 1 1.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="4,6 4,10 8,10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </span>
+        <button class="hf-nav-btn" :disabled="selectedDay === 0" @click="navigateDay(-1)" title="Previous day">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <polyline points="12,4 6,10 12,16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span class="hf-day-label">{{ dayTitle }}</span>
+        <button class="hf-nav-btn" :disabled="selectedDay === maxDay" @click="navigateDay(1)" title="Next day">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <polyline points="8,4 14,10 8,16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Scrollable area -->
     <div class="hf-scroll-wrapper">
-      <!-- Sticky date labels, positioned over the time row via JS -->
-      <div class="hf-date-bar" ref="dateBarEl" aria-hidden="true">
-        <span
-          v-for="d in dateBoundaries"
-          :key="d.dayIndex"
-          class="hf-date-label"
-        >{{ dateLabel(d.date) }}</span>
-      </div>
     <div class="hf-scroll" ref="scrollEl" @scroll.passive="onHourlyScroll">
       <div class="hf-inner" :style="{ width: totalWidth + 'px' }">
 
@@ -53,7 +66,10 @@
 
 
         <!-- Bar chart row (main data point) -->
-        <div class="hf-chart" :class="{ 'hf-chart--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'line' }">
+        <div class="hf-chart" :class="{
+          'hf-chart--icons': layout.chartStyle === 'icons' || layout.chartStyle === 'strip' || layout.chartStyle === 'line',
+          'hf-chart--strip': layout.chartStyle === 'strip',
+        }">
           <div
             v-for="slot in allHoursArr"
             :key="'c-' + slot.index"
@@ -123,7 +139,7 @@
         </div>
 
         <!-- Configurable other data rows -->
-        <div v-if="layout.showConditions && layout.chartStyle === 'bar'" class="hf-row hf-row-generic other-data-points-row">
+        <div v-if="layout.chartStyle === 'bar'" class="hf-row hf-row-generic other-data-points-row">
           <div
             v-for="slot in allHoursArr"
             :key="'wx-' + slot.index"
@@ -219,6 +235,48 @@ const props = defineProps({
 const emit = defineEmits(['forecast-data-point', 'day-selected'])
 
 const scrollEl = ref(null)
+
+// ── Day navigation ────────────────────────────────────────────────────────────
+
+const selectedDay = computed(() => props.selectedDay)
+const maxDay = computed(() => Math.max(0, (props.daily?.time?.length ?? 1) - 1))
+
+function navigateDay(delta) {
+  const next = props.selectedDay + delta
+  if (next < 0 || next > maxDay.value) return
+  emit('day-selected', next)
+}
+
+function jumpToToday() {
+  emit('day-selected', 0)
+}
+
+const datesNeedingDay = computed(() => {
+  const days = props.daily?.time ?? []
+  const seen = new Set(), needsDay = new Set()
+  for (const isoDate of days) {
+    const [y, m, d] = isoDate.split('-').map(Number)
+    const wd = new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+    if (seen.has(wd)) needsDay.add(isoDate)
+    else seen.add(wd)
+  }
+  return needsDay
+})
+
+const dayTitle = computed(() => {
+  const todayStr = new Date(Date.now() + props.utcOffset * 1000).toISOString().slice(0, 10)
+  const dayDate  = props.daily?.time?.[props.selectedDay]
+  if (!dayDate) return 'Today'
+  if (dayDate === todayStr) return 'Today'
+  const [y, m, d] = dayDate.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d, 12))
+  const weekday = date.toLocaleDateString('en', { weekday: 'short', timeZone: 'UTC' })
+  if (datesNeedingDay.value.has(dayDate)) {
+    const dateStr = date.toLocaleDateString('en', { day: 'numeric', timeZone: 'UTC' })
+    return `${weekday} ${dateStr}`
+  }
+  return weekday
+})
 
 // ── Layout config ─────────────────────────────────────────────────────────────
 
@@ -414,54 +472,6 @@ function barFillStyle(i) {
   }
 }
 
-// ── Sticky date labels ────────────────────────────────────────────────────────
-
-const EDGE_PAD  = 0
-const FADE_ZONE = 150
-const dateBarEl = ref(null)
-
-function dateLabel(dateStr) {
-  if (!dateStr) return ''
-  const todayStr = new Date(Date.now() + (props.utcOffset ?? 0) * 1000).toISOString().slice(0, 10)
-  if (dateStr === todayStr) return 'Today'
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const dt = new Date(Date.UTC(y, m - 1, d, 12))
-  return dt.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
-
-// One entry per day boundary (including day 0 at natural left = 0)
-const dateBoundaries = computed(() => {
-  const result = []
-  const start = displayStartIndex.value
-  const day0 = Math.floor(start / 24)
-  result.push({ dayIndex: day0, date: props.daily?.time?.[day0] ?? null, naturalLeft: 0 })
-  for (let i = start + 1; i < totalHours.value; i++) {
-    if (i % 24 === 0) {
-      const dayIndex = i / 24
-      result.push({ dayIndex, date: props.daily?.time?.[dayIndex] ?? null, naturalLeft: (i - start) * COL_WIDTH })
-    }
-  }
-  return result
-})
-
-function positionDateLabels(scrollLeft) {
-  const bar = dateBarEl.value
-  if (!bar) return
-  const boundaries = dateBoundaries.value
-  const spans = bar.children
-  for (let idx = 0; idx < boundaries.length; idx++) {
-    const span = spans[idx]
-    if (!span) continue
-    const b    = boundaries[idx]
-    const next = boundaries[idx + 1]
-    const left = Math.max(b.naturalLeft - scrollLeft, EDGE_PAD)
-    const nextDistToEdge = next ? (next.naturalLeft - scrollLeft) - EDGE_PAD : Infinity
-    const opacity = Math.min(1, Math.max(0, nextDistToEdge / FADE_ZONE))
-    span.style.left    = left + 'px'
-    span.style.opacity = opacity
-  }
-}
-
 // ── Current/past hour ─────────────────────────────────────────────────────────
 
 const currentAbsoluteHour = computed(() => {
@@ -515,6 +525,9 @@ const ICON_HALF = 12 // px — half of icon height (1.5rem ≈ 24px)
 const LINE_CY_OFFSET = LABEL_H + ICON_GAP + ICON_HALF // offset from float-group top to icon centre
 
 function iconFloatStyle(i) {
+  if (layout.value.chartStyle === 'strip') {
+    return { top: '0px' }
+  }
   const v = allMainValues.value[i]
   let ratio // 0 = top (highest value), 1 = bottom (lowest)
   if (FLOATING_BAR_TYPES.has(activeDataPoint.value)) {
@@ -576,7 +589,6 @@ let programmaticScrollTimer = null
 function onHourlyScroll() {
   if (!scrollEl.value) return
   const sl = scrollEl.value.scrollLeft
-  positionDateLabels(sl)
 
   if (programmaticScroll.value) {
     // Keep flag true until scroll animation settles
@@ -598,7 +610,6 @@ onMounted(() => {
   nextTick(() => {
     if (!scrollEl.value) return
     scrollEl.value.scrollTo({ left: 0 })
-    positionDateLabels(0)
   })
 })
 
@@ -641,7 +652,7 @@ watch(() => props.focusHour, (absHour) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 0px;
+  margin-bottom: 12px;
 }
 
 .card-title-icon {
@@ -663,6 +674,62 @@ watch(() => props.focusHour, (absHour) => {
   font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
+  flex: 1;
+}
+
+.hf-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.hf-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.hf-nav-btn:hover:not(:disabled) { opacity: 1; }
+.hf-nav-btn:disabled { opacity: 0.2; cursor: default; }
+.hf-nav-btn svg { width: 16px; height: 16px; }
+
+.hf-rewind-slot {
+  display: flex;
+  align-items: center;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.hf-rewind-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.hf-rewind-btn:hover { opacity: 1; }
+.hf-rewind-btn svg { width: 16px; height: 16px; }
+
+.hf-day-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+  width: 60px;
+  text-align: center;
 }
 
 /* ── Scroll container ────────────────────────────────────────────────── */
@@ -672,30 +739,11 @@ watch(() => props.focusHour, (absHour) => {
   overflow: hidden;
 }
 
-/* Date bar: absolutely positioned overlay above the time row */
-.hf-date-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 25px;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.hf-date-label {
-  position: absolute;
-  top: 1px;
-  white-space: nowrap;
-  font-size: 0.8rem;
-  color: var(--text-faint);
-}
-
 .hf-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  padding-top: 20px;
+  padding-top: 0;
   padding-bottom: 0;
 }
 .hf-scroll::-webkit-scrollbar { display: none; }
@@ -822,6 +870,19 @@ watch(() => props.focusHour, (absHour) => {
   width: 100%;
   height: calc(96px * var(--chart-size-mult, 1));
   flex-shrink: 0;
+}
+
+.hf-chart--strip .hf-icon-track {
+  height: 40px;
+}
+
+.hf-chart--strip .hf-bar-area {
+  padding-bottom: 16px;
+  padding-top: 8px;
+}
+
+.hf-chart--strip .hf-float-group {
+  flex-direction: column-reverse;
 }
 
 .hf-float-group {

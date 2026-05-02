@@ -16,14 +16,6 @@
         <span class="toggle-thumb" />
       </button>
     </div>
-    <div class="setting-row">
-      <div>
-        <div class="setting-label">Condition icons</div>
-      </div>
-      <button class="toggle-switch" :class="{ on: layout.showConditions }" @click="layout.showConditions = !layout.showConditions">
-        <span class="toggle-thumb" />
-      </button>
-    </div>
     <div v-if="type === 'hourly' || type === 'combined'" class="setting-row">
       <div>
         <div class="setting-label">Sunrise &amp; sunset</div>
@@ -39,6 +31,7 @@
       <div class="unit-pill">
         <button :class="['unit-pill-opt', { active: layout.chartStyle === 'bar' }]"      @click="layout.chartStyle = 'bar'">Bars</button>
         <button :class="['unit-pill-opt', { active: layout.chartStyle === 'icons' }]"   @click="layout.chartStyle = 'icons'">Icons</button>
+        <button :class="['unit-pill-opt', { active: layout.chartStyle === 'strip' }]"   @click="layout.chartStyle = 'strip'">Strip</button>
         <button :class="['unit-pill-opt', { active: layout.chartStyle === 'line' }]"    @click="layout.chartStyle = 'line'">Line</button>
         <button v-if="type === 'daily'" :class="['unit-pill-opt', { active: layout.chartStyle === 'vertical' }]" @click="layout.chartStyle = 'vertical'">Vertical</button>
       </div>
