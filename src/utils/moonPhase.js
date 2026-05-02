@@ -159,25 +159,37 @@ export function moonRiseSet(date, lat, lon, utcOffsetSeconds) {
     altitudes.push({ jd, alt, ha: haS })
   }
 
-  let rise = null, set = null
-
+  // Collect all horizon crossings in order
+  const crossings = []
   for (let i = 0; i < steps; i++) {
     const a0 = altitudes[i].alt - h0
     const a1 = altitudes[i + 1].alt - h0
     if (a0 * a1 < 0) {
-      // Linear interpolation for crossing
       const frac = a0 / (a0 - a1)
       const jdCross = altitudes[i].jd + frac / steps
-
-      // Moon is rising when altitude is increasing through the horizon
       const rising = altitudes[i].alt < altitudes[i + 1].alt
-
       const crossMs = (jdCross - 2440587.5) * 86400000
-      const crossDate = new Date(crossMs)
-      if (rising && !rise) rise = crossDate
-      else if (!rising && !set) set = crossDate
+      crossings.push({ date: new Date(crossMs), rising })
     }
   }
 
-  return { rise, set }
+  // Find the canonical rise/set pair for this day.
+  // Pattern [set, rise] means the moon was already above the horizon at local midnight —
+  // the early set is from the previous night. We return it as earlySet so callers can
+  // use it when borrowing a set from the next day's window.
+  let rise = null, set = null, earlySet = null
+  const riseEvent = crossings.find(c => c.rising)
+  if (riseEvent) {
+    rise = riseEvent.date
+    const setBeforeRise = crossings.find(c => !c.rising && c.date < riseEvent.date)
+    const setAfterRise  = crossings.find(c => !c.rising && c.date > riseEvent.date)
+    earlySet = setBeforeRise ? setBeforeRise.date : null
+    set = setAfterRise ? setAfterRise.date : null
+  } else {
+    // No rise today — take any set found (moon above or below horizon all day)
+    const setEvent = crossings.find(c => !c.rising)
+    set = setEvent ? setEvent.date : null
+  }
+
+  return { rise, set, earlySet }
 }

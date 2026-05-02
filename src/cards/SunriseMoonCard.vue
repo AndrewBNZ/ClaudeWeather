@@ -4,7 +4,7 @@
       <!-- Sunrise/Sunset section -->
       <button class="sm-section sm-sun sm-sun-btn" @click="showSunSheet = true">
         <div class="sm-section-title">Sun</div>
-        <div v-if="showingSunTomorrow" class="sm-tomorrow">Tomorrow</div>
+        <div v-if="showingSunTomorrow || showingTomorrow" class="sm-tomorrow" :style="{ visibility: showingSunTomorrow ? 'visible' : 'hidden' }">Tomorrow</div>
         <div class="sm-sun-arc">
           <svg viewBox="0 0 100 58" class="sun-arc-svg">
             <!-- Horizon line -->
@@ -39,7 +39,7 @@
       <!-- Moon section -->
       <button class="sm-section sm-moon sm-moon-btn" @click="showMoonSheet = true">
         <div class="sm-section-title">Moon</div>
-        <div v-if="showingTomorrow" class="sm-tomorrow">Tomorrow</div>
+        <div v-if="showingTomorrow || showingSunTomorrow" class="sm-tomorrow" :style="{ visibility: showingTomorrow ? 'visible' : 'hidden' }">Tomorrow</div>
         <div class="sm-moon-arc">
           <svg viewBox="0 0 100 58" class="moon-arc-svg">
             <!-- Horizon line -->
@@ -206,8 +206,13 @@ const moonRefDate = computed(() => {
 })
 
 const showingTomorrow = computed(() => {
+  const now = Date.now()
   const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
-  return !!(today.set && Date.now() > today.set.getTime())
+  // Switch to tomorrow only when today's moonset has passed AND there is no
+  // upcoming moonrise today (which would mean the current cycle isn't over yet).
+  if (!today.set) return false
+  if (today.rise && today.rise.getTime() > now) return false  // moonrise still upcoming today
+  return now > today.set.getTime()
 })
 
 const moonRefMs = computed(() => {
@@ -220,12 +225,20 @@ const riseSet = computed(() => {
   const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
   const now = Date.now()
 
-  if (today.set && now > today.set.getTime()) {
-    return moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+  // Today's moonset has passed (and no future rise today) — show tomorrow's pair
+  if (showingTomorrow.value) {
+    const tomorrowData = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+    if (tomorrowData.rise && !tomorrowData.set) {
+      const dayAfter = new Date(tomorrow.getTime() + 86400000)
+      const dayAfterData = moonRiseSet(dayAfter, props.lat, props.lng, props.utcOffset)
+      return { rise: tomorrowData.rise, set: dayAfterData.earlySet ?? dayAfterData.set }
+    }
+    return tomorrowData
   }
+  // Moon rises today but sets tomorrow — borrow tomorrow's early set (before tomorrow's rise)
   if (today.rise && !today.set) {
-    const tomorrowRiseSet = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
-    return { rise: today.rise, set: tomorrowRiseSet.set }
+    const tomorrowData = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+    return { rise: today.rise, set: tomorrowData.earlySet ?? tomorrowData.set }
   }
   return today
 })
@@ -263,21 +276,12 @@ const moonProgress = computed(() => {
   let rise = riseSet.value.rise
   let set  = riseSet.value.set
 
-  // If rise is in the future and set is before rise, the rise found belongs to the
-  // next cycle — the moon actually rose yesterday. Use yesterday's rise with today's set.
-  // Also handle the case where today has no rise at all (rise is null).
-  const needsYesterday = !rise || (set && rise.getTime() > set.getTime() && now < rise.getTime())
-  if (needsYesterday) {
+  // Moon has no rise today — it was already up at midnight, meaning it rose yesterday.
+  // Use yesterday's rise so the arc tracks correctly through tonight's set.
+  if (!rise && set) {
     const yesterday = new Date(moonRefDate.value.getTime() - 86400000)
     const prev = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
-    if (prev.rise) {
-      rise = prev.rise
-      if (!set) set = prev.set
-      // Correct for JD interpolation pushing the rise past midnight by one day
-      if (set && rise.getTime() > set.getTime()) {
-        rise = new Date(rise.getTime() - 86400000)
-      }
-    }
+    if (prev.rise) rise = prev.rise
   }
 
   if (!rise || !set) return -1
