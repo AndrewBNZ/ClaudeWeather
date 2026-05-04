@@ -205,42 +205,62 @@ const moonRefDate = computed(() => {
     : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
 })
 
-const showingTomorrow = computed(() => {
-  const now = Date.now()
+// showingTomorrow and riseSet are computed together — which cycle to display
+// determines both which times to show and whether to show "Tomorrow".
+const _moonBoth = computed(() => {
+  const now      = Date.now()
+  const yesterday = new Date(moonRefDate.value.getTime() - 86400000)
+  const tomorrow  = new Date(moonRefDate.value.getTime() + 86400000)
   const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
-  // Switch to tomorrow only when today's moonset has passed AND there is no
-  // upcoming moonrise today (which would mean the current cycle isn't over yet).
-  if (!today.set) return false
-  if (today.rise && today.rise.getTime() > now) return false  // moonrise still upcoming today
-  return now > today.set.getTime()
+
+  function tomorrowPair(base) {
+    const d = moonRiseSet(base, props.lat, props.lng, props.utcOffset)
+    if (d.rise && !d.set) {
+      const da = moonRiseSet(new Date(base.getTime() + 86400000), props.lat, props.lng, props.utcOffset)
+      return { rise: d.rise, set: da.earlySet ?? da.set }
+    }
+    return d
+  }
+
+  if (today.earlySet && !today.set) {
+    // Moon rose yesterday; earlySet is the carry-over set. today.rise (if any) is tonight's separate cycle.
+    if (now < today.earlySet.getTime()) {
+      const yd = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
+      return { showingTomorrow: false, riseSet: { rise: yd.rise, set: today.earlySet } }
+    } else if (today.rise) {
+      // In the gap between earlySet and tonight's rise — show tonight's upcoming arc
+      const td = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+      return { showingTomorrow: false, riseSet: { rise: today.rise, set: td.earlySet ?? td.set } }
+    } else {
+      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
+    }
+  } else if (!today.rise && today.set) {
+    // No rise today — moon rose near/before midnight, borrow yesterday's rise
+    const yd = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
+    if (now > today.set.getTime()) {
+      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
+    }
+    return { showingTomorrow: false, riseSet: { rise: yd.rise, set: today.set } }
+  } else if (today.rise && !today.set) {
+    // Rises today, sets tomorrow
+    const td = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
+    return { showingTomorrow: false, riseSet: { rise: today.rise, set: td.earlySet ?? td.set } }
+  } else if (today.rise && today.set) {
+    if (now > today.set.getTime()) {
+      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
+    }
+    return { showingTomorrow: false, riseSet: today }
+  } else {
+    // No events today — show tomorrow
+    return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
+  }
 })
+const showingTomorrow = computed(() => _moonBoth.value.showingTomorrow)
+const riseSet         = computed(() => _moonBoth.value.riseSet)
 
 const moonRefMs = computed(() => {
   const base = moonRefDate.value.getTime() + 12 * 3600000
   return showingTomorrow.value ? base + 86400000 : base
-})
-
-const riseSet = computed(() => {
-  const tomorrow = new Date(moonRefDate.value.getTime() + 86400000)
-  const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
-  const now = Date.now()
-
-  // Today's moonset has passed (and no future rise today) — show tomorrow's pair
-  if (showingTomorrow.value) {
-    const tomorrowData = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
-    if (tomorrowData.rise && !tomorrowData.set) {
-      const dayAfter = new Date(tomorrow.getTime() + 86400000)
-      const dayAfterData = moonRiseSet(dayAfter, props.lat, props.lng, props.utcOffset)
-      return { rise: tomorrowData.rise, set: dayAfterData.earlySet ?? dayAfterData.set }
-    }
-    return tomorrowData
-  }
-  // Moon rises today but sets tomorrow — borrow tomorrow's early set (before tomorrow's rise)
-  if (today.rise && !today.set) {
-    const tomorrowData = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
-    return { rise: today.rise, set: tomorrowData.earlySet ?? tomorrowData.set }
-  }
-  return today
 })
 
 function formatTimeMs(date) {
@@ -257,13 +277,16 @@ function formatTimeMs(date) {
 const moonriseFormatted = computed(() => formatTimeMs(riseSet.value.rise))
 const moonsetFormatted  = computed(() => formatTimeMs(riseSet.value.set))
 
-// True when moonset falls on the next calendar day (set timestamp > rise timestamp but earlier clock time)
+// True when moonset falls on tomorrow's calendar day (moon rose today, sets tomorrow).
+// Not shown when moon rose yesterday and sets today — that set is still "today".
 const moonsetNextDay = computed(() => {
   const { rise, set } = riseSet.value
   if (!rise || !set) return false
-  const riseLocal = rise.getTime() + props.utcOffset * 1000
-  const setLocal  = set.getTime()  + props.utcOffset * 1000
-  return Math.floor(setLocal / 86400000) > Math.floor(riseLocal / 86400000)
+  const nowLocalDay  = Math.floor((Date.now() + props.utcOffset * 1000) / 86400000)
+  const riseLocalDay = Math.floor((rise.getTime() + props.utcOffset * 1000) / 86400000)
+  const setLocalDay  = Math.floor((set.getTime()  + props.utcOffset * 1000) / 86400000)
+  // Only flag +1 when moonrise is today and moonset is tomorrow
+  return riseLocalDay === nowLocalDay && setLocalDay > riseLocalDay
 })
 
 const phase    = computed(() => getMoonPhase(moonRefMs.value))
@@ -272,18 +295,9 @@ const moonTransform = `translate(${(50 - 20 * 11/18).toFixed(3)},${(30 - 20 * 11
 
 // Moon arc progress
 const moonProgress = computed(() => {
-  const now = Date.now()
-  let rise = riseSet.value.rise
-  let set  = riseSet.value.set
-
-  // Moon has no rise today — it was already up at midnight, meaning it rose yesterday.
-  // Use yesterday's rise so the arc tracks correctly through tonight's set.
-  if (!rise && set) {
-    const yesterday = new Date(moonRefDate.value.getTime() - 86400000)
-    const prev = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
-    if (prev.rise) rise = prev.rise
-  }
-
+  const now  = Date.now()
+  const rise = riseSet.value.rise
+  const set  = riseSet.value.set
   if (!rise || !set) return -1
   if (now > set.getTime()) return -1
   return (now - rise.getTime()) / (set.getTime() - rise.getTime())
