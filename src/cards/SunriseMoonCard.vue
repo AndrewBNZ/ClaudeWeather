@@ -114,7 +114,9 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { getMoonPhase, moonPathForPhase, moonRiseSet } from '../utils/moonPhase.js'
+import { getMoonPhase, moonPathForPhase } from '../utils/moonPhase.js'
+import { useMoonArc } from '../composables/useMoonArc.js'
+import { useSunArc } from '../composables/useSunArc.js'
 import MoonDetailSheet from './MoonDetailSheet.vue'
 import SunDetailSheet from './SunDetailSheet.vue'
 
@@ -130,53 +132,16 @@ const props = defineProps({
   utcOffset:  { type: Number, default: 0 },  // seconds
 })
 
-const showingSunTomorrow = computed(() => {
-  const s = props.daily?.sunset?.[0]
-  if (!s) return false
-  const localDate = new Date(Date.now() + props.utcOffset * 1000)
-  const nowH = localDate.getUTCHours() + localDate.getUTCMinutes() / 60
-  const [h, m] = s.slice(11, 16).split(':').map(Number)
-  return nowH > h + m / 60
-})
-
-const sunrise = computed(() => props.daily?.sunrise?.[showingSunTomorrow.value ? 1 : 0] ?? null)
-const sunset  = computed(() => props.daily?.sunset?.[showingSunTomorrow.value ? 1 : 0] ?? null)
-
-function formatTime(isoStr, format) {
-  if (!isoStr) return '—'
-  const [h, m] = isoStr.slice(11, 16).split(':').map(Number)
-  if (format === '24h') return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`
-}
-
-const sunriseFormatted = computed(() => formatTime(sunrise.value, props.timeFormat))
-const sunsetFormatted  = computed(() => formatTime(sunset.value, props.timeFormat))
-
-const dayLength = computed(() => {
-  if (!sunrise.value || !sunset.value) return '—'
-  const riseMs = new Date(sunrise.value + 'Z').getTime()
-  const setMs  = new Date(sunset.value + 'Z').getTime()
-  const mins   = Math.round((setMs - riseMs) / 60000)
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`
-})
-
-// Sun arc progress (0 = sunrise, 1 = sunset, <0 / >1 = night)
-function parseHour(isoStr) {
-  if (!isoStr) return null
-  const [h, m] = isoStr.slice(11, 16).split(':').map(Number)
-  return h + m / 60
-}
-
-const sunProgress = computed(() => {
-  if (showingSunTomorrow.value) return -1
-  const riseH = parseHour(sunrise.value)
-  const setH  = parseHour(sunset.value)
-  if (riseH == null || setH == null) return -1
-  // Shift UTC now into the location's local time
-  const localDate = new Date(Date.now() + props.utcOffset * 1000)
-  const now = localDate.getUTCHours() + localDate.getUTCMinutes() / 60
-  return (now - riseH) / (setH - riseH)
+const {
+  showingSunTomorrow,
+  sunriseFormatted,
+  sunsetFormatted,
+  dayLength,
+  sunProgress,
+} = useSunArc({
+  daily:      computed(() => props.daily),
+  utcOffset:  computed(() => props.utcOffset),
+  timeFormat: computed(() => props.timeFormat),
 })
 
 // Arc geometry: semicircle from (5,50) to (95,50), radius=45
@@ -196,7 +161,7 @@ const sunProgressArc = computed(() => {
   return `M 5,50 A 45,45 0 0,1 ${end.x.toFixed(1)},${end.y.toFixed(1)}`
 })
 
-// ── Moon (identical logic to MoonDetailSheet) ─────────────────────────────────
+// ── Moon ──────────────────────────────────────────────────────────────────────
 
 const moonRefDate = computed(() => {
   const src = props.daily?.sunrise?.[0]
@@ -205,103 +170,25 @@ const moonRefDate = computed(() => {
     : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z')
 })
 
-// showingTomorrow and riseSet are computed together — which cycle to display
-// determines both which times to show and whether to show "Tomorrow".
-const _moonBoth = computed(() => {
-  const now      = Date.now()
-  const yesterday = new Date(moonRefDate.value.getTime() - 86400000)
-  const tomorrow  = new Date(moonRefDate.value.getTime() + 86400000)
-  const today = moonRiseSet(moonRefDate.value, props.lat, props.lng, props.utcOffset)
-
-  function tomorrowPair(base) {
-    const d = moonRiseSet(base, props.lat, props.lng, props.utcOffset)
-    if (d.rise && !d.set) {
-      const da = moonRiseSet(new Date(base.getTime() + 86400000), props.lat, props.lng, props.utcOffset)
-      return { rise: d.rise, set: da.earlySet ?? da.set }
-    }
-    return d
-  }
-
-  if (today.earlySet && !today.set) {
-    // Moon rose yesterday; earlySet is the carry-over set. today.rise (if any) is tonight's separate cycle.
-    if (now < today.earlySet.getTime()) {
-      const yd = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
-      return { showingTomorrow: false, riseSet: { rise: yd.rise, set: today.earlySet } }
-    } else if (today.rise) {
-      // In the gap between earlySet and tonight's rise — show tonight's upcoming arc
-      const td = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
-      return { showingTomorrow: false, riseSet: { rise: today.rise, set: td.earlySet ?? td.set } }
-    } else {
-      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
-    }
-  } else if (!today.rise && today.set) {
-    // No rise today — moon rose near/before midnight, borrow yesterday's rise
-    const yd = moonRiseSet(yesterday, props.lat, props.lng, props.utcOffset)
-    if (now > today.set.getTime()) {
-      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
-    }
-    return { showingTomorrow: false, riseSet: { rise: yd.rise, set: today.set } }
-  } else if (today.rise && !today.set) {
-    // Rises today, sets tomorrow
-    const td = moonRiseSet(tomorrow, props.lat, props.lng, props.utcOffset)
-    return { showingTomorrow: false, riseSet: { rise: today.rise, set: td.earlySet ?? td.set } }
-  } else if (today.rise && today.set) {
-    if (now > today.set.getTime()) {
-      return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
-    }
-    return { showingTomorrow: false, riseSet: today }
-  } else {
-    // No events today — show tomorrow
-    return { showingTomorrow: true, riseSet: tomorrowPair(tomorrow) }
-  }
-})
-const showingTomorrow = computed(() => _moonBoth.value.showingTomorrow)
-const riseSet         = computed(() => _moonBoth.value.riseSet)
-
-const moonRefMs = computed(() => {
-  const base = moonRefDate.value.getTime() + 12 * 3600000
-  return showingTomorrow.value ? base + 86400000 : base
+const {
+  showingTomorrow,
+  riseSet,
+  moonRefMs,
+  currentPhase,
+  moonriseFormatted,
+  moonsetFormatted,
+  moonsetNextDay,
+  moonProgress,
+} = useMoonArc({
+  refDate:    moonRefDate,
+  lat:        computed(() => props.lat),
+  lon:        computed(() => props.lng),
+  utcOffset:  computed(() => props.utcOffset),
+  timeFormat: computed(() => props.timeFormat),
 })
 
-function formatTimeMs(date) {
-  if (!date) return '—'
-  const localMs = date.getTime() + props.utcOffset * 1000
-  const d = new Date(localMs)
-  const h = d.getUTCHours()
-  const m = d.getUTCMinutes()
-  if (props.timeFormat === '24h') return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${ampm}`
-}
-
-const moonriseFormatted = computed(() => formatTimeMs(riseSet.value.rise))
-const moonsetFormatted  = computed(() => formatTimeMs(riseSet.value.set))
-
-// True when moonset falls on tomorrow's calendar day (moon rose today, sets tomorrow).
-// Not shown when moon rose yesterday and sets today — that set is still "today".
-const moonsetNextDay = computed(() => {
-  const { rise, set } = riseSet.value
-  if (!rise || !set) return false
-  const nowLocalDay  = Math.floor((Date.now() + props.utcOffset * 1000) / 86400000)
-  const riseLocalDay = Math.floor((rise.getTime() + props.utcOffset * 1000) / 86400000)
-  const setLocalDay  = Math.floor((set.getTime()  + props.utcOffset * 1000) / 86400000)
-  // Only flag +1 when moonrise is today and moonset is tomorrow
-  return riseLocalDay === nowLocalDay && setLocalDay > riseLocalDay
-})
-
-const phase    = computed(() => getMoonPhase(moonRefMs.value))
-const moonPath = computed(() => moonPathForPhase(phase.value, props.lat))
+const moonPath      = computed(() => moonPathForPhase(currentPhase.value, props.lat))
 const moonTransform = `translate(${(50 - 20 * 11/18).toFixed(3)},${(30 - 20 * 11/18).toFixed(3)}) scale(${(11/18).toFixed(6)})`
-
-// Moon arc progress
-const moonProgress = computed(() => {
-  const now  = Date.now()
-  const rise = riseSet.value.rise
-  const set  = riseSet.value.set
-  if (!rise || !set) return -1
-  if (now > set.getTime()) return -1
-  return (now - rise.getTime()) / (set.getTime() - rise.getTime())
-})
 
 const moonDotPos = computed(() => arcPoint(Math.min(Math.max(moonProgress.value, 0), 1)))
 const moonDotX   = computed(() => moonDotPos.value.x)
