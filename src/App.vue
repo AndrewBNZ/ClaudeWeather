@@ -224,6 +224,7 @@
                 :warnings-config="warningsConfig"
                 :custom-alerts-config="customAlertsConfig"
                 :custom-alert-results="customAlertResults"
+                :reopen-alert-id="reopenAlertId"
                 :focus-hour="focusHour"
                 :location-country="location?.country ?? null"
                 :forecast-data-point="forecastDataPoint"
@@ -279,6 +280,7 @@
       :lat="location?.lat ?? 0"
       :lng="location?.lon ?? 0"
       @close="settingsOpen = false; editAlertId = null"
+      @close-to-alert="onCloseToAlert"
     />
 
     <!-- PWS station picker modal -->
@@ -395,6 +397,7 @@ const customAlertResults = computed(() => {
   return evaluateCustomAlerts(customAlerts.value, weatherData.value.hourly)
 })
 const editAlertId       = ref(null)
+const reopenAlertId     = ref(null)
 const focusHour           = ref(null)
 const alertHighlightHours = ref(null)
 const alertHighlightColor = ref(null)
@@ -411,6 +414,13 @@ function onOpenCardSettings(cardType) {
 function onOpenAlertEditor(alertId) {
   editAlertId.value = alertId
   onOpenCardSettings('customAlerts')
+}
+
+function onCloseToAlert(alertId) {
+  settingsOpen.value = false
+  editAlertId.value = null
+  reopenAlertId.value = alertId
+  nextTick(() => { reopenAlertId.value = null })
 }
 
 function onScrollToHour({ date, hour }) {

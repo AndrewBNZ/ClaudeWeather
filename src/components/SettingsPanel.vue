@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
   <Transition name="settings-sheet-overlay">
-    <div v-if="isOpen" class="settings-sheet-overlay" @click.self="$emit('close')">
+    <div v-if="isOpen" class="settings-sheet-overlay" @click.self="onClose()">
       <div class="settings-dropdown" @click.stop>
         <div class="settings-header" :class="{ 'settings-header--sub': subPanel }">
           <!-- Back button (sub-panel only) -->
@@ -20,7 +20,7 @@
               @click="customAlertsRef.alertEnabled = !customAlertsRef.alertEnabled"
               title="Enable alert"
             ><span class="toggle-thumb" /></button>
-            <button class="settings-tab-close" @click="$emit('close')">✕</button>
+            <button class="settings-tab-close" @click="onClose()">✕</button>
           </div>
         </div>
       <div class="settings-tabs" :class="{ 'settings-tabs--collapsed': subPanel, 'settings-tabs--seq-forward': navDir === 'forward', 'settings-tabs--seq-back': seqBack }">
@@ -188,7 +188,7 @@ const props = defineProps({
   lat:             { type: Number, default: 0 },
   lng:             { type: Number, default: 0 },
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'close-to-alert'])
 function jumpToSubPanel(sub) {
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
   const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
@@ -292,9 +292,21 @@ function navigate(target) {
   _runAnim()
 }
 
+function onClose() {
+  if (props.editAlertId) {
+    emit('close-to-alert', props.editAlertId)
+    return
+  }
+  emit('close')
+}
+
 function navigateBack() {
   if (animating.value) return
   if (subPanel.value === 'customAlerts' && alertsEditorPage.value === 'editor') {
+    if (props.editAlertId) {
+      emit('close-to-alert', props.editAlertId)
+      return
+    }
     customAlertsRef.value?.cancelEditor()
     return
   }
