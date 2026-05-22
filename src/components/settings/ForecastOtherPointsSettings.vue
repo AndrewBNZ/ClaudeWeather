@@ -50,28 +50,33 @@ const props = defineProps({
 })
 
 const {
-  dailyForecastLayout, hourlyForecastLayout,
+  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout,
   toggleDailyOtherPoint, toggleDailyOtherPointPicker, reorderDailyOtherPoints,
   toggleHourlyOtherPoint, toggleHourlyOtherPointPicker, reorderHourlyOtherPoints,
+  toggleCombinedOtherPoint, toggleCombinedOtherPointPicker, reorderCombinedOtherPoints,
 } = useSettings()
 
 const layout = computed(() => {
-  if (props.type === 'daily') return dailyForecastLayout.value
+  if (props.type === 'daily')    return dailyForecastLayout.value
+  if (props.type === 'combined') return combinedForecastLayout.value
   return hourlyForecastLayout.value
 })
 
 const toggleOtherPoint = computed(() => {
-  if (props.type === 'daily') return toggleDailyOtherPoint
+  if (props.type === 'daily')    return toggleDailyOtherPoint
+  if (props.type === 'combined') return toggleCombinedOtherPoint
   return toggleHourlyOtherPoint
 })
 
 const toggleOtherPointPicker = computed(() => {
-  if (props.type === 'daily') return toggleDailyOtherPointPicker
+  if (props.type === 'daily')    return toggleDailyOtherPointPicker
+  if (props.type === 'combined') return toggleCombinedOtherPointPicker
   return toggleHourlyOtherPointPicker
 })
 
 const reorderOtherPoints = computed(() => {
-  if (props.type === 'daily') return reorderDailyOtherPoints
+  if (props.type === 'daily')    return reorderDailyOtherPoints
+  if (props.type === 'combined') return reorderCombinedOtherPoints
   return reorderHourlyOtherPoints
 })
 

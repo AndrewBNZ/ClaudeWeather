@@ -62,10 +62,11 @@ defineEmits(['navigate'])
 
 const { cardConfig, toggleCard, reorderCards, resetCardLayout } = useSettings()
 
-const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment', airQuality: 'airQuality' }
+const CARD_SUBPANEL = { combinedHourly: 'hourlyForecast', dailyForecast: 'dailyForecast', combinedForecast: 'combinedForecast', customAlerts: 'customAlerts', weatherWarnings: 'weatherWarnings', radar: 'radar', daySegment: 'daySegment', airQuality: 'airQuality' }
 const CARD_HINTS = {
   combinedHourly:   'Configure the hourly forecast card',
   dailyForecast:    'Configure the daily forecast card',
+  combinedForecast: 'Combined daily strip and hourly view',
   sunriseMoon:      'Sunrise, sunset and moon phase',
   radar:            'Radar map',
   customAlerts:     'Set up custom weather alerts',

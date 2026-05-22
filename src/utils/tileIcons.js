@@ -144,4 +144,13 @@ export const CARD_ICONS = {
     <path d="M10 9.5 C8 8 6 9 6 11" stroke-opacity="0.6"/>
     <path d="M10 9.5 C12 8 14 9 14 11" stroke-opacity="0.6"/>
   </svg>`,
+
+  combinedForecast: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2.5" width="16" height="7" rx="1.5"/>
+    <line x1="2" y1="12" x2="18" y2="12"/>
+    <line x1="5" y1="17" x2="5" y2="14"/>
+    <line x1="9" y1="17" x2="9" y2="13"/>
+    <line x1="13" y1="17" x2="13" y2="15"/>
+    <line x1="17" y1="17" x2="17" y2="12.5"/>
+  </svg>`,
 }

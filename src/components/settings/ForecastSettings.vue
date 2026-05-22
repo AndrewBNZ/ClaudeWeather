@@ -13,6 +13,17 @@
       :hourly-forecast-layout="hourlyForecastLayout"
       :forecast-data-point="null"
     />
+    <CombinedForecastCard
+      v-else-if="type === 'combined'"
+      :daily="weather.daily"
+      :hourly="weather.hourly"
+      :unit-prefs="unitPrefs"
+      :selected-day="0"
+      :utc-offset="weather.utc_offset_seconds ?? 0"
+      :time-format="timeFormat"
+      :combined-forecast-layout="combinedForecastLayout"
+      :forecast-data-point="null"
+    />
     <DailyForecastCard
       v-else
       :daily="weather.daily"
@@ -70,13 +81,13 @@
         <button :class="['unit-pill-opt', { active: layout.chartSize === 'L' }]"  @click="layout.chartSize = 'L'">L</button>
       </div>
     </div>
-    <div v-if="type === 'daily'" class="setting-row setting-row--col">
-      <div class="setting-label">Days</div>
+    <div v-if="type === 'daily' || type === 'combined'" class="setting-row setting-row--col">
+      <div class="setting-label">{{ type === 'combined' ? 'Days in strip' : 'Days' }}</div>
       <div class="unit-pill">
         <button :class="['unit-pill-opt', { active: layout.numDays === 3 }]"    @click="layout.numDays = 3">3</button>
         <button :class="['unit-pill-opt', { active: layout.numDays === 7 }]"    @click="layout.numDays = 7">7</button>
         <button :class="['unit-pill-opt', { active: layout.numDays === 14 }]"   @click="layout.numDays = 14">14</button>
-        <button :class="['unit-pill-opt', { active: layout.numDays === null }]" @click="layout.numDays = null">All</button>
+        <button v-if="type === 'daily'" :class="['unit-pill-opt', { active: layout.numDays === null }]" @click="layout.numDays = null">All</button>
       </div>
     </div>
     <div class="setting-row">
@@ -117,8 +128,9 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useSettings, MAIN_DATA_POINT_OPTIONS, HOURLY_MAIN_DATA_POINT_OPTIONS } from '../../composables/useSettings.js'
 import { TILE_ICONS } from '../../utils/tileIcons.js'
-import HourlyForecastCard from '../../cards/HourlyForecastCard.vue'
-import DailyForecastCard  from '../../cards/DailyForecastCard.vue'
+import HourlyForecastCard    from '../../cards/HourlyForecastCard.vue'
+import DailyForecastCard     from '../../cards/DailyForecastCard.vue'
+import CombinedForecastCard  from '../../cards/CombinedForecastCard.vue'
 
 const props = defineProps({
   type:      { type: String, required: true }, // 'daily' | 'hourly' | 'combined'
@@ -128,12 +140,13 @@ const props = defineProps({
 defineEmits(['navigate'])
 
 const {
-  dailyForecastLayout, hourlyForecastLayout, timeFormat,
-  setDailyMainDataPoint, setHourlyMainDataPoint,
+  dailyForecastLayout, hourlyForecastLayout, combinedForecastLayout, timeFormat,
+  setDailyMainDataPoint, setHourlyMainDataPoint, setCombinedMainDataPoint,
 } = useSettings()
 
 const layout = computed(() => {
-  if (props.type === 'daily') return dailyForecastLayout.value
+  if (props.type === 'daily')    return dailyForecastLayout.value
+  if (props.type === 'combined') return combinedForecastLayout.value
   return hourlyForecastLayout.value
 })
 
@@ -142,7 +155,8 @@ const mainOptions = computed(() =>
 )
 
 const setMainDataPoint = computed(() => {
-  if (props.type === 'daily') return setDailyMainDataPoint
+  if (props.type === 'daily')    return setDailyMainDataPoint
+  if (props.type === 'combined') return setCombinedMainDataPoint
   return setHourlyMainDataPoint
 })
 

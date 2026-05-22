@@ -74,6 +74,15 @@
           <ForecastOtherPointsSettings type="daily" />
         </div>
 
+        <!-- Combined Forecast layout sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'combinedForecast'" :class="paneClass('combinedForecast')">
+          <ForecastSettings type="combined" :weather="props.weather" :unit-prefs="props.unitPrefs" @navigate="navigate" />
+        </div>
+
+        <!-- Combined Forecast → Other data points sub-panel -->
+        <div class="settings-tab-pane" :data-pane="'combinedOtherPoints'" :class="paneClass('combinedOtherPoints')">
+          <ForecastOtherPointsSettings type="combined" />
+        </div>
 
         <!-- Custom Alerts layout sub-panel -->
         <div class="settings-tab-pane settings-tab-pane--flush" :data-pane="'customAlerts'" :class="paneClass('customAlerts')">
@@ -201,7 +210,7 @@ defineExpose({
 // ── Local state ───────────────────────────────────────────────────────────────
 const tab            = ref('display')
 const subPanel       = ref(null)
-const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar', daySegment: 'Daily Dashboard', airQuality: 'Air Quality' }
+const subPanelTitles = { units: 'Units', weatherIcons: 'Weather Icons', sceneConditions: 'Current Conditions', hourlyForecast: 'Hourly Forecast', hourlyOtherPoints: 'Other data points', dailyForecast: 'Daily Forecast', dailyOtherPoints: 'Other data points', combinedForecast: 'Forecast', combinedOtherPoints: 'Other data points', customAlerts: 'Custom Alerts', weatherWarnings: 'Weather Warnings', forecastModel: 'Forecast Model', pwsKey: 'Weather Underground', tempestToken: 'Tempest', radar: 'Radar', daySegment: 'Daily Dashboard', airQuality: 'Air Quality' }
 const alertsEditorPage  = ref('list')   // 'list' | 'editor'
 const alertsEditorTitle = ref('')
 const subPanelTitle  = computed(() => {
@@ -291,7 +300,7 @@ function navigateBack() {
   }
   const DATA_SUBPANELS    = ['forecastModel', 'pwsKey', 'tempestToken']
   const DISPLAY_SUBPANELS = ['units', 'weatherIcons']
-  const FORECAST_SUBPANELS = { hourlyOtherPoints: 'hourlyForecast', dailyOtherPoints: 'dailyForecast' }
+  const FORECAST_SUBPANELS = { hourlyOtherPoints: 'hourlyForecast', dailyOtherPoints: 'dailyForecast', combinedOtherPoints: 'combinedForecast' }
   let target, newSubPanel
   if (DATA_SUBPANELS.includes(subPanel.value)) {
     target = 'data'; newSubPanel = null

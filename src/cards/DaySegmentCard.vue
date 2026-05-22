@@ -45,7 +45,6 @@
           <div class="seg-col-label">Morning</div>
           <div class="seg-col-label">Afternoon</div>
           <div class="seg-col-label">Evening</div>
-          <div class="seg-col-label">Night</div>
 
           <!-- Today progress bar -->
           <div v-if="isToday && layout.showProgress" class="seg-progress-track">
@@ -115,7 +114,6 @@
           <div class="seg-col-label">Morning</div>
           <div class="seg-col-label">Afternoon</div>
           <div class="seg-col-label">Evening</div>
-          <div class="seg-col-label">Night</div>
 
           <div v-for="seg in adjacentSegments" :key="'adj-cond-' + seg.key" class="seg-cell seg-cell--condition">
             <WeatherIcon class="seg-wx-icon" :code="seg.dominantCode" :is-day="seg.isDay" />
@@ -652,7 +650,6 @@ const segments = computed(() => [
   buildSegment('morning',   layout.value.morningStart,   layout.value.morningEnd,   'Morning'),
   buildSegment('afternoon', layout.value.afternoonStart, layout.value.afternoonEnd, 'Afternoon'),
   buildSegment('evening',   layout.value.eveningStart,   layout.value.eveningEnd,   'Evening'),
-  buildSegment('night',     layout.value.nightStart,     layout.value.nightEnd,     'Night'),
 ])
 
 // Segments for the adjacent (preview) day
@@ -684,7 +681,6 @@ const adjacentSegments = computed(() => {
     buildSegmentForDay(d, 'morning',   layout.value.morningStart,   layout.value.morningEnd),
     buildSegmentForDay(d, 'afternoon', layout.value.afternoonStart, layout.value.afternoonEnd),
     buildSegmentForDay(d, 'evening',   layout.value.eveningStart,   layout.value.eveningEnd),
-    buildSegmentForDay(d, 'night',     layout.value.nightStart,     layout.value.nightEnd),
   ]
 })
 
@@ -902,10 +898,10 @@ function fmtSegValueForDay(day, type, seg) {
   will-change: transform;
 }
 
-/* 4-column grid */
+/* 3-column grid */
 .seg-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 0;
 }
 
